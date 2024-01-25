@@ -1,0 +1,433 @@
+---
+title: "Computer lab 1"
+author: "Richard Öhrvall"
+date: '2024-01-17'
+format: pdf
+---
+
+# Introduction
+
+This is the first computer lab for the course Discrete Choice Modeling. At various position in this document, you'll find the prompt ***Your turn***. This indicates a question for you to solve during the lab.
+
+# Quarto
+We will be using Quarto documents for the computer labs and assignments in this course. Quarto is a software, but it's installed with R Studio so you don't need to install it yourself. Quarto documents combine text and code. The code could be R or Python or JavaScript. At the core of Quarto is Pandoc -- a software that can convert documents between different formats. It's also installed with R Studio.
+
+In Quarto you write text in markdown, which is a simple formatting syntax for authoring documents. You can also include chunks of code and thereby get statistical results into our documents without any copy and pasting. In R, we can "render" Quarto documents, i.e. transform them, into pdf, html or even MS word files. You can use Quarto to produce books and articles, nicely formatted and ready for publication, but you do so much more, e.g. creating your own website or blog.
+
+There is a format similar to Quarto, called R Markdown. It is very similar, but there are some technical differences and, more importantly, it seems as the team behind these formats will focus the development on Quarto. However, in this course, you can use R Markdown if you prefer that. There are some useful links to more information on R Markdown in Lisam, see Course documents/Resources. At the same place, you also find links to additional information on Quarto. You can also learn more about Quarto here: <https://quarto.org> or in Chapter 29 in the new version of the book *R for Data Science* by Hadley Wickham and Garrett Grolemund, see <https://r4ds.hadley.nz/quarto>. 
+
+## Writing text
+
+In a Quarto document, you write text with markdown functionality. You can find information on Markdown syntax here: <https://www.markdownguide.org/basic-syntax/>.
+
+One \# gives Heading 1, \## gives Heading 2, and so on. You can write **bold** text or *italics*. And you can write mathematical notation, e.g.
+
+$$X \sim Binom(n, p)$$
+
+We can also add a label to the equation and it then gets a number:
+
+$$P(X \le x) = \sum_{x_i \le x}p_x(x_i)$$ {#eq-mean}
+
+And we can then refer to it, e.g., to @eq-mean.
+
+Or set operations:
+
+$$A \subset B$$
+
+You can also have notation within a line using single dollar signs, e.g. $X_i$.
+
+In R Studio, you can also switch to the Visual editor, where you have functionality similar to what you have in MS Word or similar programs.
+
+## Writing code
+
+When you write code in a Quarto document, you do it in a code chunk. You can click in the menu to insert a code chunk, or you can press CTRL+ALT+I (command on a Mac). A code chunk looks like this. The `r` you see is information that this is R code (you could use other software in a Quarto document, such as Python, Julia, etc.). The code you write is just like in an R script.
+
+```{r}
+
+a <- 1 + 1
+
+```
+
+You can add options to code chunks like this:
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed) when you compile the document. You can also turn off messages and warnings the same way. For more information on these options, see <https://quarto.org/docs/computations/execution-options.html> 
+
+
+## Compiling a document
+
+When you click the **Render** button a document will be generated that includes both content and the output of embedded code. What kind of document will be rendered depends on what you have specified at the top of the document in the YAML header (here: pdf).
+
+If you want to create a pdf document, you need some Latex distribution installed on your computer. If you don't have one already, I suggest that you install the tinytex package in R and then install Latex using the install_tinytex() function. Here's a video on how to install tinytex: <https://www.youtube.com/watch?v=oF_KI4SLuBs>. You can also install tinytex from the command line, see <https://quarto.org/docs/output-formats/pdf-engine.html> When you have a working Latex distribution on your computer, you can change the format at the top of the document to pdf and then render the document.
+
+When you compile a Quarto document to a pdf, the document will be converted to a Markdown document, and then a Latex document, and then a pdf. This means that you can include Latex code in your document, including Latex packages. E.g.,
+
+\newpage
+
+This doesn't work when compiling to html or MS Word.
+
+## YAML header
+At the top of the Quarto document, you see the YAML header. It defines some metadata for the document, e.g. title and the name of the author. We will talk more about these options later on, but if you're interested you can find some information here: <https://quarto.org/docs/authoring/front-matter.html>. 
+
+
+# Our data: Survival from the Titanic
+In today's computer class we will be using a dataset of individuals who were passengers on the Titanic. Titanic was a British passenger liner that sank in the Atlantic Ocean on April 15, 1912, after colliding with an iceberg during her maiden voyage. Titanic departed from Southampton and was supposed to go to New York City.
+
+Some data on the Titanic is actually loaded into R when you start the program (try writing Titanic in your console). But we will be using a dataset with some more information that comes with the titanic package. If you want more information about the dataset and its variables you can look [here](https://www.kaggle.com/c/titanic/data).
+
+
+```{r}
+# Load the titanic package, if you haven't installed type install.packages("titanic") first. The same goes for other packages in this lab.
+library(titanic)
+
+# The titanic package comes with two datasets and we'll be using the training dataset
+titanic <- titanic_train
+
+# You can see the class of the object
+class(titanic)
+
+# We can look at the first 10 or last 10 observations
+head(titanic, 10)
+tail(titanic, 10)
+
+# If you want to look at the data, you can click on "titanic" in the Environment tab or type View(titanic)
+
+# We can get some information about the variables using -str-
+str(titanic)
+
+# Another nice way to get some information about the variables is through -skim- in the skimr package
+# However, the output from skimr could lead to problems knitting to a pdf.
+# library(skimr)
+# skim(titanic)
+
+# Or you could use modelsummary package
+library(modelsummary)
+datasummary_skim(titanic)
+
+```
+
+# Using Tidyverse
+We will be using Tidyverse in this course. It is a collection of packages which share an underlying design philosophy, grammar, and view of how data should be structured. For more information about Tidyverse, see <https://www.tidyverse.org/>. By loading the tidyverse package, we are loading 8 key packages, but there are more packages included in the Tidyverse. 
+
+For data transformation, the key package is dplyr. We mainly use 5 verbs for data transformation in dplyr: select, filter, arrange, mutate, and summarise. For more information about data transformation, see [chapter 4 in Wickham and Grolemund](https://r4ds.hadley.nz/data-transform.html). There is also a [cheat sheet for dplyr](https://github.com/rstudio/cheatsheets/blob/master/data-transformation.pdf). We will do more data transformation in coming computer labs, this is just a brief introduction.
+
+Another key element of Tidyverse is the pipe, written as |>. The pipe makes it easier to write code that others can read (including future you!), especially when your code has a sequence of steps. One way to think of the pipe is to pronounce it "and then", e.g. you start with your data set, and then you select a few variables, and then you filter out a few rows, and then...
+
+There are two versions of the pipe %>% and |>. They are similar, but not the same. We will use the |> in this course, since it is the Base R version. You can use key shortcut ctrl+shift+m in windows to get a pipe. What type of pipe you get depends on your settings, see Tools/Global options/code in the R Studio menus. You can read more about the pipe in [chapter 5 in Wickham and Grolemund](https://r4ds.hadley.nz/workflow-style.html#sec-pipes).
+
+Note that we in the code chunk below sets message=FALSE, this will prevent the messages to be printed to a knitted pdf. You can control the output to pdf (or other formats) by setting different chunk options, e.g. message, warnings, echo, include, etc. You can read more about chunk options [here](https://quarto.org/docs/computations/execution-options.html). 
+
+
+```{r}
+#| message: false
+#| 
+
+library(tidyverse)
+
+##### If we want to select some variables we use -select-
+# Here we select Survived and Age to Ticket, and the pipe it to get the first 5 rows
+titanic |> 
+  select(Survived, Age:Ticket) |>  
+  head(5)
+
+# We can do the same without the pipe, but it gets more complicated to read
+head(select(titanic, Survived, Age:Ticket), 5)
+
+# We can also refer to variables by number referring to their order in the data set and get the same result
+titanic |> 
+  select(2, 6:9) |>  
+  head(5)
+
+# This is equivalent to how we subset data in base R, e.g.
+head(titanic[c(2, 6:9)], 5)
+
+# There many other ways we select variables, e.g. by how the variable name starts or ends.
+titanic |>  
+  select(starts_with("S")) |>  
+  head(5)
+
+# To remove one or many variables, put a minus sign in front of the variables
+titanic |> 
+  select(-Survived, -Age:-Ticket) |>  
+  head(5)
+
+##### We can filter (subset) rows by using -filter-
+# Here we filter the data so that we only get the male passengers.
+titanic |> 
+  filter(Sex == "male") |>  
+  head(5)
+  
+
+##### We can change the order of the rows by using -arrange-
+# Here by fare price, default is ascending
+titanic |> 
+  arrange(Fare) |>  
+  head(5)
+
+# We can also sort it descending
+titanic |> 
+  arrange(desc(Fare)) |>  
+  head(5)
+
+
+#### And we change a variable or create a new variable by using -mutate-
+# We could, for example, create a new logical variable -Young- that is true if Age is less than 25.
+titanic |> 
+  mutate(Young = Age < 25) |>  
+  head(5)
+
+# We can create many variables in one step. Here we also make a new variable with the fare in today's prices
+titanic |> 
+  mutate(Young = Age < 25,
+         Fare_today = Fare * 57.06) |>  
+  head(5)
+
+#### And we can get summary data using -summarise- (you can also use American spelling, i.e. -summarize-)
+# This is normally used together with -group_by- to group one or many variables
+# Let's say we want to compute the average fare and survival rate by sex
+titanic |> 
+  group_by(Sex) |>  
+  summarise(avg_fare = mean(Fare),
+            avg_surviv = mean(Survived))
+
+
+# This can all be piped together
+titanic |> 
+  select(Pclass, Sex, Fare) |>  
+  filter(Pclass == 1) |> 
+  mutate(Fare_today = Fare * 57.06) |>  
+  group_by(Sex) |> 
+  summarise(avg_fare_today = mean(Fare_today))
+
+# Please note that we have not created any new objects. To do that we have to assign it to a new object using <-
+avg_fare_today <- titanic |> 
+  select(Pclass, Sex, Fare) |>  
+  filter(Pclass == 1) |> 
+  mutate(Fare_today = Fare * 57.06) |>  
+  group_by(Sex) |> 
+  summarise(avg_fare_today = mean(Fare_today))
+
+
+```
+
+***Your turn***: Subset the titanic dataset so that includes sex, age and fare. Then filter the data so that it only includes females and then create a new variable that refers to the average fare among them.
+
+# Some basic statistics
+
+So let us look a bit at our data. You are probably familiar with one way of doing from your previous courses, but below I give a few examples of how you can make tabulations of variables.
+
+```{r}
+# We can count the data using dplyr
+titanic |> 
+  count(Sex, sort = TRUE)
+
+# There are multiple ways to do a cross-tabulation in R
+# You can do it with dplyr, but there other ways that might be simpler
+# E.g. you can use -table-
+table(titanic$Sex, titanic$Survived)
+
+# Or -xtabs-
+xtabs(~ Sex + Survived, data = titanic)
+
+# If you want percentages you can use -prop.table-, 1 = row percentages, 2 = column percentages
+# In 2 steps
+a <- xtabs(~ Sex + Survived, data = titanic)
+prop.table(a, 1)
+
+# Or just one step
+prop.table(xtabs(~ Sex + Survived, data = titanic), 1)
+
+# The same using the pipe
+# Note the _ that is a place holder, which indicates where the 
+# result from the previous step is # piped into (by default it will be
+# the first argument). It's needed here since it is not the first argument.
+
+titanic |> 
+  xtabs(~ Sex + Survived, data = _) |>  
+  prop.table(1)
+
+# or
+xtabs(~ Sex + Survived, data = titanic) |>  
+  prop.table(1)
+
+# another option is -tabyl- in the janitor package
+library(janitor)
+titanic |> 
+  tabyl(Sex, Survived) |>  
+  adorn_percentages("row") |>  
+  adorn_pct_formatting(digits = 2)
+
+# And you can use -CrossTable- in gmodels, which has a lot of flexibility
+library(gmodels)
+CrossTable(titanic$Sex, titanic$Survived)
+
+# And there are a lot of other options
+# Find something you like.
+
+```
+
+
+## Summary statistics in a nice looking table
+When we write articles and reports, we want to present our results in nice looking tables. There are different packages for creating tables, such as xtable, kable, stargazer, and modelsummary. We will mainly use modelsummary in the labs, but you could use some other package if you prefer that.  
+
+From the modelsummary package, we can use the datasummary function. 
+
+```{r}
+datasummary(Age + Survived + Fare ~ Mean + SD + N,
+            data = titanic,
+            title = "Descriptive statistics",
+            notes = c('Comments: Data from the Titanic R package.'))
+
+# We can also change the name of variables, etc.
+datasummary(Age + Survived + (`Passenger fare` = Fare) ~ Mean + (Std.Dev. = SD) + N,
+            data = titanic,
+            title = "Passengers on the Titanic: Descriptive statistics",
+            notes = c("Comments: Data from the Titanic R package."))
+
+
+# We can also add percentages for categorical variables
+datasummary(Age + Survived + Fare + Sex  ~ Mean + SD + N + Percent(),
+            data = titanic,
+            title = "Passengers on the Titanic: Descriptive statistics",
+            notes = c("Comments: Data from the Titanic R package."))
+
+# When adding a "1" we also get the total
+datasummary(Age + Survived + Fare + (`Passenger class` = as.factor(Pclass)) + Sex + 1 ~ 
+              Mean + SD + N + Percent(),
+            data = titanic,
+            title = "Passengers on the Titanic: Descriptive statistics",
+            notes = c("Comments: Data from the Titanic R package."))
+
+
+```
+
+***Your turn***: Create a table with summary statistics where you have the variables Age, Survived, and Sex included and the following statistics: Number of observations, the median and the percentage distribution over the categories for sex. 
+
+You can tweak the output much more, read more [here](https://modelsummary.com/man/datasummary.html). Datasummary can also use other packages, such as gt, kableExtra or flextable to customize the output. 
+
+# Linear Probability Model (LPM)
+So let's estimate some linear probability models (LPM) using our titanic data. This is a simply an ols model, just as you have done in the previous course.
+
+
+```{r}
+#|message: false
+#|echo: false
+
+library(broom)
+
+### Model 1
+# Let's begin with a simple model with only age as an independent variable, and we create an object for results
+survive_age_lpm1 <- lm(Survived ~ Age, data = titanic)
+
+# We can view the results using -summary-
+summary(survive_age_lpm1)
+
+# If we use -tidy- from the broom package, we get the results as a nice tibble (a data frame in Tidyverse).
+tidy(survive_age_lpm1) 
+
+# We can use options to get different results from -tidy-, e.g. conf.int to get the confidence intervals
+tidy(survive_age_lpm1, conf.int = TRUE) 
+
+### Model 2
+# Let's add Pclass, i.e. passenger class to the model
+survive_age_lpm2 <- lm(Survived ~ Age + Pclass, data = titanic)
+summary(survive_age_lpm2)
+
+# Pclass is an integer and is therefore treated as continuous variable in the model
+# So we have to change it to factor variable, we can do this in the following way
+
+survive_age_lpm2 <- titanic |> 
+  mutate(Pclass = as_factor(Pclass)) |>  
+  lm(Survived ~ Age + Pclass, data = _)
+
+summary(survive_age_lpm2)
+
+# Or you could change Pclass to a factor in the dataset.
+
+# We will talk more about factors in later computer labs.
+
+```
+
+
+## Summarise the regression model in a table
+Let's present our regression models in a nice looking table using modelsummary
+
+```{r}
+#| message: false
+#| echo: false
+#| 
+# Our first model with only age
+
+modelsummary(survive_age_lpm1)
+
+# We can also define the model in the modelsummary function
+modelsummary(lm(Survived ~ Age, data = titanic))
+
+# Our first and second model in one table
+models <- list(
+  "Model A" = survive_age_lpm1,
+  "Model B" = survive_age_lpm2
+)
+
+modelsummary(models)
+
+# Or we can format the table a bit more
+modelsummary(models, fmt = 2,
+             stars = TRUE,
+             gof_omit = "Log.Lik.|F|RMSE",
+             title = "Survival from Titanic. Linear probability models",
+             notes = list("Source: Titanic R package.", 
+                          "Comments: Pclass refers to passenger class, first class is the reference category."))
+
+# Instead of gof_omit you could use gof_map and specify what goodness-of-fit statistics
+# you want to include. To see what goodness-of-fit statistics are available, you can run the function gof_map.
+
+```
+
+***Your turn***: Estimate a third model where you also add Fare as an independent variable. Produce a table with all three models. Interpret the results. 
+
+You can tweak the output much more, read more [here](https://vincentarelbundock.github.io/modelsummary/).  
+
+## Visualize the data
+We can also visualize our data, including the regression line. We will talk more about visualization of data later on in the course. This is just an example of how we can illustrate our data.
+
+```{r}
+# In ggplot2 we can change the theme for each individual plot, but we can also set the default theme
+# Here we set it to -theme_light-
+theme_set(theme_light())
+
+# Then we plot age and survived as a scatter plot using -geom_point- with alpha set to .1. 
+# And we add a linear regression line using -geom_smooth-
+titanic |> 
+  ggplot(aes(Age, Survived)) +
+  geom_point(alpha = .1) +
+  geom_smooth(method = "lm", se = FALSE)
+
+# Extract coefficients and visualize
+# Let's estimate a model
+survive_age_lpm1 <- lm(Survived ~ Age + Sex, data = titanic)
+
+# If we use -tidy- from the broom package, we get the results as a nice tibble with confidence intervals
+tidy(survive_age_lpm1, conf.int = TRUE) 
+
+# We can clean up the tibble and pipe it into ggplot2
+tidy(survive_age_lpm1, conf.int = TRUE) |> 
+  filter(term != "(Intercept)") |> 
+  mutate(term = if_else(term == "Sexmale", "Male", term)) |> 
+  ggplot(aes(estimate, term)) +
+  geom_point() +
+  geom_errorbarh(aes(xmin = conf.low, xmax = conf.high, height = .1))  +
+  labs(title = "Survival from Titanic. Linear probability model",
+       y = "",
+       x = "Estimate",
+       caption = "Data from Titanic R Package")
+
+```
+
+
+
+

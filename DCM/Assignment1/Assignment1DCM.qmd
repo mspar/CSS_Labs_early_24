@@ -1,0 +1,108 @@
+---
+title: "Assignment 1 - The Titanic - Discrete Choice Modelling"
+author: "Marc Sparhuber"
+format: pdf
+toc: true
+execute:
+  echo: false
+  warning: false
+header-includes:
+      - \usepackage{float}
+      - \floatplacement{table}{H}
+---
+
+```{r}
+# reading in packages and initiating data frame
+
+library(titanic)
+library(tidyverse)
+library(modelsummary)
+library(broom)
+
+titanic <- titanic_train
+```
+
+```{r}
+#| eval: false
+
+str(titanic)
+```
+\newpage
+
+## Task A 
+
+> The passengers on Titanic embarked from different ports. Create a new variable called Family,
+that should be a dummy variable (i.e. that takes the value 1 or 0) that refers to if the passenger
+had any spouse or sibling on board the ship.
+Make a table with descriptive statistics for the variables: Sex, Age, Survived, Pclass, and your
+new variable Family. The continuous variables and the dummy variables (with 0 or 1) should
+have information on min, max, mean, SD, and number of observations (one could question the
+value of SD of a dummy variable, but include it anyway). The categorical variables should have
+information on number of observations and the distribution over the categories in percent.
+Describe the descriptives statistics in the table as you would do in a paper with full paragraphs.
+Use clear and concise English.
+
+
+```{r}
+# creating a new family variable and turning categorical variables into factors
+
+titanic <- titanic |> mutate(Family = if_else(SibSp > 0, 1, 0),
+                             Pclass = as_factor(Pclass),
+                             Sex = as_factor(Sex),
+                             Parch = as_factor(Parch),
+                             Embarked = as_factor(Embarked),
+                             SibSp = as_factor(SibSp))
+
+# create descriptives table 
+
+datasummary(Age + Survived + Family + Pclass + Sex ~ Mean + SD + N + Max + Min + Percent(),
+                       data = titanic,
+                       title = "Passengers on the Titanic: Descriptive statistics",
+                       notes = c("Comments: Data from the Titanic R package."))
+
+```
+
+## Task B
+
+> Let us say that we want to study if the old phrase “women and children first” accurately
+describes the event on Titanic, or rather if women and younger persons were more likely to
+survive.
+Create a new dummy variable, female, that indicates if a passenger is female (=1) or not (=0).
+Estimate a linear probability model with survival as the dependent variable and age and your
+new variable female as independent variables. Estimate a second model where you also include
+passenger class and your new variable Family as independent variables.
+Produce one table that includes both of the two estimated models.
+Describe the estimated models and your findings, including interpretation of the results (including at least one measurement of the model fit), in a way that is understandable for someone
+who is not familiar with the data, i.e. as you would do in an article with full paragraphs. Use
+clear and concise English.
+
+```{r}
+# creating dummy variable "female"
+
+titanic <- titanic |> mutate(female = if_else(Sex == "female", 1, 0))
+
+# running the two lms
+
+survive_female_age_lm <- lm(Survived ~ female + Age, data = titanic)
+#summary(survive_female_age_lm)
+
+survive_female_age_Pclass_Family_lm <- lm(Survived ~ female + Age + Pclass + Family, data = titanic)
+#summary(survive_female_age_Pclass_Family_lm)
+
+# put models in list for next step
+
+both_models <- list(
+  "Model 1" = survive_female_age_lm,
+  "Model 2" = survive_female_age_Pclass_Family_lm
+)
+
+# create nice looking lm table
+
+modelsummary(both_models,
+             stars = TRUE,
+             gof_omit = "Log.Lik.|F|RMSE|AIC|BIC",
+             title = "Survival from Titanic. Linear probability models",
+             notes = list("Source: Titanic R package.", 
+                          "Comments: Pclass refers to passenger class, first class is the reference category."))
+```
+
