@@ -1,0 +1,21 @@
+---
+title: "Assignment 1 SNA"
+author: "Marc Sparhuber"
+format: pdf
+editor: source
+toc: true
+---
+
+## Reading in data and loading packages
+
+```{r}
+library(tidyverse)
+
+
+# here I load in the data. To not have any issues with how the .txt file is structured I remove everything but the data and add the column names manually
+
+data <- as.data.frame(read_table(file = "C:/Users/marcs/Desktop/Labs/CSS_Labs_early_24/SNA/AssignmentsSNA/Email-Enron.txt",
+                   skip = 4,
+                   col_names = c("FromNodeID","ToNodeID")))
+```
+
