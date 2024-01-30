@@ -1,0 +1,57 @@
+---
+title: "Assignment 1 SNA"
+author: "Marc Sparhuber"
+format: pdf
+editor: source
+toc: true
+---
+
+## Task 1
+
+> Write an R-script that reads your data. Transform your data to a data frame. Argue about the format you have chosen to analyze large network data. 
+
+```{r}
+library(tidyverse)
+library(igraph)
+library(sna)
+
+# here I load in the data. To not have any issues with how the .txt file is structured I remove everything but the data and add the column names manually
+
+data <- as.data.frame(read_table(file = "C:/Users/marcs/Desktop/Labs/CSS_Labs_early_24/SNA/AssignmentsSNA/Email-Enron.txt",
+                   skip = 4,
+                   col_names = c("FromNodeID","ToNodeID")))
+```
+
+## Task 2
+
+> Make sure that before or while doing any calculations or plots that you handle nonresponse / missing data meaningfully if there is any.
+
+```{r}
+# check if there are any NAs
+
+any(is.na(data))
+
+# this indicates that in neither of the two columns any NAs are present
+```
+
+## Task 3
+
+> Justify what you do with isolates and multiple components if there are any.
+
+```{r}
+# first check how many isolates there are. There are also no multiple components.
+
+isolates(data)
+
+```
+
+## Task 4
+
+> Analyze the density of your network. Create a table that contains further descriptive
+network statistics for your network. Please include average degree (in-degree and outdegree), standard deviation of degree (in-degrees and out-degrees), reciprocity, and
+transitivity.
+
+```{r}
+
+```
+
