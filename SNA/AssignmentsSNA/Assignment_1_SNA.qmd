@@ -4,6 +4,9 @@ author: "Marc Sparhuber"
 format: pdf
 editor: source
 toc: true
+header-includes:
+      - \usepackage{float}
+      - \floatplacement{table}{H}
 ---
 
 ## Task 1
@@ -14,10 +17,14 @@ toc: true
 library(tidyverse)
 library(igraph)
 library(sna)
+library(knitr)
+library(kableExtra)
+library(scales)
+library(modelsummary)
 
 # here I load in the data. To not have any issues with how the .txt file is structured I remove everything but the data and add the column names manually
 
-data <- as.data.frame(read_table(file = "C:/Users/marcs/Desktop/Labs/CSS_Labs_early_24/SNA/AssignmentsSNA/Email-Enron.txt",
+data <- as.data.frame(read_table(file = "Email-Enron.txt",
                    skip = 4,
                    col_names = c("FromNodeID","ToNodeID")))
 ```
@@ -48,8 +55,116 @@ isolates(data)
 ## Task 4
 
 > Analyze the density of your network. Create a table that contains further descriptive
-network statistics for your network. Please include average degree (in-degree and outdegree), standard deviation of degree (in-degrees and out-degrees), reciprocity, and
-transitivity.
+network statistics for your network. Please include average degree (in-degree and outdegree), standard deviation of degree (in-degrees and out-degrees), reciprocity, and transitivity.
+
+```{r}
+graph <- graph_from_data_frame(data, directed = FALSE)
+
+# density
+density <- edge_density(graph)
+
+# due to this being an undirected network, it makes no sense to caluclate in/outdegree. Instead, only the degrees are caluclated.
+degrees <- igraph::degree(graph, mode='all')
+mean_degrees <- mean(degrees)
+
+# standard deviation of degrees
+sd_degrees <- sd(degrees)
+
+# is 1 because all ties a undirected and no ties go beyond the borders of the network [NOT SURE IF CORRECT]
+reciprocity <- reciprocity(graph)
+
+# transitivity
+transitivity <- transitivity(graph)
+
+# combining these measures into a table
+kable(tribble(~Density, ~MeanDegrees, ~SDDegrees, ~Reciprocity, ~Transitivity,
+        density, mean_degrees, sd_degrees, reciprocity, transitivity), caption = "Network Descriptives") |> kable_styling() |> 
+   add_footnote("Due to this network being undirected, in- and out-degree are not calculated", notation = "alphabet")
+```
+
+## Task 5
+
+> Create a graph of the degree distributions in your network. What do you observe? What do you imply from the observed degree distributions? 
+
+```{r}
+# calculate in and outdegrees
+df_degrees <- as.data.frame(degrees) |> rownames_to_column(var = "ID")
+
+theme_set(theme_light())
+
+df_degrees |> ggplot(aes(degrees)) +
+  geom_bar() +
+  xlab("Degrees") +
+  ylab("Count") +
+  scale_x_continuous(limits = c(0, quantile(df_degrees$degrees, 0.95)), breaks = breaks_extended(n = 20)) +
+  labs(title = "Distribution of the 95 percentile of degrees",
+       caption = "The mode is 2 and the max 2766.")
+```
+
+## Task 6
+
+> Create a formatted table that contains distribution of node-level centrality values.
+
+```{r}
+# eigenvector and betweenness for each node
+
+df_degrees$Betweenness <- igraph::betweenness(graph, directed = FALSE)
+df_degrees <- df_degrees |> mutate(betweenness_normalized = (betweenness - min(betweenness)) / (max(betweenness)-min(betweenness)))
+df_degrees$Eigenvector <- eigen_centrality(graph, directed = FALSE)$vector
+
+datasummary((Degrees = degrees) + Betweenness + (`Betweenness (normalized)` = betweenness_normalized) + Eigenvector + 1 ~ Mean + SD + N + Max + Min + Percent(),
+            data = df_degrees,
+            title = "Node-level centrality measures: Descriptives")
+```
+
+## Task 7
+
+> Considering the large network size, select a form of visualization that could be meaningful. Visualize your network and color the nodes according to a selected actor-variable or according to a selected measure of centrality. 
+
+
+```{r}
+# choose cutoff (sorely necessary)
+
+# plot.igraph(graph,
+#             vertex.label = "",
+#             vertex.size = 2,
+#             layout=layout_with_kk(graph),
+#             main = "Enron Emails (internal)")
+
+# -> this runs for more than 2 hours so I will let it run over night and subset the data with a cutoff then run the visualization. Other calculations will be attempted to be made with the full data set.
+
+data |> group_by(FromNodeID) |> filter(n()>1) |> nrow()
+data |> group_by(FromNodeID) |> filter(n()>2) |> nrow()
+data |> group_by(FromNodeID) |> filter(n()>3) |> nrow()
+data |> group_by(FromNodeID) |> filter(n()>5) |> nrow()
+data |> group_by(FromNodeID) |> filter(n()>10) |> nrow()
+data |> group_by(FromNodeID) |> filter(n()>20) |> nrow()
+data |> group_by(FromNodeID) |> filter(n()>50) |> nrow()
+
+df_degrees |> filter(degrees > 10) |> nrow()
+
+# plot.igraph(grph,
+# vertex.label='',
+# vertex.size=2+10*centralities$eigenvector,
+# vertex.color=ifelse(V(grph)$gender == 'male','royalblue','red'),
+# edge.color='grey20',edge.arrow.size=.3,
+# layout=layout_with_kk(grph),
+# main='Eigenvector centrality')
+
+
+```
+
+## Task 8
+
+> Check assortativity in the network by centrality measures. What do you observe? Provide an interpretation of your findings. What kind of theoretical arguments could possibly explain your results? 
+
+```{r}
+
+```
+
+## Task 9
+
+> And finally, a thought exercise. Assume that the robustness or vulnerability of the network is examined. Try to come up with a measurement of robustness / vulnerability and argue for the usefulness of your measure. Speculate about some implications for the concrete network.
 
 ```{r}
 
