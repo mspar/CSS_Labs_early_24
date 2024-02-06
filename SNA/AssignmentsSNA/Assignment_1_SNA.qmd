@@ -3,6 +3,9 @@ title: "Assignment 1 SNA"
 author: "Marc Sparhuber"
 format: pdf
 editor: source
+execute:
+  warning: false
+  echo: false
 toc: true
 header-includes:
       - \usepackage{float}
@@ -14,6 +17,10 @@ header-includes:
 > Write an R-script that reads your data. Transform your data to a data frame. Argue about the format you have chosen to analyze large network data. 
 
 ```{r}
+#| echo: false
+
+# loading in all necessary packages
+
 library(tidyverse)
 library(igraph)
 library(sna)
@@ -31,126 +38,220 @@ data <- as.data.frame(read_table(file = "Email-Enron.txt",
 
 ## Task 2
 
-> Make sure that before or while doing any calculations or plots that you handle nonresponse / missing data meaningfully if there is any.
+Make sure that before or while doing any calculations or plots that you handle nonresponse / missing data meaningfully if there is any.
 
 ```{r}
-# check if there are any NAs
+#| echo: true
+
+# check if there are any NAs in the data
 
 any(is.na(data))
-
-# this indicates that in neither of the two columns any NAs are present
 ```
+
+> This indicates that in neither of the two columns any missing data are present!
 
 ## Task 3
 
-> Justify what you do with isolates and multiple components if there are any.
+Justify what you do with isolates and multiple components if there are any.
 
 ```{r}
-# first check how many isolates there are. There are also no multiple components.
-
-isolates(data)
-
-```
-
-## Task 4
-
-> Analyze the density of your network. Create a table that contains further descriptive
-network statistics for your network. Please include average degree (in-degree and outdegree), standard deviation of degree (in-degrees and out-degrees), reciprocity, and transitivity.
-
-```{r}
+# this creates an undirected igraph graph object from the data frame
 graph <- graph_from_data_frame(data, directed = FALSE)
 
-# density
+# calucate density
 density <- edge_density(graph)
 
 # due to this being an undirected network, it makes no sense to caluclate in/outdegree. Instead, only the degrees are caluclated.
 degrees <- igraph::degree(graph, mode='all')
 mean_degrees <- mean(degrees)
+median_degrees <- median(degrees)
 
-# standard deviation of degrees
+# calucate standard deviation of degrees
 sd_degrees <- sd(degrees)
 
-# is 1 because all ties a undirected and no ties go beyond the borders of the network [NOT SURE IF CORRECT]
+# is 1 because all ties are undirected and no ties go beyond the borders of the network
 reciprocity <- reciprocity(graph)
 
-# transitivity
+# calucate transitivity
 transitivity <- transitivity(graph)
+```
 
+```{r}
+#| echo: true
+
+# are there any zeroes in degrees? This would indicate an isolate
+0 %in% degrees
+
+# check how many components there are
+n_components <- igraph::components(graph)$no
+
+# turn output of components into data frame for visualization
+data_components <- as.data.frame(igraph::components(graph)$csize)
+
+# set the theme for ggplot
+theme_set(theme_light())
+
+# create bar plot of components
+data_components |> ggplot(aes(`igraph::components(graph)$csize`)) +
+  geom_bar() +
+  xlab("Components") +
+  ylab("Count") +
+  scale_x_continuous(limits = c(1, quantile(data_components$`igraph::components(graph)$csize`, 0.99)), breaks = c(1:10)) #+
+  labs(title = "Distribution of the lower 99th percentile of components",
+       caption = "The mode is 2 and the max 33696.")
+```
+
+
+> This data does not contain any isolates, as the data supplied contains no NAs and came in an edge list format. To double check, a graph object in igraph and its degrees are computed and then tested on whether there are any 0's in the degrees, as a node having 0 degrees would indicate it being an isolate.
+
+> Within the data, many components emerge. In total, there are `{r} n_components` components in this data. Their distribution can be observed in the above bar graph. As seems reasonable within the E-mail network of a large corporation, there is one huge component, which makes up the vast majority of nodes. There are, however also many small components.
+
+> For this analysis keeping the smaller components does not make much sense. Most ties (33696 of 36692) are part of the largest component and the majority of them containing very little information due to them only being 2-5 vertices large as well as keeping visual clutter (which is horrendous and seemingly unavoidable in this analysis) in mind, only the largest component will be taken into account in later visualizations but the entire network will be used when calculating scores, etc.
+
+## Task 4
+
+Analyze the density of your network. Create a table that contains further descriptive network statistics for your network. Please include average degree (in-degree and outdegree), standard deviation of degree (in-degrees and out-degrees), reciprocity, and transitivity.
+
+```{r}
 # combining these measures into a table
-kable(tribble(~Density, ~MeanDegrees, ~SDDegrees, ~Reciprocity, ~Transitivity,
-        density, mean_degrees, sd_degrees, reciprocity, transitivity), caption = "Network Descriptives") |> kable_styling() |> 
+kable(tribble(~Density, ~MeanDegrees, ~MedianDegrees, ~SDDegrees, ~Reciprocity, ~Transitivity,
+        density, mean_degrees, median_degrees, sd_degrees, reciprocity, transitivity), caption = "Network Descriptives") |> kable_styling() |> 
    add_footnote("Due to this network being undirected, in- and out-degree are not calculated", notation = "alphabet")
 ```
 
+> The very low density in this network implies that only very few of the possible number of edges in the graph actually exist. This is likely influenced by the many components but is likely mainly due to the way large corporations work - with a clear hierarchy disallowing "just any" employee to message the CEO.
+
+> Looking at degree descriptives it becomes apparent that the degrees are highly right-skewed with the mean far from the median and a very high standard deviation indicating the great variability in the data. Thus, a majority of the individuals have very low values and looking at the degree distribution in Task 5 (not in the visualization) we can see that there is a long tail toward the higher values. In- and outdegrees were not calculated as these would have been identical in this data set.
+
+> Recipriocity is 1, due to all ties being undirected and no ties going beyond the borders of the network. The transitivity is fairly low, indicating low levels of clustering within the network. It is important to note that this table contains data for the entire network as not just the largest component. Using just the latter, transitivity is expected to be even lower.
+
 ## Task 5
 
-> Create a graph of the degree distributions in your network. What do you observe? What do you imply from the observed degree distributions? 
+Create a graph of the degree distributions in your network. What do you observe? What do you imply from the observed degree distributions? 
 
 ```{r}
-# calculate in and outdegrees
+# calculate the degrees for each node
+
 df_degrees <- as.data.frame(degrees) |> rownames_to_column(var = "ID")
 
+# set the theme for ggplot
 theme_set(theme_light())
+
+# here, we plot the lower 95% of values in a bar plot
 
 df_degrees |> ggplot(aes(degrees)) +
   geom_bar() +
   xlab("Degrees") +
   ylab("Count") +
   scale_x_continuous(limits = c(0, quantile(df_degrees$degrees, 0.95)), breaks = breaks_extended(n = 20)) +
-  labs(title = "Distribution of the 95 percentile of degrees",
+  labs(title = "Distribution of the lower 95th percentile of degrees",
        caption = "The mode is 2 and the max 2766.")
 ```
 
+> As can be seen, the degree distribution is heavily right-tailed, with a mode and at the same time minimum value of 2. At the same time, a maximum value of 2766 clearly indicates how unequal the degrees are distributed and how long the right tail goes. In order to preserve the interpretability of the visualization, only the nodes are shown, which correspond to the 95% lowest degree values. It is important to take this into account as the long right tail indicates many powerful hubs with 32 degree's above 1000 and 126 over 500. These hubs serve as center points for this network and likely facilitate the flow of information (E-mails) throughout it.
+
 ## Task 6
 
-> Create a formatted table that contains distribution of node-level centrality values.
+Create a formatted table that contains distribution of node-level centrality values.
 
 ```{r}
-# eigenvector and betweenness for each node
+# eigenvector and betweenness, normalized betweenness, and  degrees for each node are calculated
 
 df_degrees$Betweenness <- igraph::betweenness(graph, directed = FALSE)
-df_degrees <- df_degrees |> mutate(betweenness_normalized = (betweenness - min(betweenness)) / (max(betweenness)-min(betweenness)))
+df_degrees <- df_degrees |> mutate(betweenness_normalized = (Betweenness - min(Betweenness)) / (max(Betweenness)-min(Betweenness)))
 df_degrees$Eigenvector <- eigen_centrality(graph, directed = FALSE)$vector
 
-datasummary((Degrees = degrees) + Betweenness + (`Betweenness (normalized)` = betweenness_normalized) + Eigenvector + 1 ~ Mean + SD + N + Max + Min + Percent(),
+# here we construct a descriptive table showing the previously calculated centrality values 
+
+datasummary((Degrees = degrees) + Betweenness + (`Betweenness (normalized)` = betweenness_normalized) + Eigenvector + 1 ~ Mean + Median + SD + N + Max + Min + Percent(),
             data = df_degrees,
             title = "Node-level centrality measures: Descriptives")
 ```
 
+> As the degree distribution has been discussed at length above, betweenness and eigenvectors will be deliberated upon here. Betweenness by itself is hard to interpret, as it is not a normalized measured. Regardless of this, it should be noted that the median and minimum value is 0 with the mean value near 50 thousand. As the mean is much more affected by extreme outliers, such as the maximum value in the millions, the very high standard deviation makes sense. Additionally, this indicates that there are a few nodes with high betweenness values, meaning that their ties enable many paths between nodes to pass through. To increase interpretability, a normalized betweenness has been computed.
+
+> Eigenvector centrality takes into account the centrality of each node's neighbouring nodes to identify highly influential nodes within networks. Within the Enron Email network, most nodes have very low eigenvector values, as the mean and median are both near 0. The maximum value is at 1, showing that there are at least some node which are characterized by highly influential neighbouring nodes.
+
 ## Task 7
 
-> Considering the large network size, select a form of visualization that could be meaningful. Visualize your network and color the nodes according to a selected actor-variable or according to a selected measure of centrality. 
+Considering the large network size, select a form of visualization that could be meaningful. Visualize your network and color the nodes according to a selected actor-variable or according to a selected measure of centrality. 
 
 
 ```{r}
-# choose cutoff (sorely necessary)
 
-# plot.igraph(graph,
-#             vertex.label = "",
-#             vertex.size = 2,
-#             layout=layout_with_kk(graph),
-#             main = "Enron Emails (internal)")
+# here I add the to graph object different centrality measures in case I want to use them in the visualization
+V(graph)$degrees <- df_degrees |> select(degrees) |> pull(degrees)
+V(graph)$between <- df_degrees |> select(Betweenness) |> pull(Betweenness)
+V(graph)$between_normal <- df_degrees |> select(betweenness_normalized) |> pull(betweenness_normalized)
+V(graph)$eigen <- df_degrees |> select(Eigenvector) |> pull(Eigenvector)
 
-# -> this runs for more than 2 hours so I will let it run over night and subset the data with a cutoff then run the visualization. Other calculations will be attempted to be made with the full data set.
 
-data |> group_by(FromNodeID) |> filter(n()>1) |> nrow()
-data |> group_by(FromNodeID) |> filter(n()>2) |> nrow()
-data |> group_by(FromNodeID) |> filter(n()>3) |> nrow()
-data |> group_by(FromNodeID) |> filter(n()>5) |> nrow()
-data |> group_by(FromNodeID) |> filter(n()>10) |> nrow()
-data |> group_by(FromNodeID) |> filter(n()>20) |> nrow()
-data |> group_by(FromNodeID) |> filter(n()>50) |> nrow()
+# 
+# # get component list again
+# component_list <- igraph::components(graph)
+# 
+# # get the largest component
+# largest_component <- which.max(component_list$csize)
+# 
+# # extract  nodes of the largest component
+# vertices_largest_component <- which(component_list$membership == largest_component)
+# 
+# # create induced subgraph containing only the nodes of the largest component
+# largest_subgraph <- induced_subgraph(graph, vertices_largest_component)
+# 
+# # largest_subgraph_plot <- plot.igraph(largest_subgraph,
+# #             vertex.label = "",
+# #             vertex.size = 2,
+# #             main = "test")
+# 
+# 
+# data_subset1 <- data |> filter(FromNodeID %in% vertices_largest_component & ToNodeID %in% vertices_largest_component)
 
-df_degrees |> filter(degrees > 10) |> nrow()
 
-# plot.igraph(grph,
-# vertex.label='',
-# vertex.size=2+10*centralities$eigenvector,
-# vertex.color=ifelse(V(grph)$gender == 'male','royalblue','red'),
-# edge.color='grey20',edge.arrow.size=.3,
-# layout=layout_with_kk(grph),
-# main='Eigenvector centrality')
+counts <- data %>%
+  pivot_longer(cols = everything()) %>%
+  group_by(value) %>%
+  summarise(count = n()) %>%
+  ungroup()
 
+high_count_nodes <- counts %>%
+  filter(count >= 15) %>%
+  pull(value)
+
+sub_data <- data |> filter(FromNodeID %in% high_count_nodes & ToNodeID %in% high_count_nodes)
+
+
+subgraph_new2 <- graph_from_data_frame(sub_data, directed = FALSE)
+
+component_list_subgraph <- igraph::components(subgraph_new2)
+
+# get the largest component
+largest_component_subgraph <- which.max(component_list_subgraph$csize)
+
+# extract  nodes of the largest component
+vertices_largest_component_subgraph <- which(component_list_subgraph$membership == largest_component_subgraph)
+
+# create induced subgraph containing only the nodes of the largest component
+largest_subgraph2 <- induced_subgraph(subgraph_new2, vertices_largest_component_subgraph)
+
+igraph::components(largest_subgraph2)
+
+
+
+eigen_new <- eigen_centrality(largest_subgraph2, directed = FALSE)$vector
+
+V(largest_subgraph2)$eigen_new <- eigen_new
+
+#hist(V(subgraph_new2)$eigen_new)
+normalize <- function(x){(x-min(x))/(max(x)-min(x))}
+(V(largest_subgraph2)$ec_index <- round(normalize(V(largest_subgraph2)$eigen_new) * 9) + 1)
+
+V(largest_subgraph2)$color <- colorRampPalette(c("turquoise", "yellow","red"))(10)[V(largest_subgraph2)$ec_index]
+
+subgraph_test_new <- plot.igraph(largest_subgraph2,
+            vertex.label = "",
+            vertex.size = 2+3*V(largest_subgraph2)$ec_index,
+            main = "Enron Emails (internal) - Eigenvector centrality sized and colored")
 
 ```
 
@@ -159,7 +260,8 @@ df_degrees |> filter(degrees > 10) |> nrow()
 > Check assortativity in the network by centrality measures. What do you observe? Provide an interpretation of your findings. What kind of theoretical arguments could possibly explain your results? 
 
 ```{r}
-
+assortativity_result <- assortativity(graph, V(graph)$eigen)
+assortativity_result <- assortativity(graph, V(graph)$between)
 ```
 
 ## Task 9
@@ -169,4 +271,3 @@ df_degrees |> filter(degrees > 10) |> nrow()
 ```{r}
 
 ```
-
