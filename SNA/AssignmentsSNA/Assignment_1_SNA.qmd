@@ -184,8 +184,6 @@ V(graph)$degrees <- df_degrees |> select(degrees) |> pull(degrees)
 V(graph)$between <- df_degrees |> select(Betweenness) |> pull(Betweenness)
 V(graph)$between_normal <- df_degrees |> select(betweenness_normalized) |> pull(betweenness_normalized)
 V(graph)$eigen <- df_degrees |> select(Eigenvector) |> pull(Eigenvector)
-<<<<<<< HEAD
-
 
 # 
 # # get component list again
@@ -214,8 +212,6 @@ counts <- data %>%
   group_by(value) %>%
   summarise(count = n()) %>%
   ungroup()
-=======
->>>>>>> 6304e2963b9f9139d97d0d57460ad048c00aae73
 
 high_count_nodes <- counts %>%
   filter(count >= 15) %>%
