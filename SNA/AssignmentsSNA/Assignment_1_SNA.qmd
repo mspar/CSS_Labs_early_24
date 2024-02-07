@@ -184,7 +184,77 @@ V(graph)$degrees <- df_degrees |> select(degrees) |> pull(degrees)
 V(graph)$between <- df_degrees |> select(Betweenness) |> pull(Betweenness)
 V(graph)$between_normal <- df_degrees |> select(betweenness_normalized) |> pull(betweenness_normalized)
 V(graph)$eigen <- df_degrees |> select(Eigenvector) |> pull(Eigenvector)
+<<<<<<< HEAD
 
+
+# 
+# # get component list again
+# component_list <- igraph::components(graph)
+# 
+# # get the largest component
+# largest_component <- which.max(component_list$csize)
+# 
+# # extract  nodes of the largest component
+# vertices_largest_component <- which(component_list$membership == largest_component)
+# 
+# # create induced subgraph containing only the nodes of the largest component
+# largest_subgraph <- induced_subgraph(graph, vertices_largest_component)
+# 
+# # largest_subgraph_plot <- plot.igraph(largest_subgraph,
+# #             vertex.label = "",
+# #             vertex.size = 2,
+# #             main = "test")
+# 
+# 
+# data_subset1 <- data |> filter(FromNodeID %in% vertices_largest_component & ToNodeID %in% vertices_largest_component)
+
+
+counts <- data %>%
+  pivot_longer(cols = everything()) %>%
+  group_by(value) %>%
+  summarise(count = n()) %>%
+  ungroup()
+=======
+>>>>>>> 6304e2963b9f9139d97d0d57460ad048c00aae73
+
+high_count_nodes <- counts %>%
+  filter(count >= 15) %>%
+  pull(value)
+
+sub_data <- data |> filter(FromNodeID %in% high_count_nodes & ToNodeID %in% high_count_nodes)
+
+
+subgraph_new2 <- graph_from_data_frame(sub_data, directed = FALSE)
+
+component_list_subgraph <- igraph::components(subgraph_new2)
+
+# get the largest component
+largest_component_subgraph <- which.max(component_list_subgraph$csize)
+
+# extract  nodes of the largest component
+vertices_largest_component_subgraph <- which(component_list_subgraph$membership == largest_component_subgraph)
+
+# create induced subgraph containing only the nodes of the largest component
+largest_subgraph2 <- induced_subgraph(subgraph_new2, vertices_largest_component_subgraph)
+
+igraph::components(largest_subgraph2)
+
+
+
+eigen_new <- eigen_centrality(largest_subgraph2, directed = FALSE)$vector
+
+V(largest_subgraph2)$eigen_new <- eigen_new
+
+#hist(V(subgraph_new2)$eigen_new)
+normalize <- function(x){(x-min(x))/(max(x)-min(x))}
+(V(largest_subgraph2)$ec_index <- round(normalize(V(largest_subgraph2)$eigen_new) * 9) + 1)
+
+V(largest_subgraph2)$color <- colorRampPalette(c("turquoise", "yellow","red"))(10)[V(largest_subgraph2)$ec_index]
+
+subgraph_test_new <- plot.igraph(largest_subgraph2,
+            vertex.label = "",
+            vertex.size = 2+3*V(largest_subgraph2)$ec_index,
+            main = "Enron Emails (internal) - Eigenvector centrality sized and colored")
 
 # 
 # # get component list again
@@ -248,11 +318,19 @@ normalize <- function(x){(x-min(x))/(max(x)-min(x))}
 
 V(largest_subgraph2)$color <- colorRampPalette(c("turquoise", "yellow","red"))(10)[V(largest_subgraph2)$ec_index]
 
+subgraph_test_new_color <- plot.igraph(largest_subgraph2,
+            vertex.label = "",
+            vertex.size = 3,
+            main = "Enron Emails (internal) - Eigenvector centrality colored")
+
+#subgraph_test_new_color
+
 subgraph_test_new <- plot.igraph(largest_subgraph2,
             vertex.label = "",
             vertex.size = 2+3*V(largest_subgraph2)$ec_index,
-            main = "Enron Emails (internal) - Eigenvector centrality sized and colored")
+            main = "Enron Emails (internal) - Eigenvector centrality sized")
 
+#subgraph_test_new
 ```
 
 ## Task 8
