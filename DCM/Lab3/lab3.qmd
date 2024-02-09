@@ -1,0 +1,415 @@
+---
+title: "Computer lab 3"
+date: last-modified
+date-format: "MMMM DD, YYYY"
+author: "Richard Öhrvall"
+format: pdf
+---
+
+
+# Introduction
+
+This is the third computer lab for the course Discrete Choice Modelling. At various position in this document, you'll find the prompt ***Your turn***. This indicates a question for you to solve during the lab.
+
+At the end of this document you find your weekly assignment where you are supposed to use the techniques presented below.
+
+More information about Tidyverse, Quarto, etc. can be found in the first computer lab, see Lisam.
+
+
+# Our data: General Social Survey (GSS)
+Today's computer class we will be using data from the the General Social Survey (GSS) in 2016. The GSS is an opinion survey covering a wide variety of cultural, political, economic, and other social topics that has been running for decades in the US. We will use data from the GSS that is contained in the SocViz package, developed by Kieran Healy (install.packages("socviz")). If you want to explore the full GSS data and other years, check out the gssr package by Healy: <https://kjhealy.github.io/gssr/>
+
+Documentation for the data can be found at <https://kjhealy.github.io/socviz/reference/gss_sm.html> and through the link provided there. In this task, you can ignore sampling weights.
+
+We will be using Quarto documents for the computer labs and assignments in this course. In Quarto we can add chunks of code. For each of these chunks we can specify some options. See previous computer labs for more information
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+
+# Load the tidyverse and socviz package, if you haven't installed them before do so by type install.packages("socviz"), or click "Install" in your Packages frame in R Studio, first. The same goes for other packages in this lab.
+library(tidyverse)
+library(socviz)
+
+# Get the data
+gss <- gss_sm
+
+# You can see that gss is tibble, i.e. the data frame in Tidyverse
+# This can cause problems for Stargazer, but you can change
+# it into an ordinary data frame using as.data.frame()
+class(gss)
+
+# Let's say that we are interested in views on legalizing marijuana
+# We can create a dummy variable legalize when we read the data.
+
+gss <- gss_sm |> 
+  mutate(legalize = if_else(grass == "Legal", 1, 0))
+  
+# We can check that the coding was ok (also note all the NAs)
+gss |> 
+  count(grass, legalize)
+
+```
+
+
+
+## Probabilities at specific values
+Using our model estimates, we can estimate predicted probabilities at specific values.
+
+Remember, our logit model is: 
+$$ ln( \frac{p}{1-p}) = \beta_0 + \beta_1 x $$
+
+The predicted probabilities are:
+$$ p = \frac{e^{\beta_0 + \beta_1 x}}{1+e^{\beta_0 + \beta_1 x}} $$
+
+They can also be expressed in the following form:
+$$ p = \frac{1}{1+e^{-(\beta_0 + \beta_1 x)}} $$
+The function on the right hand side, which transforms log-odds into predicted probabilities, is referred to as the "inverse logit".
+
+```{r}
+library(broom)
+
+# Let's estimate a model
+mod2 <- glm(legalize ~ age + sex, data = gss, 
+            family = "binomial"(link = "logit"))
+
+# To see the coefficients (in terms of log-odds)
+summary(mod2)
+tidy(mod2)
+
+# Or the odds ratios
+tidy(mod2, exponentiate = TRUE, conf.int = TRUE)
+
+# To calculate the probability of approving legalization for a 30 year old female,
+# we can do the following
+
+exp(coef(mod2)[["(Intercept)"]]+coef(mod2)[["age"]] * 30 +coef(mod2)[["sexFemale"]] * 1 ) / (1 + exp(coef(mod2)[["(Intercept)"]]+coef(mod2)[["age"]] * 30 +coef(mod2)[["sexFemale"]] * 1))
+
+# We could write a function to simplify this a bit
+invlogit <- function(arg) {
+  return(exp(arg)/(1 + exp(arg)))
+}
+
+# And then use our function
+invlogit(coef(mod2)[["(Intercept)"]]+coef(mod2)[["age"]] * 30 + coef(mod2)[["sexFemale"]] * 1)
+
+# We can also use a somewhat simpler formula (see text above)
+invlogit2 <- function(x) {
+  1 / (1 + exp(-x))
+}
+
+# And get the same result
+invlogit2(coef(mod2)[["(Intercept)"]]+coef(mod2)[["age"]] * 30 +coef(mod2)[["sexFemale"]] * 1)
+
+# We can now compare the probability of approving legalization for a male and a female aged 30 .
+## Male
+invlogit2(coef(mod2)[["(Intercept)"]]+coef(mod2)[["age"]] * 30 + coef(mod2)[["sexFemale"]] * 0)
+
+## Female
+invlogit2(coef(mod2)[["(Intercept)"]]+coef(mod2)[["age"]] * 30 + coef(mod2)[["sexFemale"]] * 1)
+
+## Difference
+invlogit2(coef(mod2)[["(Intercept)"]]+coef(mod2)[["age"]] * 30 + coef(mod2)[["sexFemale"]] * 0) - invlogit2(coef(mod2)[["(Intercept)"]]+coef(mod2)[["age"]] * 30 + coef(mod2)[["sexFemale"]] * 1)
+
+# The invlogit function is also included in the arm package, so you could also load that library instead of creating the function by yourself.
+
+```
+
+***Your turn***: What is the difference in the probability of being in favour of legalizing between a man who is 18 and 60 years of age, according to our simple model?
+
+
+# Predicted probabilities
+We can use the model we have estimated to predict the probability of survival for the observations (individuals) included in the model, using the augment function from the broom package.
+
+```{r}
+#| echo: false
+#| message: false
+
+
+### Let's estimate another logistic regression model
+# And now give it a better name
+legalize_log <- glm(legalize ~ age + sex + bigregion, data = gss, 
+            family = "binomial"(link = "logit"))
+
+
+# Using -augment- we can predict the probability of survival for each 
+# observation in our data that was included in the model (many were excluded, due
+# to missing values, especially on legalization)
+# We can create a new tibble with that information
+# Note that you need to set type.predict to response to get probabilities
+legalize_log_pred <- augment(legalize_log, 
+                                type.predict = "response")
+
+# (You could also use -predict- instead of -augment-)
+# If you look at the dataset, it now includes predicted probabilities
+View(legalize_log_pred)
+
+# Using these predictions, we can evaluate our model by how well it predicts the outcome.
+# Let's create a new variable -.pred- that is 1 if the predicted value is .5 or higher
+# otherwise it will be 0.
+legalize_log_pred <- augment(legalize_log, 
+                                type.predict = "response") |> 
+  mutate(.pred = as.numeric(.fitted > .5))
+
+# We can now calculate how big share of the observations we predicted correctly
+mean(legalize_log_pred$legalize == legalize_log_pred$.pred, na.rm = TRUE)
+
+```
+
+***Your turn***: Add religion as an independent variable to the model above. What share of the observations are now correctly predicted in terms of survival? Is that an improvement compared to the model above? Is it a good model?
+
+
+Another approach is to use augment to assign probabilities to a new dataset.
+
+```{r}
+library(modelr)
+# We could of also predict probabilities on a new dataset
+# here we use data_grid from the modelr package to get all combinations
+# of the values of the variables in our model
+
+gss_legalize <- augment(legalize_log, 
+                           type.predict = "response",
+                           newdata = data_grid(gss, age, sex, bigregion))
+
+
+# You could also use expand from tidyr instead of data_grid
+expand(gss, age, sex, bigregion)
+
+
+# But data_grid has some nice features, e.g.
+# if you have a lot of values for a variable, you might not need to predict for them 
+# all. You can then use seq_range in data_grid to a number of evenly spaced values
+data_grid(gss, age, sex)
+
+data_grid(gss, age = seq_range(age, 20), sex)
+
+seq_range(gss$age, 20)
+
+# You could also specify the length of the steps
+seq_range(gss$age, by = 5)
+
+# We can also predict on a smaller tibble with only the values on the coefficients that are of interest for us. We can for example create a tibble using -tribble- and specify our columns and the values row by row. Here we compare a male and a female 30 years of age living in the Northeast.
+
+data_predict <- tribble(
+  ~age, ~sex, ~bigregion,
+  30, "Male", "Northeast",
+  30, "Female", "Northeast"
+) 
+
+estimates_predict <- augment(legalize_log, 
+                           type.predict = "response",
+                           newdata = data_predict)
+
+estimates_predict
+
+# This can then be visualized, if we so like
+
+# You can, of course, also use data.frame or tibble or some other way to create a data.frame
+# That you then can predict probabilities for.
+tibble(age = 30,
+      sex = c("Male", "Female"),
+      bigregion = "Northeast")
+
+data.frame(Age = 30,
+      sex = c("Male", "Female"),
+      bigregion = "Northeast")
+
+# or you could use expand_grid to get all combinations of some vectors
+expand_grid(sex = c("Male", "Female"),
+            age = seq(20, 80, by = 5),
+            bigregion = c("Northeast", "Midwest", "South", "West"))
+
+```
+
+
+***Your turn***: Using the same model as above, what is the predicted probability of approving legalization for a male and a female, 20 years of age, living in the South?
+
+
+## Visualize the predicted probabilities
+We can predict the survival for other data frames than the one with the observations used in the model, as long as the data frame includes the variables used in the model. We could use this to visualize the predicted survival rates.
+
+```{r}
+
+### Let's estimate a model again
+legalize_log <- glm(legalize ~ age + bigregion, data = gss, 
+            family = "binomial"(link = "logit"))
+
+# We can create a grid with all combinations of sex and region and put that in a tibble
+legalize_groups <- gss |> 
+  data_grid(age, bigregion)
+
+# You can see how it looks
+legalize_groups
+
+# Let's add the predicted probabilities
+legalize_groups_pred <- augment(legalize_log, 
+                           type.predict = "response",
+                           newdata = legalize_groups)
+
+# And now it has the predicted probabilities 
+legalize_groups_pred 
+
+# We could do all this in one step
+legalize_groups_pred <- augment(legalize_log, 
+                           type.predict = "response",
+                           newdata = data_grid(gss, age, bigregion))
+
+# And now we can plot our predicted probabilities
+theme_set(theme_light())
+
+ggplot(legalize_groups_pred, aes(age, .fitted, color = bigregion)) +
+  geom_line() +
+  labs(title = "Probability of approving legalization of marijuana in the US. Logistic regression",
+       y = "Predicted probability of approval",
+       x = "Age",
+       color = "Region",
+       caption = "Data from GSS 2016.")
+
+```
+
+
+***Your turn***: Estimate a model with age and sex as independent variables. Illustrate the predicted probabilities in a graph using the same approach as above.
+
+
+## Predicted probablities with confidence intervals
+We can also add confidence intervals to our plot.
+
+
+```{r}
+### Let's use our model again
+tidy(legalize_log)
+
+# We can create a grid with all combinations of sex and age and put that in a tibble
+# But now add also the standard errors
+legalize_groups_pred <- augment(legalize_log, 
+                           type.predict = "response",
+                           se_fit = TRUE,
+                           newdata = data_grid(gss, age, bigregion))
+
+# And now we can plot our predicted probabilities
+# Note that you have to give the same name to fill and color
+# in labs in order to only get one legend.
+# Or you could set show.legend to FALSE in geom_ribbon
+legalize_groups_pred |> 
+  mutate(lower = .fitted - 1.96 * .se.fit,
+          upper = .fitted + 1.96 * .se.fit) |> 
+  ggplot(aes(age, .fitted, color = bigregion, fill = bigregion)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = lower,
+                  ymax = upper), 
+                  alpha = 0.2) +
+  labs(title = "Probability of approving legalization of marijuana in the US. Logistic regression",
+       y = "Predicted probability of approval",
+       x = "Age",
+       color = "Region",
+       fill = "Region",
+       caption = "Data from GSS 2016.")
+
+
+
+```
+
+# Goodness of fit
+We can evaluate the fit of the model in different ways, a few are shown below. 
+
+```{r}
+# We'll use the broom package to handle the output from the regressions
+# And DescTools for pseudo R2
+library(DescTools)
+
+### Let's estimate a logistic regression with age and region as independent variables
+legalize_log <- glm(legalize ~ age + bigregion, data = gss, 
+            family = "binomial"(link = "logit"))
+
+# The summary gives us information about the AIC
+summary(legalize_log)
+
+# Using glance from the broom package we get the AIC and the BIC, etc.
+glance(legalize_log)
+
+# You can also use the AIC and BIC functions
+AIC(legalize_log)
+BIC(legalize_log)
+
+# We can calculate the pseudo r2, i.e. McFadden's R2
+# Estimate the null model
+
+nullmod <- glm(legalize ~ 1, data = gss, 
+               family = "binomial"(link = "logit"))
+
+# NOTE! It has to have the same data as the model, i.e.
+# if there is missing data in the model it has to be excluded here as well
+# One way to do that is to use the model frame from the full model
+
+nullmod <- glm(legalize ~ 1, data = model.frame(legalize_log), 
+               family = "binomial"(link = "logit"))
+
+
+1 - as.numeric(logLik(legalize_log)) / as.numeric(logLik(nullmod))
+
+# But we can also get it directly using -PseudoR2- from the DescTools package
+PseudoR2(legalize_log)
+
+# It can calculate other types of pseudo R2, like Nagelkerke's
+PseudoR2(legalize_log, which = "Nagelkerke")
+
+```
+
+***Your turn***: Estimate a new model where you, compared to the one above, also add age as an independent variable. How does that change the AIC and the McFadden's R2? How do you interpret that?
+
+
+# Likelihood ratio test
+In the last computer lab, we looked at pseudo-R2, AIC and BIC. If we have nested model, we can also test if one or many additional variables increase the model fit using a likelihood ratio test.
+
+```{r}
+# lmtest for likelihood ratio tests
+library(lmtest)
+
+### Let's estimate a logistic regression with age and region as independent variables
+mod1 <- glm(legalize ~ age + bigregion, data = gss, 
+            family = "binomial"(link = "logit"))
+
+# And then add sex as an independent variable
+mod2 <- glm(legalize ~ age + bigregion + sex, data = gss, 
+            family = "binomial"(link = "logit"))
+
+summary(mod1)
+summary(mod2)
+
+# Mod1 is a constrained model nested in mod2
+# We can therefore do a likelihood ratio test using -lrtest-
+lrtest(mod1, mod2)
+
+# We can get the same information using -anova- as well.
+anova(mod1, mod2, test = "Chisq")
+
+
+```
+
+***Your turn***: Add marital status to mod2 above and do a likelihood ratio test - is the model improved when the new variable is added?
+
+
+## Saving graphs
+Let's say you want to save this beautiful graph. You can do that using ggsave.
+For more information, see <https://ggplot2.tidyverse.org/reference/ggsave.html>
+
+```{r}
+
+# if you don't specify any graph object, it will save the last plot
+# you control the file type by the extension, here a png file
+ggsave("path/filename.png")
+
+# you can set the resolution in dpi, here to 300
+ggsave("path/filename.jpeg", dpi = 300)
+
+# the height and width are set to a reasonable default, but do 
+# try other
+ggsave("path/filename.pdf", dpi = 300,
+       height = 8, width = 6)
+
+
+```
+
+

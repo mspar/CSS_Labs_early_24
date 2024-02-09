@@ -10,27 +10,27 @@ header-includes:
       - \usepackage{float}
       - \floatplacement{table}{H}
 engine: knitr
+date: last-modified
 ---
 
 ```{r}
-#| echo: false
-
 # reading in packages and initiating data frame
 
 library(titanic)
 library(tidyverse)
 library(modelsummary)
-library(broom)
 
 titanic <- titanic_train
 ```
 
 ```{r}
 #| eval: false
-#| echo: false
+
+#data overview
 
 str(titanic)
 ```
+
 \newpage
 
 ## Task A
@@ -88,8 +88,6 @@ modelsummary(both_models,
              title = "Survival from Titanic. Linear probability models",
              notes = list("Source: Titanic R package.", 
                           "Comments: Pclass refers to passenger class, first class is the reference category."))
-
-corr <- round(cor(titanic$Fare, as.numeric(titanic$Pclass)),2)
 ```
 
 > Table 2 shows the results of two linear probability models estimating the survival of passengers. While both models use survival as their dependent variable, the first model only inspects the relation of survival with being female and age. Its central question is to answer whether "women and children first" accurately describes the outcomes observed during the sinking of the Titanic. The second model adds to this query as independent variables both passenger class and whether family was present. Notably, only 714 of the initial 891 passengers are inlcuded, which is due to many missing values in the age variable.
@@ -98,4 +96,4 @@ corr <- round(cor(titanic$Fare, as.numeric(titanic$Pclass)),2)
 
 > In model 2 being female and age's beta-coefficients only slightly change, with being female's effect on survival now being slightly lower at around 49 percentage points while still being highly significant (p < 0.001) and age's negative effect on survival rising to around -0.6 percentage points while becoming highly significant (p < 0.001). Interestingly, the chance of survival holding all else constant at 0 has increased tremendously to 67% while also being significant (p < 0.001). This is likely influenced by the passenger class variable, as passengers of class 1 had a much higher likelihood of survival, with passenger's of class 2 and 3 having highly significant (p < 0.001) beta coefficients of -21 and -41 percentage points, respectively. Including family as an independent variable in the model produces a non-significant beta-coefficient of -4 percentage points, indicating that interpretations of this result should be careful. Finally, the explained variance rises by around 10 percentage points, confirming that the inclusion of passenger class and family was helpful to explaining survival.
 
-> In summary, the question of whether the "women and children first" saying is accurate in the case of the Titanic's sinking cannot be entirely supported. While it is certainly the case that being a woman highly increased the chances of surviving the sinking of the Titanic, being young had only very slight advantages for survival. It is important to note that this may be more closely examined if looking at age as a categorical variable instead, which might show whether children (within a defined age range) may have had a greater chance of survival. Model 2 adding passenger class as an independent variable shows that perhaps the aforementioned phrase should be changed to "the women and rich first", especially considering the moderate negative correlation between fare price and passenger class being -0.55.
+> In summary, the question of whether the "women and children first" saying is accurate in the case of the Titanic's sinking cannot be entirely supported. While it is certainly the case that being a woman highly increased the chances of surviving the sinking of the Titanic, being young had only very slight advantages for survival. It is important to note that this may be more closely examined if looking at age as a categorical variable instead, which might show whether children (within a defined age range) may have had a greater chance of survival. Model 2 adding passenger class as an independent variable shows that perhaps the aforementioned phrase should be changed to "the women and rich first", especially considering the moderate negative correlation between fare price and passenger class being `r round(cor(titanic$Fare, as.numeric(titanic$Pclass)),2)`.

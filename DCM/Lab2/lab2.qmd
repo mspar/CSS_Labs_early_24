@@ -1,0 +1,360 @@
+---
+title: "Computer lab 2"
+author: "Richard Öhrvall"
+date: '2024-01-25'
+format: pdf
+---
+
+# Introduction
+
+This is the second computer lab for the course Discrete Choice Modelling. At various position in this document, you'll find the prompt ***Your turn***. This indicates a question for you to solve during the lab.
+
+At the end of this document you find some additional questions for you to solve using the techniques presented below.
+
+More information about Tidyverse, R Markdown, etc. can be found in the first computer lab, see Lisam.
+
+
+# Our data: Survival from the Titanic
+In today's computer class we will continue to use a dataset of individuals who were passengers on the Titanic. If you want more information about the dataset and its variables you can look [here](https://www.kaggle.com/c/titanic/data).
+
+We will be using Quarto documents for the computer labs in this course. In Quarot we can add chunks of code. For each of these chunks we can specify some options, see computer lab 1 for more information.
+
+Let's get our data frame from the titanic package.
+
+```{r}
+#| message: false
+
+# Load the tidyverse and titanic package, if you haven't installed them before do so by type install.packages("titanic"), or click "Install" in your Packages frame in R Studio, first. The same goes for other packages in this lab.
+library(tidyverse)
+library(titanic)
+
+# The titanic package comes with two datasets, but we'll use the training dataset
+titanic <- titanic_train
+
+# You can get some information about the dataset using -glimpse-
+# or View(titanic), for other alternatives, see computer lab 1
+glimpse(titanic)
+
+# As you can see, passenger class (Pclass), is an integer variable, but it refers to 
+# different categories, so we can update our code loading the data frame so that
+# it changes it to a factor variable
+titanic <- titanic_train |> 
+  mutate(Pclass = as_factor(Pclass))
+
+# We can check that it's now a factor variable
+glimpse(titanic)
+
+# And we can see the order of the levels of Pclass (we can change that later)
+levels(titanic$Pclass)
+
+```
+
+***Your turn***: Make a cross-tabulation that shows the percentage distribution of survived and not survived by males and females respectively (hints can be found in the first computer lab). What is the expected survival of males and females? What is the odds of survival of males and females?
+
+
+# Visualize the data using bar charts
+In earlier computer labs, we have created tables to show the distribution of variables. Let us now illustrate distributions using bar charts instead. You can find more information about visualization of data in [chapter 3 in Wickham, Çetinkaya-Rundel and Grolemund 2023](https://r4ds.hadley.nz/data-visualize.html). Even more information can be found in this book <https://r-graphics.org/>. We focus on passenger class here.
+
+
+```{r}
+#| echo: false
+
+# Let's set a theme, here I choose theme_light
+theme_set(theme_light())
+
+# We can make a simple bar char using -geom_bar-
+titanic |>  
+  ggplot(aes(x = Pclass)) +
+  geom_bar() +
+  labs(x = "Passenger class",
+       y = "Number of passengers",
+       title = "Passengers on the Titanic",
+       caption = "Data from the titanic R Package.")
+
+# If we want percentages we have to calculate that, we can do that in this way
+titanic |> 
+  ggplot(aes(x = Pclass, y = after_stat(count / sum(count)))) +
+  geom_bar() +
+  labs(x = "Passenger class",
+       y = "Share of passengers",
+       title = "Passengers on the Titanic",
+       caption = "Data from the titanic R Package.")
+
+# If we want % on the y axis we can use the scales package
+library(scales)
+titanic |> 
+  ggplot(aes(x = Pclass, y = after_stat(count / sum(count)))) +
+  geom_bar() +
+  scale_y_continuous(labels = percent_format()) +
+  labs(x = "Passenger class",
+       y = "Number of passengers",
+       title = "Passengers on the Titanic",
+       caption = "Data from the titanic R Package.")
+
+# Another approach is to sum up within categories, using -count-, and then geom_col
+# with geom_col the actual values are presented.
+# In many cases, this is a more flexible approach.
+titanic |> 
+  count(Pclass) |>  
+  ggplot(aes(Pclass, n)) +
+  geom_col() +
+  labs(x = "Passenger class",
+       y = "Number of passengers",
+       title = "Passengers on the Titanic",
+       caption = "Data from the titanic R Package.")
+
+# To get the percentages with this approach, we can calculate them using -mutate-
+titanic |> 
+  count(Pclass) |>  
+  mutate(perc = n / sum(n)) |>  
+  ggplot(aes(Pclass, perc)) +
+  geom_col() +
+  scale_y_continuous(labels = percent_format()) +
+  labs(x = "Passenger class",
+       y = "Share of passengers",
+       title = "Passengers on the Titanic",
+       caption = "Data from the titanic R Package.")
+
+# If we want, we can reorder the categories using -fct_reorder-, here by number of observations
+titanic |> 
+  count(Pclass) |> 
+  mutate(Pclass = fct_reorder(Pclass, desc(n))) |> 
+  ggplot(aes(Pclass, n)) +
+  geom_col() +
+  labs(x = "Passenger class",
+       y = "Number of passengers",
+       title = "Passengers on the Titanic",
+       caption = "Data from the titanic R Package.")
+
+# We'll get back to other ways to handle factors in later computer labs
+
+# And we can flip the chart using coord_flip
+# (Note that I've changed the ordering to ascending)
+titanic |> 
+  count(Pclass) |>  
+  mutate(Pclass = fct_reorder(Pclass, n)) |> 
+  ggplot(aes(Pclass, n)) +
+  geom_col() +
+  coord_flip() +
+  labs(x = "Passenger class",
+       y = "Number of passengers",
+       title = "Passengers on the Titanic",
+       caption = "Data from the titanic R Package.")
+
+# This can also be achieved by changing x and y in the aes, 
+# but then we also have to change the axis labels, e.g.
+titanic |> 
+  count(Pclass) |> 
+  mutate(Pclass = fct_reorder(Pclass, n)) |>  
+  ggplot(aes(n, Pclass)) +
+  geom_col() +
+  labs(y = "Passenger class",
+       x = "Number of passengers",
+       title = "Passengers on the Titanic",
+       caption = "Data from the titanic R Package.")
+
+
+# We can illustrate the distribution over sex within each category, i.e. a stacked bar chart,
+# by adding a -fill = Sex-. Here I changed the color of the filling, using 
+# scale_fill_brewer with the palette "Paired"
+titanic |> 
+  count(Pclass, Sex) |>  
+  ggplot(aes(Pclass, n, fill = Sex)) +
+  geom_col() +
+  labs(x = "Passenger class",
+       y = "Number of passengers",
+       title = "Passengers on the Titanic",
+       caption = "Data from the titanic R Package.") +
+  scale_fill_brewer(palette = "Paired")
+
+# We can also make separate graph for males and females, using -facet_wrap-
+titanic |> 
+  count(Pclass, Sex) |>  
+  ggplot(aes(Pclass, n)) +
+  geom_col() +
+  facet_wrap(vars(Sex)) +
+  labs(x = "Passenger class",
+       y = "Number of passengers",
+       title = "Passengers on the Titanic",
+       caption = "Data from the titanic R Package.") 
+
+```
+
+***Your turn***: Create a bar chart that has sex on the x axis and shows the number of passengers on the y axis. Add the distribution over passenger class within sex, i.e. a stacked bar chart.
+
+
+# The logistic regression model
+In the first computer lab, we estimated a some linear probability models (LPM) using our titanic data. Let's now estimate similar models using logistic regressions as well. We'll start with age and passenger class as our predictors. 
+
+***Your turn***: Do you expect age and passenger class to be correlated with the likelihood of survival? If so, in what direction do you expect the correlation to be? Why?
+
+
+```{r}
+#| echo: false
+#| message: false
+
+
+### LPM with age and passenger class as independent variables
+survive_age_lpm <- lm(Survived ~ Age + Pclass, data = titanic)
+summary(survive_age_lpm)
+
+### We can also estimate a linear model using generalized linear models by
+### setting the family to gaussian and link to identity (it's also the default)
+survive_age_lpm2 <- glm(Survived ~ Age + Pclass, data = titanic, 
+                        family = "gaussian"(link = "identity"))
+summary(survive_age_lpm2)
+
+
+### A logistic regression with the same variables
+### note the choice of family. The link is logit by default.
+survive_age_log <- glm(Survived ~ Age + Pclass, data = titanic, 
+                       family = "binomial"(link = "logit"))
+summary(survive_age_log)
+
+
+```
+
+***Your turn***: estimate three model: 1) a linear probability model using lm, 2) a linear probability model using glm, 3) a logistic regression model. They should all have survival as the dependent variable and age, sex and passenger class as independent variables. Present all three models in the same table using the modelsummary package (see computer lab 1 for hints). Are the coefficients the same in the three models? What is the difference? Are the same variables statistically significant? Is this what you expected?
+
+
+
+## Odds ratios
+
+```{r}
+## Let's estimate our logistic regression model again
+survive_age_log <- glm(Survived ~ Age + Pclass, data = titanic, 
+                       family = "binomial")
+summary(survive_age_log)
+
+# We can extract the coefficients this way
+coef(survive_age_log)
+
+# And to get the odds ratios we can exponentiate the coefficients
+exp(coef(survive_age_log))
+
+# To get the profiling confidence intervals we can use this line of code
+exp(confint(survive_age_log))
+
+# We can also get Wald confidence intervals this way
+exp(confint.default(survive_age_log))
+
+# And to get both odds ratios and confidence intervals
+exp(cbind(OR = coef(survive_age_log), confint(survive_age_log)))
+
+# We also get that information using -tidy- from the broom package
+# This is a bit easier
+library(broom)
+tidy(survive_age_log, exponentiate = TRUE, conf.int = TRUE)
+
+```
+
+***Your turn***: Estimate a logistic regression with survival as the dependent variable and age and sex as independent variables. What is the odds ratio for sex? How do you interpret it? Add fare as an additional control variable. Does the odds for sex change? How do you interpret that?
+
+
+## Tables with odds ratios
+You could present odds ratios in a table using Stargazer, but it's little bit trickier if you want the confidence intervals as well. 
+
+```{r}
+#| message: false
+
+
+## Let's estimate our logistic regression model again
+survive_age_log <- glm(Survived ~ Age + Pclass, data = titanic, 
+                       family = "binomial")
+tidy(survive_age_log, exponentiate = TRUE)
+
+## We can first create a table with odds ratios using the modelsummary package
+# see <https://vincentarelbundock.github.io/modelsummary/articles/modelsummary.html> 
+# for more information on how to tweak the table
+library(modelsummary)
+modelsummary(survive_age_log, exponentiate = TRUE)
+
+# one alternative is to present the confidence intervals instead of standard errors
+
+modelsummary(survive_age_log, statistic = "conf.int", 
+             exponentiate = TRUE)
+
+
+```
+
+## visualize the results
+Let's visualize the results of the logistic regression. We can plot the odds ratios in a graph using ggplot2.
+
+```{r}
+## Let's estimate our logistic regression model again
+survive_age_log <- glm(Survived ~ Age + Pclass, data = titanic, 
+                       family = "binomial")
+
+# We set it to -theme_light- (but do try other themes to find someone you like)
+theme_set(theme_light())
+
+# Get the results into a data frame (or actually a tibble, i.e. a data frame in Tidyverse)
+estimates <- tidy(survive_age_log, exponentiate = TRUE, conf.int = TRUE)
+
+# The intercept deviates so much from the other odds ratios, and is not that interesting, so we exclude it.
+estimates |>  
+  filter(term != "(Intercept)") |> 
+  ggplot(aes(term, estimate)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high, width = .1))+
+  labs(title = "Survival from Titanic. Logistic regression",
+       y = "Odds ratios",
+       x = "Variables",
+       caption = "Data from Titanic R Package")
+
+# Since odds ratio = 1 is of particular importance, we can add a line highlighting it
+estimates |> 
+  filter(term != "(Intercept)") |>  
+  ggplot(aes(term, estimate)) +
+  geom_hline(yintercept = 1, color = "red", linetype = "dashed") +
+  geom_point() +
+  scale_y_continuous(breaks = seq(0, 1.2, by = .2), limits = c(0, 1.2)) +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high, width = .1))+
+  labs(title = "Survival from Titanic. Logistic regression",
+       y = "Odds ratios",
+       x = "Variables",
+       caption = "Data from Titanic R Package")
+
+# If we like to, we can flip the graph to horizontal using -coord_flip-
+
+estimates |> 
+  filter(term != "(Intercept)") |>  
+  ggplot(aes(term, estimate)) +
+  geom_hline(yintercept = 1, color = "red", linetype = "dashed") +
+  geom_point() +
+  scale_y_continuous(breaks = seq(0, 1.2, by = .2), limits = c(0, 1.2)) +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high, width = .1))+
+  coord_flip() +
+  labs(title = "Survival from Titanic. Logistic regression",
+       y = "Odds ratios",
+       x = "Variables",
+       caption = "Data from Titanic R Package")
+
+# Or just change the order of x and y 
+# But then you need to change everything else that has to be changed
+# e.g. scale_y_continuous to scale_x_continuous, 
+# geom_errorbar to geom_errorbarh, etc.
+
+estimates |> 
+  filter(term != "(Intercept)") |>  
+  ggplot(aes(estimate, term)) +
+  geom_vline(xintercept = 1, color = "red", linetype = "dashed") +
+  geom_point() +
+  scale_x_continuous(breaks = seq(0, 1.2, by = .2), limits = c(0, 1.2)) +
+  geom_errorbarh(aes(xmin = conf.low, xmax = conf.high, height = .1))+
+  labs(title = "Survival from Titanic. Logistic regression",
+       y = "Odds ratios",
+       x = "Variables",
+       caption = "Data from Titanic R Package")
+
+
+```
+
+
+# Additional questions (in case you have the time and want to do more)
+
+## Question 1 
+Estimate a logistic regression with survival as the dependent variable and sex, age, passenger class and fare as independent variables. Describe the results briefly. Now, the variable Parch indicates how many parents or children each individual had on the Titanic. Do you think having a parent or a children on board increases or decreases the likelihood of survival? Why? Create a new variable any_parch that only has the values 0 or 1, where 1 indicates the individual has a children or a parent on board regardless or how many (Hint: you could use mutate and if_else). Estimate a new model where you include this new variable. Describe the results. Is it in line with your expectations? 
+
+## Question 2 
+Make a graph that illustrates the odds ratios for the variables included in the final model estimated in Question 1. Make sure that it has a relevant title and that the axis have informative labels, and so on. If you have the time, try different themes so that you get a graph that you like.
