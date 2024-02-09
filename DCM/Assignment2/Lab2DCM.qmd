@@ -1,0 +1,50 @@
+---
+title: "Assignment 2 - Obama & Happiness - Discrete Choice Modelling"
+author: "Marc Sparhuber"
+format: pdf
+toc: true
+execute:
+  warning: false
+  echo: false
+header-includes:
+      - \usepackage{float}
+      - \floatplacement{table}{H}
+engine: knitr
+---
+
+## Loading in Packages & Data
+
+```{r}
+library(tidyverse)
+library(socviz)
+
+# Get the data
+gss <- gss_sm
+```
+
+## Preparing Data & Descriptives
+
+```{r}
+
+```
+
+## Model Estimaton & Odd Ratios
+
+```{r}
+
+```
+
+## Predicted Probabilities
+
+```{r}
+
+```
+
+## Model Fit
+
+```{r}
+
+```
+
+## Conclusion
+
