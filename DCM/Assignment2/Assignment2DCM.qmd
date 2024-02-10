@@ -17,6 +17,7 @@ engine: knitr
 ```{r}
 library(tidyverse)
 library(socviz)
+library(modelsummary)
 
 # Get the data
 gss <- gss_sm
@@ -28,14 +29,21 @@ gss <- gss_sm
 # create variable if any parent got a bachelors or graduate degree
 # table to check out possible responses & if the answer categories are the same in both variables
 
-gss |> count(madeg)
-gss |> count(padeg)
+# gss |> count(madeg)
+# gss |> count(padeg)
 
 gss <- gss |> 
-  mutate(parent_any_degree = as_factor(if_else(padeg == "Bachelor" | madeg == "Bachelor" | padeg == "Graduate" | madeg == "Graduate", 1, 0)),
-         obama = as_factor(obama)) |> 
-  relocate(parent_any_degree, .after = madeg) |> 
-  drop_na(any_of(c("obama", "age", "sex", "happy", "parent_any_degree"))) 
+  mutate(parent_degree = as_factor(if_else(padeg == "Bachelor" | madeg == "Bachelor" | padeg == "Graduate" | madeg == "Graduate", "1 or more", "0")),
+         obama = recode_factor(obama, `1` = "voted Obama", `0` = "didn't vote Obama")) |> 
+  relocate(parent_degree, .after = madeg) |> 
+  drop_na(any_of(c("obama", "age", "sex", "happy", "parent_degree")))
+
+# create table
+
+datasummary((`Age` = age) + (`Sex` = sex) + (`Bachelor or Graduate degrees of parents` = parent_degree) + (`Obama` = obama) + (`Happiness` = happy) + 1 ~ obama * (Mean + SD + N + Percent()),
+                       data = gss,
+                       title = "Descriptives split by voting for Obama",
+                       notes = c("Comments: Data from the General Social Survey R package."))
 ```
 
 ## Model Estimaton & Odd Ratios
