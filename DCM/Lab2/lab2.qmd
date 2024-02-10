@@ -193,7 +193,6 @@ In the first computer lab, we estimated a some linear probability models (LPM) u
 #| echo: false
 #| message: false
 
-
 ### LPM with age and passenger class as independent variables
 survive_age_lpm <- lm(Survived ~ Age + Pclass, data = titanic)
 summary(survive_age_lpm)

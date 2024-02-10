@@ -18,6 +18,7 @@ engine: knitr
 library(tidyverse)
 library(socviz)
 library(modelsummary)
+library(broom)
 
 # Get the data
 gss <- gss_sm
@@ -49,6 +50,28 @@ datasummary((`Age` = age) + (`Sex` = sex) + (`Bachelor or Graduate degrees of pa
 ## Model Estimaton & Odd Ratios
 
 ```{r}
+# set "Not Too Happy" as reference category
+#levels(gss$happy)
+
+gss <- gss |> mutate(happy = fct_relevel(happy, "Not Too Happy"))
+
+# a) only the happiness variable.
+
+happy_lrm <- glm(obama ~ happy, data = gss, 
+                       family = "binomial"(link = "logit"))
+summary(happy_lrm)
+
+# b) same as a), plus the new parental education variable.
+
+happy_education_lrm <- glm(obama ~ happy + parent_degree, data = gss, 
+                       family = "binomial"(link = "logit"))
+summary(happy_education_lrm)
+
+# c) same as b), plus sex and age variables.
+
+happy_education_sex_age_lrm <- glm(obama ~ happy + parent_degree + age + sex, data = gss, 
+                       family = "binomial"(link = "logit"))
+summary(happy_education_sex_age_lrm)
 
 ```
 
