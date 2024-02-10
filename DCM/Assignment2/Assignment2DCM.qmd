@@ -12,6 +12,8 @@ header-includes:
 engine: knitr
 ---
 
+\newpage
+
 ## Loading in Packages & Data
 
 ```{r}
@@ -19,8 +21,11 @@ library(tidyverse)
 library(socviz)
 library(modelsummary)
 library(broom)
-library(scales)
 library(modelr)
+library(DescTools)
+library(lmtest)
+library(kableExtra)
+library(knitr)
 
 # Get the data
 gss <- gss_sm
@@ -29,6 +34,7 @@ gss <- gss_sm
 ## Preparing Data & Descriptives
 
 ```{r}
+
 # create variable if any parent got a bachelors or graduate degree
 # table to check out possible responses & if the answer categories are the same in both variables
 
@@ -36,17 +42,24 @@ gss <- gss_sm
 # gss |> count(padeg)
 
 gss <- gss |> 
-  mutate(parent_degree = as_factor(if_else(padeg == "Bachelor" | madeg == "Bachelor" | padeg == "Graduate" | madeg == "Graduate", "1 or more", "0")),
-         obama = recode_factor(obama, `1` = "voted Obama", `0` = "didn't vote Obama")) |> 
+  mutate(parent_degree = as_factor(if_else(padeg == "Bachelor" | madeg == "Bachelor" | padeg == "Graduate" | madeg == "Graduate", "1 or more", "0", missing = NA)),
+         obama = recode_factor(obama, `1` = "voted Obama", `0` = "didn't vote Obama"),
+         combined = as_factor("combined")) |> 
   relocate(parent_degree, .after = madeg) |> 
   drop_na(any_of(c("obama", "age", "sex", "happy", "parent_degree")))
 
 # create table
 
-datasummary((`Age` = age) + (`Sex` = sex) + (`Bachelor or Graduate degrees of parents` = parent_degree) + (`Obama` = obama) + (`Happiness` = happy) + 1 ~ obama * (Mean + SD + N + Percent()),
+datasummary((`Obama` = obama) + (`Happiness` = happy) + (`Bachelor or Graduate degrees\n of parents` = parent_degree) + (`Sex` = sex) + Heading("Age", nearData = FALSE) * age + Heading("All", nearData = FALSE) * 1 ~ (obama * (Mean + SD + Percent())) + (combined * (Mean + SD + Percent())),
                        data = gss,
                        title = "Descriptives split by voting for Obama",
-                       notes = c("Comments: Data from the General Social Survey R package."))
+                       notes = c("Comments: Data from the General Social Survey R package.")) |>
+                       kable_styling(latex_options="scale_down")
+
+# recode obama and parent_degree for modelling
+gss$obama <- as_factor(recode(gss$obama, "didn't vote Obama" = 0, "voted Obama" = 1))
+gss$parent_degree <- as_factor(recode(gss$parent_degree, "0" = 0, "1 or more" = 1))
+
 ```
 
 ## Model Estimaton & Odd Ratios
@@ -61,22 +74,22 @@ gss <- gss |> mutate(happy = fct_relevel(happy, "Not Too Happy"))
 
 happy_lrm <- glm(obama ~ happy, data = gss, 
                        family = "binomial"(link = "logit"))
-nobs(happy_lrm)
-summary(happy_lrm)
+#nobs(happy_lrm)
+#summary(happy_lrm)
 
 # b) same as a), plus the new parental education variable.
 
 happy_education_lrm <- glm(obama ~ happy + parent_degree, data = gss, 
                        family = "binomial"(link = "logit"))
-nobs(happy_education_lrm)
-summary(happy_education_lrm)
+#nobs(happy_education_lrm)
+#summary(happy_education_lrm)
 
 # c) same as b), plus sex and age variables.
 
 happy_education_sex_age_lrm <- glm(obama ~ happy + parent_degree + age + sex, data = gss, 
                        family = "binomial"(link = "logit"))
-nobs(happy_education_sex_age_lrm)
-summary(happy_education_sex_age_lrm)
+#nobs(happy_education_sex_age_lrm)
+#summary(happy_education_sex_age_lrm)
 
 mods <- list(
   "Model 1" = happy_lrm,
@@ -96,10 +109,12 @@ modelsummary(mods,
 ```{r}
 estimates_third_mod <- tidy(happy_education_sex_age_lrm, exponentiate = TRUE, conf.int = TRUE)
 
+theme_set(theme_light())
+
 estimates_third_mod |> 
   filter(term != "(Intercept)") |>  
   ggplot(aes(term, estimate)) +
-  geom_hline(yintercept = 0.2744810, color = "red", linetype = "dashed") +
+  geom_hline(yintercept = 3.3504953, color = "red", linetype = "dashed") +
   geom_point() +
   scale_y_continuous(breaks = seq(0, 3.5, by = .2), limits = c(0, 3.5)) +
   geom_errorbar(aes(ymin = conf.low, ymax = conf.high, width = .1))+
@@ -112,16 +127,78 @@ estimates_third_mod |>
 ## Predicted Probabilities
 
 ```{r}
-# log_pred_mod3 <- augment(happy_education_sex_age_lrm,
-#                          type.predict = "response",
-#                          se_fit = TRUE,
-#                          newdata = data_grid(gss, age, happy))
+#| fig-width: 7
+
+griddy <- expand_grid(sex = "Female",
+            age = seq(min(gss$age), max(gss$age)),
+            happy = c("Not Too Happy", "Pretty Happy", "Very Happy"),
+            parent_degree = "1")
+
+log_pred_mod3 <- augment(happy_education_sex_age_lrm, 
+                           type.predict = "response",
+                           se_fit = TRUE,
+                           newdata = griddy)
+
+log_pred_mod3 |> 
+  mutate(lower = .fitted - 1.96 * .se.fit,
+          upper = .fitted + 1.96 * .se.fit) |> 
+  ggplot(aes(age, .fitted, color = happy, fill = happy)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = lower,
+                  ymax = upper), 
+                  alpha = 0.5) +
+  scale_x_continuous(breaks = seq(20, 90, by = 10)) +
+  labs(title = "Probability of Obama vote for women with at least one college educated parent",
+       subtitle = "A logistic regression",
+       y = "Predicted probability of Obama vote",
+       x = "Age",
+       color = "Happiness",
+       fill = "Happiness",
+       caption = "Data from GSS 2016.")
 ```
 
 ## Model Fit
 
 ```{r}
+#| fig-align: center
 
+# Perform likelihood ratio tests comparing model b to model a,
+# and model c to model b. Also calculate Nagelkerke’s pseudo-R2 and the share of observations
+# correctly predicted for all three models.
+# Present the above fit statistics in a single, well-formatted and labelled table.
+# Describe and interpret the results of these model fit comparisons.
+
+
+lr_mod12 <- lrtest(happy_lrm, happy_education_lrm)
+#lr_mod12[2,5]
+lr_mod23 <- lrtest(happy_education_lrm, happy_education_sex_age_lrm)
+#lr_mod23[2,5]
+
+mod1_nagel <- PseudoR2(happy_lrm, which = "Nagelkerke")
+mod2_nagel <- PseudoR2(happy_education_lrm, which = "Nagelkerke")
+mod3_nagel <- PseudoR2(happy_education_sex_age_lrm, which = "Nagelkerke")
+
+correct_pred_m1 <- augment(happy_lrm, type.predict = "response") |> mutate(.pred = as.numeric(.fitted > .5))
+correct_pred_m2 <- augment(happy_education_lrm, type.predict = "response") |> mutate(.pred = as.numeric(.fitted > .5))
+correct_pred_m3 <- augment(happy_education_sex_age_lrm, type.predict = "response") |> mutate(.pred = as.numeric(.fitted > .5))
+
+share_correct_m1 <- mean(correct_pred_m1$obama == correct_pred_m1$.pred, na.rm = TRUE)
+share_correct_m2 <- mean(correct_pred_m2$obama == correct_pred_m2$.pred, na.rm = TRUE)
+share_correct_m3 <- mean(correct_pred_m3$obama == correct_pred_m3$.pred, na.rm = TRUE)
+
+data_fit <- as.data.frame(tribble(
+  ~`Model 1`, ~`Model 2`, ~`Model 3`,
+  mod1_nagel, mod2_nagel, mod3_nagel,
+  share_correct_m1, share_correct_m2, share_correct_m3,
+  NA, lr_mod12[2,5], lr_mod23[2,5]))
+
+rownames(data_fit) <- c("Nagelkerke’s pseudo-R2", "Share of correct predictions", "Likelihood Ratio")
+
+kable(data_fit,
+      caption = "Voting for Obama: Model fit statistics") |> 
+  footnote(footnote_as_chunk = TRUE,
+           threeparttable = TRUE, 
+           general = "A prediction is considered correct when its probability is greater than 0.5. The Likelihood ratio is always calculated with the model to the left. Data from GSS 2016.")
 ```
 
 ## Conclusion

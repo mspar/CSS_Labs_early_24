@@ -1,0 +1,483 @@
+---
+title: "Computer lab 4"
+date: last-modified
+date-format: "MMMM DD, YYYY"
+author: "Richard Öhrvall"
+format: pdf
+---
+
+# Introduction
+
+This is the fourth computer lab for the course Discrete Choice Modelling. At various position in this document, you'll find the prompt ***Your turn***. This indicates a question for you to solve during the lab.
+
+We will be using Quarto documents for the computer labs and assignments in this course. In Quarto we can add chunks of code. For each of these chunks we can specify some options. See previous computer labs for more information
+
+
+# Our data: General Social Survey (GSS)
+Today's computer class we will be using data from the the General Social Survey (GSS) in 2016. The GSS is an opinion survey covering a wide variety of cultural, political, economic, and other social topics that has been running for decades in the US. We will use data from the GSS that is contained in the `socviz` package, developed by Kieran Healy (install.packages("socviz")). If you want to explore the full GSS data and other years, check out the gssr package by Healy: <https://kjhealy.github.io/gssr/>
+
+Documentation for the data can be found at <https://kjhealy.github.io/socviz/reference/gss_sm.html> and through the link provided there. In this task, you can ignore sampling weights.
+
+You can get the data from the `socviz` package, as shown below. The data you get is in the form of a tibble. A tibble is the tidyverse version of a data frame. You can read more about it here <https://tibble.tidyverse.org/>. A tibble mainly behaves in the same way as a data frame.
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+# Load the tidyverse and socviz package, if you haven't installed them before do so by type install.packages("socviz"), or click "Install" in your Packages frame in R Studio, first. The same goes for other packages in this lab.
+library(tidyverse)
+library(socviz)
+
+# Get the data and create a new dummy variable indicating if the respondent is married or not
+gss <- gss_sm |> 
+  mutate(married = if_else(marital == "Married", 1, 0))
+
+gss |> 
+  count(marital, married)
+
+```
+
+
+# Working with factors
+If we want to recode some of the variables, for example combining some political parties to an "other" category, we can do so using if_else or case_when functions. However, there are also a number of useful functions for handling factors in the forcats package. More information can be found in [chapter 18 in Wickham, Çetinkaya-Rundel and Grolemund 2023](https://r4ds.hadley.nz/factors.html).
+
+```{r}
+# Let's look at different levels of educational attainment
+gss |> 
+  count(degree)
+  
+# This variable is already a factor
+class(gss$degree)
+
+# Otherwise, we could have changed it into a factor using as_factor (or as.factor), e.g.
+# gss <- gss |> 
+#   mutate(degree_fact = as_factor(degree))
+
+
+# If we want to combine some party choices to "Low" we can use fct_recode 
+gss |> 
+  mutate(education = fct_recode(degree,
+                                 "Low" = "Lt High School",
+                                 "Low" = "High School")) |>  
+  count(education)
+
+# In order to not type so much, we could instead combine factor levels using fct_collapse
+gss |> 
+  mutate(education = fct_collapse(degree,
+                                 "Low" = c("Lt High School", 
+                                             "High School"))) |> 
+  count(education)
+
+
+# fct_collapse can combine different factor levels to one level. But if we specifically want to create "Other"-category, we can use fct_other, where we either keep some factor levels or drop some factor levels - the ones not kept or dropped will become "Other", e.g.
+gss |> 
+  count(region)
+
+gss |> 
+  mutate(region_new = fct_other(region,
+                                 keep = c("Mountain", "Pacific", "W. Sou. Central"))) |> 
+  count(region_new)
+
+# Or
+gss |>  
+  mutate(region_new = fct_other(region,
+                                 drop = c("Middle Atlantic", 
+                                             "New England", "E. Nor. Central"))) |> 
+  count(region_new)
+
+# We can also change the name of the other category from the default 'Other' 
+# using the other_level argument
+gss |> 
+  mutate(region_new = fct_other(region,
+                                 drop = c("Middle Atlantic", 
+                                             "New England", "E. Nor. Central"),
+                                other_level = "Other regions")) |>
+  count(region_new)
+
+# If we want to keep the factor levels for the four biggest parties and lump the rest to "Other", we can use fct_lump
+# Here the five biggest categories
+gss |> 
+  count(region, sort = TRUE)
+
+gss |> 
+  mutate(region_new = fct_lump(region, n = 5,
+         other_level = "Other regions")) |> 
+  count(region_new)
+
+# Or as a share of the observations
+gss |> 
+  mutate(region_new = fct_lump(region, p = .15,
+         other_level = "Other regions")) |> 
+  count(region_new)
+
+# There are also other versions of fct_lump, see ?fct_lump
+
+```
+
+### Changing the order of the factor level
+As we discussed in earlier computer labs, we can change the order of the factor level. This is, for example, important since the first level will be become our reference category in logistic regressions. We can also change the order according to how frequent the levels are, or according to some other variable.
+
+```{r}
+# Let's check the order of the levels of our party vote factor
+levels(gss$region)
+
+# New England is the first level and would be our reference category in a regression model
+# We can change that using fct_relevel, e.g. setting Mountain as the first level
+gss_adj <- gss |>  
+  mutate(region = fct_relevel(region, "Mountain"))
+
+levels(gss_adj$region)
+
+# We can change more levels if we want to 
+gss_adj <- gss |> 
+  mutate(region = fct_relevel(region, c("Mountain", "Pacific"))) 
+
+levels(gss_adj$region)
+
+# Or sort them alphabetically 
+gss_adj <- gss |> 
+  mutate(region = fct_relevel(region, sort))
+
+levels(gss_adj$region)
+
+# And so on, there are many ways to use fct_relevel
+# We can also reverse the order of the levels, using fct_rev
+gss_adj <- gss_adj |>  
+  mutate(region = fct_rev(region))
+
+levels(gss_adj$region)
+
+# We can order them by how frequent they are using fct_infreq
+gss_adj |> 
+  count(region, sort = TRUE)
+
+gss_adj <- gss_adj |>  
+  mutate(region = fct_infreq(region))
+
+levels(gss_adj$region)
+
+# Or how infrequent using fct_infreq and fct_rev
+gss_adj <- gss_adj |>  
+  mutate(region = fct_rev(fct_infreq(region)))
+
+levels(gss_adj$region)
+
+# We can also change the order of the factor levels according to some other variable, as we have done in previous computer labs. Here we illustrate the average number of children by region (only the six biggest regions in terms of respondents, the rest are lumped into "Other") and arrange the bars in a descending order. We are creating a so-called lollipop chart.
+
+library(scales)
+gss |>  
+  mutate(region_few = fct_lump(region, 5, other_level = "Other regions"),
+         vhappy = if_else(happy == "Very Happy", 1, 0)) |>  
+  group_by(region_few) |> 
+  summarise(avg_happy = mean(vhappy, na.rm = TRUE)) |> 
+  mutate(region_few = fct_reorder(region_few, avg_happy)) |>  
+  ggplot(aes(avg_happy, region_few)) +
+  geom_point(size = 3) +
+  geom_segment(aes(x = 0, xend = avg_happy, yend = region_few)) +
+  theme_light() +
+  scale_x_continuous(breaks = seq(0, 1, .05),
+                     labels = percent_format()) +
+  expand_limits(x = c(0, .3)) +
+  labs(y = "",
+       x = "Percent very happy")
+  
+```
+
+
+# Estimating a model with an interaction and visualizing predicted probabilities
+Another example of visualizing predicted probabilities, now with an interaction.
+
+```{r}
+library(broom)
+library(modelr)
+library(scales)
+
+# Let us estimate a model with age, sex and the interaction between them
+mod1 <- glm(married ~ age + sex + age:sex, data = gss, 
+            family = "binomial"(link="logit"))
+summary(mod1)
+
+# This can also be written like this:
+mod1 <- glm(married ~ age * sex, data = gss, 
+            family = "binomial"(link="logit"))
+summary(mod1)
+
+# We can visualize the probabilities 
+married_age_sex <- augment(mod1, 
+                           type.predict = "response",
+                           newdata = data_grid(gss, age, sex))
+
+# And now we can plot our predicted probabilities
+theme_set(theme_light())
+
+ggplot(married_age_sex, aes(age, .fitted, color = sex)) +
+  geom_line(linewidth = 1.5) +
+  scale_y_continuous(labels = percent_format()) +
+  expand_limits(y = c(0, 1)) +
+  labs(title = "Probability of being married",
+       subtitle = "Estimates from a logistic regression model",
+       y = "Probability of being married",
+       x = "Age",
+       color = "Sex",
+       caption = "Data from GSS through the Socviz R Package.")
+
+```
+
+***Your turn***: Estimate a model with married as the outcome and where you include age, sex, and if the respondent voted for Obama or not, and the interaction between voting for Obama and age. Plot the interaction.
+
+# Marginal effects
+In order to estimate the marginal effects, we will use the new marginaleffects package. You can read more about it here: <https://github.com/vincentarelbundock/marginaleffects>. 
+
+There is also another package called the margins package. It is a port of the -margins- command in Stata. You can find more information about it here <https://cran.r-project.org/web/packages/margins/vignettes/Introduction.html>. However, it has some issues and have not been updated in recent years, so use it carefully if you decide to try it.
+
+```{r}
+library(marginaleffects)
+
+# Let's begin by estimating a LPM model
+married_mod1_lpm <- lm(married ~ age + sex, data = gss)
+
+# We can look at some summary statistics
+summary(married_mod1_lpm)
+tidy(married_mod1_lpm)
+
+# We can calculate the average marginal effects using slopes from the marginaleffects package
+slopes(married_mod1_lpm)
+
+# But it prints all the rows, so better to store it as an object and retrieve the information
+married_mod1_lpm_mfx <- slopes(married_mod1_lpm)
+View(married_mod1_lpm_mfx)
+
+summary(married_mod1_lpm_mfx)
+tidy(married_mod1_lpm_mfx)
+
+# Or, even easier, we can get average directly by using avg_slopes
+avg_slopes(married_mod1_lpm)
+
+# As you can see, this corresponds to the coefficients in the lpm model, see above.
+
+## Let's estimate the same model using logistic regression 
+married_mod1_log <- glm(married ~ age + sex, data = gss, 
+                       family = "binomial"(link = "logit"))
+summary(married_mod1_log)
+
+# To get the average marginal effects of all variables we use slopes
+married_log_mfx <- slopes(married_mod1_log)
+View(married_log_mfx)
+
+summary(married_log_mfx)
+tidy(married_log_mfx)
+
+# Or we could just use avg_slopes
+avg_slopes(married_mod1_log)
+    
+```
+
+***Your turn***: add degree to the model and estimate it both as an linear probability model and as a logistic regression, and the compare the coefficients from the lpm model with the average marginal effects from the logistic regression, interpret the results.
+
+# Create a table with AMEs
+There are different ways to create tables with marginal effect. One way is to use marginaleffects together with the modelsummary package. You could also create a dataset with the relevant information and make a table using kable, or some other similar package.
+
+```{r}
+library(modelsummary)
+
+model_a <- glm(married ~ age + sex, data = gss, 
+                       family = "binomial"(link = "logit"))
+
+model_a_mfx <- slopes(model_a)
+summary(model_a_mfx)
+tidy(model_a_mfx)
+
+# We can make a table with the model
+modelsummary(model_a_mfx)
+
+
+model_b <- glm(married ~ age + sex + sibs, data = gss, 
+                       family = "binomial"(link = "logit"))
+
+model_b_mfx <- slopes(model_b)
+summary(model_b_mfx)
+
+# fit models and store them in a named list
+models <- list(
+    "Model A" = glm(married ~ age + sex, data = gss, 
+                       family = "binomial"(link = "logit")),
+    "Model B" = glm(married ~ age + sex + sibs, data = gss, 
+                       family = "binomial"(link = "logit")))
+
+# map the `avg_slopes` function to all the models using `map` (or lapply)
+models_mfx <- map(models, avg_slopes)
+
+modelsummary(models_mfx)
+
+```
+
+***Your turn***: Estimate a model a as above and a model c the has the same variables, but also includes childs as an independent variable. Create a table with the marginal effects for both models. Interpret the results.
+
+
+# Plot the AMEs
+You could use the modelplot function from marginaleffects to plot the estimats, or you could retrieve the relevant information and use ggplot. Note that modelplot creates a ggplot object, that you can tweak.
+
+```{r}
+
+# Plot model B
+model_b <- glm(married ~ age + sex + sibs, data = gss, 
+                       family = "binomial"(link = "logit"))
+
+model_b_mfx <- avg_slopes(model_b)
+
+modelplot(model_b_mfx) 
+
+# Or the combined models 
+modelplot(models_mfx)
+
+# You could change the scale of the variables to get more relevant AME estimates
+
+# Note that modelplot creates ggplots.
+plot <- modelplot(models_mfx)
+class(plot)
+
+# That mean that you could add ggplot layers, etc.
+plot +
+  geom_vline(xintercept = 0, color = "red", linetype = "dashed") +
+  labs(title = "Probablity of marriage",
+       subtitle = "AME estimates from logistic regression models",
+       caption = "Data from GSS through the Socivz R package")
+
+# But you can also use the tidy estimates
+tidy(model_b, conf.int = TRUE) |> 
+  filter(!term == "(Intercept)") |>  
+  ggplot(aes(estimate, term)) +
+  geom_pointrange(aes(xmin = conf.low, xmax = conf.high)) +
+  theme_light()
+
+# Or combine them
+tidy(model_a, conf.int = TRUE) |> 
+  mutate(model = "Model A") |> 
+  bind_rows(tidy(model_b, conf.int = TRUE) |> 
+              mutate(model = "Model B")) |> 
+  filter(!term == "(Intercept)") |> 
+  ggplot(aes(estimate, term, color = model)) +
+  geom_pointrange(aes(xmin = conf.low, xmax = conf.high),
+                  position = position_dodge(width = .2)) +
+  theme_light()
+
+```
+
+***Your turn***: Visualize the AMEs for model a and c that you estimated earlier. 
+
+
+If we have interactions in our model, we can use the plot_slope function from the marginaleffects package to create a plot. We can plot how the marginal effect of a variable changes as the value of a “condition” (or “moderator”) variable changes. The other variables are held at their mean or mode depending on whether they are continuous or categorical. 
+
+```{r}
+# Estimate a model with an interaction
+married_log_big <- glm(married ~ age * sex + religion, data = gss, 
+            family = "binomial"(link="logit"))
+
+tidy(married_log_big)
+
+# Predicted probabilities
+# All unspecified variables are held at their mean or mode
+plot_predictions(married_log_big, condition = list("age", "sex"))
+
+# Conditional marginal effects
+plot_slopes(married_log_big, variables = "sex", condition = "age")
+
+
+
+```
+
+# Grouped marginal effects
+We can also get marginal effects for different groups with the by argument
+
+```{r}
+# Re-estimate a model
+model_b <- glm(married ~ age + sex + region, data = gss, 
+                       family = "binomial"(link = "logit"))
+
+# Here we want the AME for age by different levels of the variable sex
+model_b |> 
+  avg_slopes(variables = "age", 
+             by = "region")
+
+
+```
+
+
+# Marginal effects at representative values
+As we did with the predicted probabilities, we can estimate marginal effects at representative values. 
+
+```{r}
+
+# Estimate a model 
+married_log3 <- glm(married ~ age + sex + sibs, data = gss, 
+                       family = "binomial"(link = "logit"))
+
+# We can set some representative values
+# The values we don't specify will be set at their mean or mode.
+avg_slopes(married_log3,
+                newdata = datagrid(age = 40,
+                                   sex = c("Male", "Female")))
+
+
+```
+
+
+***Your turn***: Estimate a model where age, sex and degree are the variables. Find the marginal effects for a female who is 30 years of age and has a bachelor degree.
+
+
+# Marginal effects at the means
+We could also estimate the marginal effects when we keep all other variables at their mean or mode.
+
+```{r}
+# Estimate a model 
+married_log_4 <- glm(married ~ age + sex + degree, data = gss, 
+            family = "binomial"(link="logit"))
+
+# And then specify that then new data should be at the mean
+avg_slopes(married_log_4,
+                newdata = "mean")
+```
+
+# Adjusted predicted probablities
+Do you remember how we create predicted probabilities last week? We could also do that using predictions from the marginaleffects package as well.
+
+
+```{r}
+library(modelr)
+
+model_a <- glm(married ~ age + sex, data = gss, 
+                       family = "binomial"(link = "logit"))
+
+# We can create a grid with all combinations of sex and age and put that in a tibble
+married_age_sex <- augment(model_a, 
+                           type.predict = "response",
+                           se_fit = TRUE,
+                           newdata = data_grid(gss, age, sex))
+
+# Prediction will calculate predictions for different values of variables
+predictions(model_a, by = c("age", "sex"))
+
+# We can also use it to plot predictions
+plot_predictions(model_a, condition = c("age", "sex"))
+
+# Note again that the object is a ggplot object,
+# so we can tweak it as when we use ggplot
+p <- plot_predictions(model_a, condition = c("age", "sex"))
+
+class(p)
+
+p +
+  labs(title = "My fancy plot")
+```
+
+There are more versions of predictions that can be used, see https://vincentarelbundock.github.io/marginaleffects/articles/predictions.html
+
+# Additional information
+There's a really nice blogpost on marginal effects by Andrew Heiss, see https://www.andrewheiss.com/blog/2022/05/20/marginalia/#slopes-and-marginal-effects  
+
+# Other packages
+Apart from margins and marginaleffects, you could take a look at the ggeffects package as well, see https://strengejacke.github.io/ggeffects/index.html.
+
+
+
