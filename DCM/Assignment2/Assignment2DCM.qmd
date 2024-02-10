@@ -19,6 +19,8 @@ library(tidyverse)
 library(socviz)
 library(modelsummary)
 library(broom)
+library(scales)
+library(modelr)
 
 # Get the data
 gss <- gss_sm
@@ -59,26 +61,61 @@ gss <- gss |> mutate(happy = fct_relevel(happy, "Not Too Happy"))
 
 happy_lrm <- glm(obama ~ happy, data = gss, 
                        family = "binomial"(link = "logit"))
+nobs(happy_lrm)
 summary(happy_lrm)
 
 # b) same as a), plus the new parental education variable.
 
 happy_education_lrm <- glm(obama ~ happy + parent_degree, data = gss, 
                        family = "binomial"(link = "logit"))
+nobs(happy_education_lrm)
 summary(happy_education_lrm)
 
 # c) same as b), plus sex and age variables.
 
 happy_education_sex_age_lrm <- glm(obama ~ happy + parent_degree + age + sex, data = gss, 
                        family = "binomial"(link = "logit"))
+nobs(happy_education_sex_age_lrm)
 summary(happy_education_sex_age_lrm)
 
+mods <- list(
+  "Model 1" = happy_lrm,
+  "Model 2" = happy_education_lrm,
+  "Model 3" = happy_education_sex_age_lrm)
+
+modelsummary(mods,
+             stars = TRUE,
+             gof_omit = "F|RMSE",
+             title = "Voting for Obama. Logistic probability models",
+             notes = list("Source: General Social Survey data from the socviz R package.", 
+                          "Comments: The reference cateogory for happy is 'Not Too Happy'."),
+             statistic = "conf.int",
+             exponentiate = TRUE)
+```
+
+```{r}
+estimates_third_mod <- tidy(happy_education_sex_age_lrm, exponentiate = TRUE, conf.int = TRUE)
+
+estimates_third_mod |> 
+  filter(term != "(Intercept)") |>  
+  ggplot(aes(term, estimate)) +
+  geom_hline(yintercept = 0.2744810, color = "red", linetype = "dashed") +
+  geom_point() +
+  scale_y_continuous(breaks = seq(0, 3.5, by = .2), limits = c(0, 3.5)) +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high, width = .1))+
+  labs(title = "Voting for Obama: Logistic Regression",
+       y = "Odds ratios",
+       x = "Variables",
+       caption = "General Social Survey Data from the socviz R Package.")
 ```
 
 ## Predicted Probabilities
 
 ```{r}
-
+# log_pred_mod3 <- augment(happy_education_sex_age_lrm,
+#                          type.predict = "response",
+#                          se_fit = TRUE,
+#                          newdata = data_grid(gss, age, happy))
 ```
 
 ## Model Fit
