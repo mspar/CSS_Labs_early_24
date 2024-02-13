@@ -190,9 +190,9 @@ share_correct_m3 <- mean(correct_pred_m3$obama == correct_pred_m3$.pred, na.rm =
 
 data_fit <- as.data.frame(tribble(
   ~`Model 1`, ~`Model 2`, ~`Model 3`,
-  mod1_nagel, mod2_nagel, mod3_nagel,
-  share_correct_m1, share_correct_m2, share_correct_m3,
-  NA, lr_mod12[2,5], lr_mod23[2,5]))
+  as.character(round(mod1_nagel,5)), as.character(round(mod2_nagel,5)), as.character(round(mod3_nagel,5)),
+  as.character(round(share_correct_m1,5)), as.character(round(share_correct_m2,5)), as.character(round(share_correct_m3,5)),
+  NA, as.character(round(lr_mod12[2,5],5)), as.character(round(lr_mod23[2,5],12))))
 
 rownames(data_fit) <- c("Nagelkerke’s pseudo-R2", "Share of correct predictions", "Likelihood Ratio")
 
