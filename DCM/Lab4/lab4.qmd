@@ -6,6 +6,10 @@ author: "Richard Öhrvall"
 format: pdf
 ---
 
+
+# CODE ON HOW TO SPLIT TABLES PROPERLY IN CORRESPONDING LECTURE
+
+
 # Introduction
 
 This is the fourth computer lab for the course Discrete Choice Modelling. At various position in this document, you'll find the prompt ***Your turn***. This indicates a question for you to solve during the lab.

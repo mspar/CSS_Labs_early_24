@@ -19,19 +19,18 @@ engine: knitr
 ```{r}
 library(tidyverse)
 library(socviz)
-library(modelsummary)
 library(broom)
 library(modelr)
 library(DescTools)
 library(lmtest)
 library(kableExtra)
 library(knitr)
+library(modelsummary)
+
 
 # Get the data
 gss <- gss_sm
 ```
-
-## Preparing Data & Descriptives
 
 ```{r}
 
@@ -49,8 +48,9 @@ gss <- gss |>
   drop_na(any_of(c("obama", "age", "sex", "happy", "parent_degree")))
 
 # create table
+# Needs to be renamed
 
-datasummary((`Obama` = obama) + (`Happiness` = happy) + (`Bachelor or Graduate degrees\n of parents` = parent_degree) + (`Sex` = sex) + Heading("Age", nearData = FALSE) * age + Heading("All", nearData = FALSE) * 1 ~ (obama * (Mean + SD + Percent())) + (combined * (Mean + SD + Percent())),
+datasummary((`Happiness` = happy) + (`Bachelor or Graduate degrees of parents` = parent_degree) + (`Sex` = sex) + Heading("Age", nearData = FALSE) * age + Heading("All", nearData = FALSE) * 1 ~ (obama * (Mean + SD + N + Percent())) + (combined * (Mean + SD + N + Percent())),
                        data = gss,
                        title = "Descriptives split by voting for Obama",
                        notes = c("Comments: Data from the General Social Survey R package.")) |>
@@ -59,7 +59,6 @@ datasummary((`Obama` = obama) + (`Happiness` = happy) + (`Bachelor or Graduate d
 # recode obama and parent_degree for modelling
 gss$obama <- as_factor(recode(gss$obama, "didn't vote Obama" = 0, "voted Obama" = 1))
 gss$parent_degree <- as_factor(recode(gss$parent_degree, "0" = 0, "1 or more" = 1))
-
 ```
 
 ## Model Estimaton & Odd Ratios
@@ -149,7 +148,7 @@ log_pred_mod3 |>
                   alpha = 0.5) +
   scale_x_continuous(breaks = seq(20, 90, by = 10)) +
   labs(title = "Probability of Obama vote for women with at least one college educated parent",
-       subtitle = "A logistic regression",
+       subtitle = "Estimated from a logistic regression",
        y = "Predicted probability of Obama vote",
        x = "Age",
        color = "Happiness",

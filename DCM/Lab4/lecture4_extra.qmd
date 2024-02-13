@@ -1,0 +1,246 @@
+---
+title: "Computer lab 4"
+date: last-modified
+date-format: "MMMM DD, YYYY"
+author: "Richard Öhrvall"
+format: pdf
+---
+
+
+# Extra for lecture 4
+
+## Pasting data
+One quick way to add data to R, if it's just a small table, is to use the package datapasta. Install the package, copy the table, e.g. in Excel, and paste it into R using data pasta from the addins menu above. 
+
+```{r}
+
+
+```
+
+
+## Data transformation
+A general advice is to not change the original dataset. Data transformation, e.g. creating new variables etc., can be done in the beginning of an R script or R Markdown file, or in a separate script that is sourced. Or you could create a new analysis dataset that is used in subsequent analyses.
+
+## Tables with summary statistics
+
+```{r}
+library(socviz)
+library(tidyverse)
+library(broom)
+library(modelsummary)
+library(titanic)
+
+# Get the data
+titanic <- titanic_train |> 
+  mutate(Pclass = as_factor(Pclass),
+         surv = as_factor(Survived))
+
+# You can use * to separate by values of a variable. 1 gives you the whole sample
+datasummary(surv * (Age + Fare + Sex) ~ Mean + SD + N + Percent(),
+            data = titanic,
+            title = "Passengers on the Titanic: Descriptive statistics",
+            notes = c("Comments: Data from the Titanic R package."))
+
+
+# You can also change the output to a data.frame and then append
+# that information in a consequtive step, using the add_rows argument
+# see https://vincentarelbundock.github.io/modelsummary/articles/datasummary.html#add_rows
+datasummary(surv * (Age + Fare + Sex) ~ Mean + SD + N + Percent(),
+            data = titanic,
+            title = "Passengers on the Titanic: Descriptive statistics",
+            notes = c("Comments: Data from the Titanic R package."),
+            output = "data.frame")
+
+
+# If you want the percentages for categorical values to be calculated within
+# the groups, you could change the denominator using the denom argument, see below.
+datasummary(surv * (Age + Fare + Sex) ~ Mean + SD + N + Percent(denom = Equal(surv)),
+            data = titanic,
+            title = "Passengers on the Titanic: Descriptive statistics",
+            notes = c("Comments: Data from the Titanic R package."))
+
+
+```
+
+You could also create a data frame with the information you want in the table and the use kable in the knitr package, or kableExtra or some other function, to create a table based on that data frame.
+
+
+
+## visualize the results
+Let's visualize the results of the logistic regression. We can plot the odds ratios in a graph using ggplot2.
+
+```{r}
+## Let's estimate a logistic regression model 
+
+survive_age_log <- glm(Survived ~ Age + Pclass, data = titanic, 
+                       family = "binomial"(link = "logit"))
+
+survive_age_log2 <- glm(Survived ~ Age + Sex + Pclass, data = titanic, 
+                       family = "binomial"(link = "logit"))
+
+# We set it to -theme_light- (but do try other themes to find someone you like)
+theme_set(theme_light())
+
+# Get the results into a data frame (or actually a tibble, i.e. a data frame in Tidyverse)
+tidy(survive_age_log, exponentiate = TRUE, conf.int = TRUE)
+
+# The intercept deviates so much from the other odds ratios, and is not that interesting, so we exclude it.
+tidy(survive_age_log, exponentiate = TRUE, conf.int = TRUE) |>  
+  filter(term != "(Intercept)") |>  
+  ggplot(aes(term, estimate)) +
+  geom_hline(yintercept = 1, color = "red", linetype = "dashed") +
+  geom_point() +
+  scale_y_continuous(breaks = seq(0, 1.2, by = .2), limits = c(0, 1.2)) +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high, width = .1))+
+  labs(title = "Survival from Titanic. Logistic regression",
+       y = "Odds ratios",
+       x = "Variables",
+       caption = "Data from Titanic R Package")
+
+# If we like to, we can flip the graph to horizontal using -coord_flip-
+tidy(survive_age_log, exponentiate = TRUE, conf.int = TRUE) |> 
+  filter(term != "(Intercept)") |>  
+  mutate(term = case_when(term == "Pclass2" ~ "Passenger class 2",
+                          term == "Pclass3" ~ "Passenger class 3",
+                          .default = term)) |> 
+  ggplot(aes(estimate, term)) +
+  geom_vline(xintercept = 1, color = "red", linetype = "dashed") +
+  geom_point() +
+  scale_x_log10(breaks = c(0, 0.1, .5, 1, 1.5)) +
+  expand_limits(x = c(0.06, 1.5)) +
+  geom_errorbar(aes(xmin = conf.low, xmax = conf.high, width = .1))+
+  labs(title = "Survival from Titanic. Logistic regression",
+       x = "Odds ratios",
+       y = "Variables",
+       caption = "Data from Titanic R Package")
+
+
+# Combining two models in one graph
+# Note the position_dodge in ggplot!
+tidy(survive_age_log, exponentiate = TRUE, conf.int = TRUE) |>  
+  mutate(model = "A") |> 
+  add_row(tidy(survive_age_log2, exponentiate = TRUE, conf.int = TRUE) |> 
+            mutate(model = "B")) |> 
+  filter(term != "(Intercept)") |>  
+  mutate(term = case_when(term == "Pclass2" ~ "Passenger class 2",
+                          term == "Pclass3" ~ "Passenger class 3",
+                          .default = term)) |> 
+  ggplot(aes(estimate, term, color = model)) +
+  geom_vline(xintercept = 1, color = "red", linetype = "dashed") +
+  geom_point(position = position_dodge(width = .5)) +
+  scale_x_log10(breaks = c(0, 0.1, .5, 1, 1.5)) +
+  expand_limits(x = c(0.06, 1.5)) +
+  geom_errorbar(aes(xmin = conf.low, xmax = conf.high, width = .1),
+                    position = position_dodge(width = .5)) +
+  labs(title = "Survival from Titanic. Logistic regression",
+       x = "Odds ratios",
+       y = "Variables",
+       caption = "Data from Titanic R Package")
+
+```
+
+
+### More about group_by
+We have discussed all the verbs used in dplyr, e.g. filter, arrange, mutate, in previous computer labs. Some aspects of group_by are still worth mentioning.
+
+```{r}
+# Let's load tidyverse and the gapminder dataset
+library(gapminder)
+
+# Let's look at the Gapminder dataset
+gapminder
+
+# We can aggregate by group
+gapminder |> 
+  group_by(continent) |> 
+  summarise(avg_lifextp = mean(lifeExp, na.rm = TRUE),
+            median_pop = median(pop, na.rm = TRUE))
+
+# But we can also calculate at group level and keep all observations
+# without aggregating
+gapminder |> 
+  group_by(continent) |> 
+  mutate(avg_lifextp = mean(lifeExp, na.rm = TRUE),
+            median_pop = median(pop, na.rm = TRUE)) 
+
+# You can see that the tibble is still grouped
+# From the group_vars function
+gapminder |> 
+  group_by(continent) |> 
+  mutate(avg_lifextp = mean(lifeExp, na.rm = TRUE),
+            median_pop = median(pop, na.rm = TRUE)) |> 
+  group_vars()
+
+# Remember to ungroup if you want so, 
+# otherwise subsequent transformation will be at group level
+# You do that using ungroup
+gapminder |> 
+  group_by(continent) |> 
+  mutate(avg_lifextp = mean(lifeExp, na.rm = TRUE),
+            median_pop = median(pop, na.rm = TRUE)) |> 
+  ungroup()
+
+# If you use summarise, you could also specify 
+# that you want the groups to be dropped
+gapminder |> 
+  group_by(continent, country) |> 
+  summarise(avg_lifextp = mean(lifeExp, na.rm = TRUE),
+            median_pop = median(pop, na.rm = TRUE),
+            .groups = "drop") 
+
+# In order to change multiple columns at once, we can use across
+# Here we summarise all columns from lifeExp to gdpPerCap
+# we use the new anonymous functions in base R, i.e. \(x)
+gapminder |> 
+  summarise(across(lifeExp:gdpPercap, \(x) mean(x, na.rm = TRUE)))
+
+# You can, of course, change x to something else
+gapminder |> 
+  summarise(across(lifeExp:gdpPercap, \(vars) mean(vars, na.rm = TRUE)))
+
+# You could also use the tilde operator, but I recommend \(x)
+# gapminder |> 
+#   summarise(across(lifeExp:gdpPercap, ~mean(.x, na.rm = TRUE)))
+
+
+# And here by continent
+gapminder |> 
+  group_by(continent) |> 
+  summarise(across(lifeExp:gdpPercap, \(x) mean(x, na.rm = TRUE)))
+
+
+# Here all columns that end with p in their name
+gapminder |> 
+  group_by(continent) |> 
+  summarise(across(ends_with("p"), \(x) mean(x, na.rm = TRUE)))
+
+
+
+# Or all numeric columns
+gapminder |> 
+  group_by(continent) |> 
+  summarise(across(where(is.numeric), \(x) mean(x, na.rm = TRUE)))
+
+# We can change the column name, using the .names argument
+# which uses glue syntax
+gapminder |> 
+  group_by(continent) |> 
+  summarise(across(ends_with("p"), \(x) mean(x, na.rm = TRUE),
+            .names = "{col}_mean"))
+
+# we can calculate more than one measurement at once
+gapminder |> 
+  group_by(continent) |> 
+  summarise(across(ends_with("p"), list(medel = mean, sd = sd),
+                   .names = "{col}_{fn}"))
+
+# Or we can specify our own function
+my_func <- function(x){
+  y <- log(x) / x
+  return(y)
+}
+
+gapminder |> 
+  mutate(across(ends_with("p"), \(x) my_func(x)))
+
+```
