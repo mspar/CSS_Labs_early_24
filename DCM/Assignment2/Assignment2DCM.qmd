@@ -41,11 +41,14 @@ gss <- gss_sm
 # gss |> count(padeg)
 
 gss <- gss |> 
-  mutate(parent_degree = as_factor(if_else(padeg == "Bachelor" | madeg == "Bachelor" | padeg == "Graduate" | madeg == "Graduate", "1 or more", "0", missing = NA)),
-         obama = recode_factor(obama, `1` = "voted Obama", `0` = "didn't vote Obama"),
+  mutate(parent_degree = case_when(
+    is.na(madeg) & is.na(padeg) ~ NA,
+    madeg %in% c("Bachelor", "Graduate") | padeg %in% c("Bachelor", "Graduate") ~ "1 or more",
+    TRUE ~ "0"),
+  obama = recode_factor(obama, `1` = "voted Obama", `0` = "didn't vote Obama"),
          combined = as_factor("combined")) |> 
   relocate(parent_degree, .after = madeg) |> 
-  drop_na(any_of(c("obama", "age", "sex", "happy", "parent_degree")))
+  drop_na((c("obama", "age", "sex", "happy", "parent_degree")))
 
 # create table
 # Needs to be renamed
