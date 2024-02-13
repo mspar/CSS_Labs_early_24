@@ -14,7 +14,13 @@ engine: knitr
 
 \newpage
 
-## Loading in Packages & Data
+## Data & Descriptives
+
+REWORK HYPOTHESIS - VOTE IN 2012, SURVEY IN 2016
+
+> The following analysis tests the hypothesis that individuals who were more unhappy, were more likely to vote Obama in 2012. This is expected to be the case because of Obama's promises to implement legislature to alleviate strain on individuals with lower socioeconomic status. One such example is the Affordable Care Act. Due to their lower socioeconomic status, these individuals are hypothesized to experience more hardships and be unhappier and therefore be more likely to vote for Obama. To test this hypothesis, a subset of data from the General Social Survey, conducted by the National Opinion Research at the University of Chicago and provided as part of the socviz package in R is used.
+
+> Table 1 displays descriptive statistics for all variables used for modelling, split by having voted Obama or not, as well as the entire sample. It shows number of respondents and percent within its group and variable for categorical variables and extends this by means and SDs for continuous variables. Of the 1693 individuals indlucded in the analyses, 1058 (62.49%) voted for Obama, while the 635 (37.51) did not. It is important to note that this indicates a slightly skewed sample, as Obama received 51.1% of the popular vote in 2012 (SOURCE). As the main indepdendent variable, Happiness is split into the categories 'Not Too Happy', 'Pretty Happy' and, 'Very Happy'. Across the entire sample, more than half of the respondents reported being 'Pretty Happy' (57.71%), 28.94% reported being 'Very Happy', while 13.35% considered themselves 'Not Too Happy'. Relevant to the hypothesis, while only 9.29% of those who did not vote for Obama reported being 'Not Too Happy', 15.78%	of those who voted Obama did.
 
 ```{r}
 library(tidyverse)
@@ -27,20 +33,8 @@ library(kableExtra)
 library(knitr)
 library(modelsummary)
 
-
-# Get the data
-gss <- gss_sm
-```
-
-```{r}
-
-# create variable if any parent got a bachelors or graduate degree
-# table to check out possible responses & if the answer categories are the same in both variables
-
-# gss |> count(madeg)
-# gss |> count(padeg)
-
-gss <- gss |> 
+# get data ready for descriptives and filter out NAs
+gss <- gss_sm |> 
   mutate(parent_degree = case_when(
     is.na(madeg) & is.na(padeg) ~ NA,
     madeg %in% c("Bachelor", "Graduate") | padeg %in% c("Bachelor", "Graduate") ~ "1 or more",
@@ -52,11 +46,10 @@ gss <- gss |>
 
 # create table
 # Needs to be renamed
-
-datasummary((`Happiness` = happy) + (`Bachelor or Graduate degrees of parents` = parent_degree) + (`Sex` = sex) + Heading("Age", nearData = FALSE) * age + Heading("All", nearData = FALSE) * 1 ~ (obama * (Mean + SD + N + Percent())) + (combined * (Mean + SD + N + Percent())),
+datasummary((`Happiness` = happy) + (`Bachelor or Graduate degrees of parents` = parent_degree) + (`Sex` = sex) + Heading("Age", nearData = FALSE) * age + Heading("All", nearData = FALSE) * 1 ~ (obama * (Mean + SD + N + Percent(denom = "col"))) + (combined * (Mean + SD + N + Percent())),
                        data = gss,
                        title = "Descriptives split by voting for Obama",
-                       notes = c("Comments: Data from the General Social Survey R package.")) |>
+                       notes = c("Comments: General Social Survey data from the socviz R package.")) |>
                        kable_styling(latex_options="scale_down")
 
 # recode obama and parent_degree for modelling
@@ -116,9 +109,9 @@ theme_set(theme_light())
 estimates_third_mod |> 
   filter(term != "(Intercept)") |>  
   ggplot(aes(term, estimate)) +
-  geom_hline(yintercept = 3.3504953, color = "red", linetype = "dashed") +
+  geom_hline(yintercept = 1, color = "red", linetype = "dashed") +
   geom_point() +
-  scale_y_continuous(breaks = seq(0, 3.5, by = .2), limits = c(0, 3.5)) +
+  scale_y_continuous(breaks = seq(0, 2, by = .2), limits = c(0, 2)) +
   geom_errorbar(aes(ymin = conf.low, ymax = conf.high, width = .1))+
   labs(title = "Voting for Obama: Logistic Regression",
        y = "Odds ratios",
