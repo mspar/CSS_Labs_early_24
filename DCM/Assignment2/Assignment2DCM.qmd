@@ -16,12 +16,6 @@ engine: knitr
 
 ## Data & Descriptives
 
-REWORK HYPOTHESIS - VOTE IN 2012, SURVEY IN 2016
-
-> The following analysis tests the hypothesis that individuals who were more unhappy, were more likely to vote Obama in 2012. This is expected to be the case because of Obama's promises to implement legislature to alleviate strain on individuals with lower socioeconomic status. One such example is the Affordable Care Act. Due to their lower socioeconomic status, these individuals are hypothesized to experience more hardships and be unhappier and therefore be more likely to vote for Obama. To test this hypothesis, a subset of data from the General Social Survey, conducted by the National Opinion Research at the University of Chicago and provided as part of the socviz package in R is used.
-
-> Table 1 displays descriptive statistics for all variables used for modelling, split by having voted Obama or not, as well as the entire sample. It shows number of respondents and percent within its group and variable for categorical variables and extends this by means and SDs for continuous variables. Of the 1693 individuals indlucded in the analyses, 1058 (62.49%) voted for Obama, while the 635 (37.51) did not. It is important to note that this indicates a slightly skewed sample, as Obama received 51.1% of the popular vote in 2012 (SOURCE). As the main indepdendent variable, Happiness is split into the categories 'Not Too Happy', 'Pretty Happy' and, 'Very Happy'. Across the entire sample, more than half of the respondents reported being 'Pretty Happy' (57.71%), 28.94% reported being 'Very Happy', while 13.35% considered themselves 'Not Too Happy'. Relevant to the hypothesis, while only 9.29% of those who did not vote for Obama reported being 'Not Too Happy', 15.78%	of those who voted Obama did.
-
 ```{r}
 library(tidyverse)
 library(socviz)
@@ -56,6 +50,12 @@ datasummary((`Happiness` = happy) + (`Bachelor or Graduate degrees of parents` =
 gss$obama <- as_factor(recode(gss$obama, "didn't vote Obama" = 0, "voted Obama" = 1))
 gss$parent_degree <- as_factor(recode(gss$parent_degree, "0" = 0, "1 or more" = 1))
 ```
+
+> The following analysis tests the hypothesis that individuals who were more unhappy in 2016, were more likely to have voted Obama in 2012. This is expected to be the case because in 2016 individuals who had voted Democrat in 2012 were now faced with Donald Trump as their future president, in some cases leading to protests (SOURCE). To test this hypothesis, a subset of data from the General Social Survey, conducted by the National Opinion Research at the University of Chicago and provided as part of the socviz package in R is used.
+
+> Table 1 displays descriptive statistics for all variables used for modelling, split by having voted Obama or not, as well as the entire sample. It shows number of respondents and percent within its group and variable for categorical variables and extends this by means and SDs for continuous variables. Of the 1693 individuals included in the analyses, 1058 (62.49%) voted for Obama, while the 635 (37.51%) did not. It is important to note that this indicates a slightly skewed sample, as Obama received 51.1% of the popular vote in 2012 (SOURCE). As the main independent variable, Happiness is split into the categories 'Not Too Happy', 'Pretty Happy' and, 'Very Happy'. Across the entire sample, more than half of the respondents reported being 'Pretty Happy' (57.71%), 28.94% reported being 'Very Happy', while 13.35% considered themselves 'Not Too Happy'. Relevant to the hypothesis, while only 9.29% of those who did not vote for Obama reported being 'Not Too Happy', 15.78%	of those who voted Obama did. While the responses for being 'Pretty Happy' were similar across respondents who had voted Obama or not - 58.79% and 55.91%, respectively - noticeably fewer of the Obama voters considered themselves 'Very Happy' (25.43%) than the others (34.80%).
+
+> Further categorical variables describing the sample include whether the respondent had at least one parent with a higher education degree, sex, and age. Interestingly, there seems to be no connection between having voted Obama and higher education, with 75% of this sample having no college educated parent and this percentage not varying across having voted Obama or not. Looking at the sex variable, although 56.88% of respondents were female, voting seemingly split along gender lines with women outweighing men among Obama voters with 60.30% and men being more represented among those who did not vote for Obama with 48.82%. Regarding the age of respondents, the sample mean is 54 years. This varies only slightly across the two conditions, with Obama voters being slightly younger average (52) than non-Obama voters (56). The standard deviation stays at at around 16 in all conditions.
 
 ## Model Estimaton & Odd Ratios
 
@@ -101,8 +101,16 @@ modelsummary(mods,
              exponentiate = TRUE)
 ```
 
+> Table 2 shows the results of three logistic probability models. Each model contains the full sample of 1693 observations and presents the coefficients as odds ratios with corresponding confidence intervals in square brackets.
+
 ```{r}
 estimates_third_mod <- tidy(happy_education_sex_age_lrm, exponentiate = TRUE, conf.int = TRUE)
+
+estimates_third_mod[2,1] <- "Very Happy"
+estimates_third_mod[3,1] <- "Pretty Happy"
+estimates_third_mod[4,1] <- "At least one college educated parent"
+estimates_third_mod[5,1] <- "Age"
+estimates_third_mod[6,1] <- "Female"
 
 theme_set(theme_light())
 
@@ -112,17 +120,20 @@ estimates_third_mod |>
   geom_hline(yintercept = 1, color = "red", linetype = "dashed") +
   geom_point() +
   scale_y_continuous(breaks = seq(0, 2, by = .2), limits = c(0, 2)) +
-  geom_errorbar(aes(ymin = conf.low, ymax = conf.high, width = .1))+
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high, width = .1)) +
+  scale_x_discrete(guide = guide_axis(n.dodge = 2)) +
   labs(title = "Voting for Obama: Logistic Regression",
        y = "Odds ratios",
        x = "Variables",
-       caption = "General Social Survey Data from the socviz R Package.")
+       caption = "General Social Survey Data from the socviz R Package.",
+       tag = "Figure 1")
 ```
+
 
 ## Predicted Probabilities
 
 ```{r}
-#| fig-width: 7
+#| fig-width: 7.5
 
 griddy <- expand_grid(sex = "Female",
             age = seq(min(gss$age), max(gss$age)),
@@ -149,7 +160,8 @@ log_pred_mod3 |>
        x = "Age",
        color = "Happiness",
        fill = "Happiness",
-       caption = "Data from GSS 2016.")
+       caption = "Data from GSS 2016.",
+       tag = "Figure 2")
 ```
 
 ## Model Fit
