@@ -44,7 +44,7 @@ datasummary((`Happiness` = happy) + (`Bachelor or Graduate degrees of parents` =
                        data = gss,
                        title = "Descriptives split by voting for Obama",
                        notes = c("Comments: General Social Survey data from the socviz R package.")) |>
-                       kable_styling(latex_options="scale_down")
+                       kable_styling(latex_options = "scale_down")
 
 # recode obama and parent_degree for modelling
 gss$obama <- as_factor(recode(gss$obama, "didn't vote Obama" = 0, "voted Obama" = 1))
@@ -101,7 +101,7 @@ modelsummary(mods,
              exponentiate = TRUE)
 ```
 
-> Table 2 shows the results of three logistic probability models. Each model contains the full sample of 1693 observations and presents the coefficients as odds ratios with corresponding confidence intervals in square brackets.
+> Table 2 shows the results of three logistic probability models. Each model contains the full sample of 1693 observations and presents the coefficients as odds ratios with corresponding confidence intervals in square brackets. Model 1 only uses Happiness as
 
 ```{r}
 estimates_third_mod <- tidy(happy_education_sex_age_lrm, exponentiate = TRUE, conf.int = TRUE)
@@ -162,6 +162,8 @@ log_pred_mod3 |>
        fill = "Happiness",
        caption = "Data from GSS 2016.",
        tag = "Figure 2")
+
+# manually enter linebreaks in title yay
 ```
 
 ## Model Fit
@@ -197,7 +199,7 @@ data_fit <- as.data.frame(tribble(
   ~`Model 1`, ~`Model 2`, ~`Model 3`,
   as.character(round(mod1_nagel,5)), as.character(round(mod2_nagel,5)), as.character(round(mod3_nagel,5)),
   as.character(round(share_correct_m1,5)), as.character(round(share_correct_m2,5)), as.character(round(share_correct_m3,5)),
-  NA, as.character(round(lr_mod12[2,5],5)), as.character(round(lr_mod23[2,5],12))))
+  " ", as.character(round(lr_mod12[2,5],5)), as.character(round(lr_mod23[2,5],12))))
 
 rownames(data_fit) <- c("Nagelkerke’s pseudo-R2", "Share of correct predictions", "Likelihood Ratio")
 
