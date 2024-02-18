@@ -1,0 +1,65 @@
+---
+title: "Assignment 2 SNA"
+author: "Marc Sparhuber"
+format: pdf
+editor: source
+execute:
+  warning: false
+  echo: false
+toc: true
+header-includes:
+      - \usepackage{float}
+      - \floatplacement{table}{H}
+---
+
+## Task 1 & Packages
+
+Formulate theoretical arguments and expectations about interstate relations. Think in network terms. Select the appropriate part of the data for analysis.
+
+```{r}
+library(tidyverse)
+library(igraph)
+
+data <- read_csv("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/SNA/Assignment2SNA/terr-changes-v6/tc2018.csv")
+
+data |> filter(procedur == 4) |> View()
+
+#cases where contiguity == 0 and military conflict is involved
+# Dyads of countries engaged in military conflict despite not being contiguous exhibit distinct network structures compared to contiguous dyads.
+# countries who've experiuenced "far away" military intervention are more likely to afterwards experience conflict with immediate neighbours
+```
+
+
+## Task 2
+
+On the selected data, make a table that contains descriptive network statistics for the network and for key node-level variables. Please mention the historical period covered, the nature of tie(s), the number of nodes and ties, average degree, density, the standard deviation of degrees (or outdegrees and of indegrees if network is directed), and average path length. Identify the number of isolates if there are any. Please check if the network is a single component. Which node has the highest degree, and which has the highest betweenness centrality? What do these measures represent in terms of the specific type of relations and data you have selected?
+
+```{r}
+
+```
+
+
+## Task 3 
+
+Visualize the network. Vary degree color and size according to key node attributes. Try to pick a node attribute that relates to an important characteristic (e.g., power, GDP per capita).
+
+```{r}
+
+```
+
+## Task 4
+
+Implement and compare the results (community compositions, their size) of TWO different community detection algorithms to find communities (e.g., Girvan-Newman, Louvain, walktrap, cohesive blocks, Leiden). Please take into account that most of these methods can use undirected graphs only, others (such as Girvan-Newman) might work with weighted graphs. Before carrying out this task, simplify the data if necessary. Create a plot where nodes are either colored based on detected community membership, or you circulate the groups with some color in the background.
+
+```{r}
+
+```
+
+## Task 5
+
+Make meaningful comparisons between the results of community detection algorithms. Summarize the differences and similarities and try to explain these. Please refer to the relevant literature describing the logic of these algorithms if necessary. 
+
+```{r}
+
+```
+

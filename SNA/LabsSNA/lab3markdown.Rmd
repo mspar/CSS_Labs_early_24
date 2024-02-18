@@ -1,0 +1,315 @@
+---
+title: 'Social Network Analysis: Lab 3'
+author: 'José Luis Estévez; contact: jose.luis.estevez@liu.se'
+date: "February 9th, 2024"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+# 0) Community detection: Lab Contents
+
+1) Data overview
+2) Components
+3) Cliques
+4) Hierarchical clustering
+5) Some clustering algorithms
+
+---
+
+# 1) Data Overview
+
+Load the data in the file named "comm.detection.data.RData". These are fake data I made just for the lab, but they should help us understand key concepts of community detection.
+```{r comm 1,warning=FALSE,message=FALSE}
+# Cleanse the environment and set the correct path
+rm(list=ls())
+# Packages
+library(data.table);library(igraph)
+# Data loading
+setwd("C:/Users/josel/OneDrive/Desktop/SNA (2024)/lab 3 (2024.02.09)")
+load('comm.detection.data.RData')
+```
+
+Turn the data into `igraph` format. You can choose to add the attributes to the igraph object, or call them from the attribute object directly. I will go with the first option.
+```{r comm 2,warning=FALSE}
+# An overview of the data: attributes
+str(attributes) 
+attributes <- as.data.table(attributes)
+head(attributes,10) # show first 10 rows
+
+# Turn matrices into igraph objects (to be able to call igraph functions)
+m1 <- graph.adjacency(matrix_1,mode='undirected',diag=FALSE)
+m2 <- graph.adjacency(matrix_2,mode='undirected',diag=FALSE)
+m3 <- graph.adjacency(matrix_3,mode='undirected',diag=FALSE)
+
+# Add the attributes to the igraph object
+V(m1)$gender <- attributes[matrix == 1,gender]
+V(m1)$position <- attributes[matrix == 1,position]
+V(m1)$age <- attributes[matrix == 1,age]
+
+V(m2)$gender <- attributes[matrix == 2,gender]
+V(m2)$position <- attributes[matrix == 2,position]
+V(m2)$age <- attributes[matrix == 2,age]
+
+V(m3)$gender <- attributes[matrix == 3,gender]
+V(m3)$position <- attributes[matrix == 3,position]
+V(m3)$age <- attributes[matrix == 3,age]
+
+# See igraph object
+m1;m2;m3
+```
+
+We can start with some visualizations.
+```{r comm 3}
+par(mfrow=c(1,3)) # create three columns
+
+# I am just saving the layouts for later. The algorithm used is Fruchterman and Reingold
+lay1 <- layout_with_fr(m1)
+lay2 <- layout_with_fr(m2)
+lay3 <- layout_with_fr(m3)
+
+plot(m1,
+     vertex.color = ifelse(V(m1)$gender=='female','sandybrown','royalblue'), # color based on gender
+     vertex.shape = ifelse(V(m1)$position=='manager','square','circle'), # shape based on hierarchical position
+     vertex.size = 3*sqrt(V(m1)$age), # size based on age
+     vertex.label = substr(V(m1)$name,4,5), # ID 
+     edge.width = 2,
+     layout = lay1, 
+     main='Network 1') 
+
+plot(m2,
+     vertex.color = ifelse(V(m2)$gender=='female','sandybrown','royalblue'), 
+     vertex.shape = ifelse(V(m2)$position=='manager','square','circle'), 
+     vertex.size = 3*sqrt(V(m2)$age), 
+     vertex.label = substr(V(m2)$name,4,5), 
+     edge.width = 2,
+     layout = lay2, 
+     main='Network 2') 
+
+plot(m3,
+     vertex.color = ifelse(V(m3)$gender=='female','sandybrown','royalblue'), 
+     vertex.shape = ifelse(V(m3)$position=='manager','square','circle'),
+     vertex.size = 3*sqrt(V(m3)$age), 
+     vertex.label = substr(V(m3)$name,4,5),  
+     edge.width = 2,
+     layout = lay3, 
+     main='Network 3') 
+```
+
+We clearly see that, whereas Network 1 consists of one big component (plus a couple of isolates), Network 3 consists of two components (and a couple of isolates again). Network 2 is somewhere in between the other two: there exists one large component, but this is tightly connected in some parts, and loosely connected in others.
+
+We can obtain some measurements that help us start making some sense of all these For example, is the network connected or not? How many components form the network? Are there any isolates? What is the max/average distance (steps away) between the nodes in the network?
+```{r comm 4}
+# Connectivity (are all the nodes connected?)
+lapply(list(m1,m2,m3),is.connected)
+
+# Number of components 
+components(m1)['no']
+components(m2)['no']
+components(m3)['no']
+
+# How many isolates do we have?
+sum(degree(m1) == 0)
+sum(degree(m2) == 0)
+sum(degree(m3) == 0)
+
+# Distance
+lapply(list(m1,m2,m3),diameter)
+lapply(list(m1,m2,m3),mean_distance) # you can also use the function average.path.length()
+```
+
+---
+
+# 2) Components
+
+Depending on the nature of your data, sometimes it makes sense to consider different components of a network separately, as "networks" in their own right.
+```{r comm 5}
+m3_components <- decompose(m3) # decompose
+sapply(m3_components,vcount) # sizes of those component
+table(sapply(m3_components,vcount))  # This new object has 5 components: three of them are isolates
+m3_components # it was turn into a list of igraph objects
+
+# Now, we can analyse the components separately
+edge_density(m3_components[[2]])
+transitivity(m3_components[[2]])
+diameter(m3_components[[2]])
+mean_distance(m3_components[[2]])
+```
+
+I most cases, however, what you would encounter is something akin to Network 2. In such cases, one can try to find "communities" (or relatively close-knit communities) rather than full-fledged components.
+
+---
+
+# 3) Cliques
+
+Cliques are groups of nodes that are maximally connected (i.e., all connected to each other)
+```{r comm 6}
+# You can ask you igraph object whether or not it contains cliques of size X
+cliques(m2,min=5,max=NULL) # size 5
+cliques(m2,min=4,max=NULL) # size 4 
+#cliques(m2,min=3,max=NULL) # size 3 ...
+
+largest_cliques(m2) # Or just ask to find the largest clique in the network
+clique_num(m2) # this tells the size of the largest clique
+```
+
+---
+
+# 4) Hierarchical clustering
+
+Hierarchical clustering can be applied to the matrix of clique overlaps or to the matrix of geodesic distances. Here,
+I will do the second.
+
+Geodesic distances (min number of tie a node need to traverse to find another node in the network)
+```{r comm 7}
+geo_distances <- sna::geodist(matrix_2) # the function in sna is way much simpler to do this
+str(geo_distances) # two objects: the important is gdist
+rownames(geo_distances$gdist) <- colnames(geo_distances$gdist) <- rownames(matrix_2)
+
+# Show first rows and columns
+geo_distances$gdist[1:7,1:7]
+#View(geo_distances$gdist)
+```
+
+Infinite is obtain whenever a node cannot reach another throughout the network (isolates). The problem is, we cannot run hierarchical clustering if there are infinite values in the matrix
+```{r comm 8,eval=FALSE}
+h_clustering <- hclust(as.dist(geo_distances$gdist),method='complete') 
+```
+
+If you tried running the code above, you will encounter an error. One solution is to assign the number of nodes in the network where there is Inf, and then divide all the cells by the number of nodes.
+```{r comm 9}
+# Assign the number of nodes in the network to those infinite...
+geo_distances$gdist[is.infinite(geo_distances$gdist)] <- nrow(geo_distances$gdist)
+# Divide the geodesic distances by the member of nodes in the network
+geo_distances$gdist <- geo_distances$gdist / nrow(geo_distances$gdist)
+geo_distances$gdist[1:7,1:7]
+
+h_clustering <- hclust(as.dist(geo_distances$gdist), # don't forget to turn the matrix into a distance object
+                       method='complete') # several methods available: maximum or complete, minimum or single, and average
+```
+
+Now, we can examine the output of our hierarchical clustering
+```{r comm 10}
+par(mfrow=c(1,2))
+h_clustering$labels <- colnames(matrix_2) # names need to be added to the plot
+plot(h_clustering)
+
+plot(m2,
+     vertex.color = ifelse(V(m2)$gender=='female','sandybrown','royalblue'), 
+     vertex.shape = ifelse(V(m2)$position=='manager','square','circle'), 
+     vertex.size = 3*sqrt(V(m2)$age), 
+     vertex.label = substr(V(m2)$name,4,5), 
+     edge.width = 2,
+     layout = lay2, 
+     main='Network 2') 
+```
+
+The problem with hierarchical clustering, as with many unsupervised method, is, where do we cut the tree?
+
+```{r comm 11}
+# say we want 5 clusters:
+cutree(h_clustering,k=3) # this solution is the large component plus the two isolates
+
+par(mfrow=c(1,1))
+plot(h_clustering)
+rect.hclust(h_clustering,3,border='orange')
+
+# But what if we do not have a pre-defined number of clusters to cut the network? ...
+rect.hclust(h_clustering,4,border='green3')
+rect.hclust(h_clustering,5,border='blue')
+rect.hclust(h_clustering,6,border='red')
+```
+
+---
+
+# 5) Some clustering algorithms
+
+## Girvan Newman
+
+The Girvan-Newman method partitions the graph based on edge betweenness. The algorithm works iteratively. First, it calculates edge betweenness, and then it deletes the edge with the highest score. After deleting this edge, it recalculates edge betweeenness again and repeats the same process.
+
+```{r comm 12}
+ecount(m2) # there are 39 ties
+E(m2)
+(edge_btw_1 <- edge_betweenness(m2))
+max(edge_btw_1)
+which(edge_btw_1 == max(edge_btw_1))
+delete.edges(m2,19)
+
+# and we keep repeating this process for all 39 ties
+gn_clustering <- cluster_edge_betweenness(m2,modularity=TRUE,membership=TRUE)
+gn_clustering
+gn_clustering$modularity
+
+# Communities are identified as components in the edge-pruned graph. 
+# The pruning is set to the level where modularity is the highest.
+```
+
+## Walktrap
+
+The walktrap algorithm finds communities through a series of short random walks. The idea is that these random walks tend to stay within the same community.
+```{r comm 13}
+walk_clustering <- cluster_walktrap(m2,step=10)
+walk_clustering
+```
+
+## Moody-White or Cohesive blocks
+
+```{r comm 14}
+blocks_clustering <- cohesive_blocks(m2)
+blocks_clustering$blocks
+```
+
+Other clustering algorithms you can use are: Louvain, Fast Greedy, Leading Eigenvector,...
+```{r comm 15,eval=FALSE}
+cluster_louvain(m2)
+cluster_fast_greedy(m2)
+cluster_leading_eigen(m2)
+```
+
+The information about group membership can be retrieve for node-level kind of analysis, as well as in the form of matrices for edge-level methods (QAP regression, ERGM, etc.)
+```{r comm 16}
+# This is how you can recover the groups for node-level analysis
+gn_clustering$membership
+attributes_m2 <- attributes[attributes$matrix == 2,]
+attributes_m2$group <- as.factor(gn_clustering$membership)
+head(attributes_m2,8) # Eight first rows
+
+# From here, you can easily turn the data in matrix from using `outer`
+samegroupntw <- outer(attributes_m2$group,attributes_m2$group,'==')*1
+samegroupntw[1:7,1:7]
+```
+
+Finally, adding clustering methods to a visualization is very easy
+```{r comm 17}
+par(mfrow=c(1,3))
+plot(m2,
+     vertex.color = ifelse(V(m2)$gender=='female','sandybrown','royalblue'), 
+     vertex.shape = ifelse(V(m2)$position=='manager','square','circle'), 
+     vertex.size = 3*sqrt(V(m2)$age), 
+     vertex.label = substr(V(m2)$name,4,5), 
+     edge.width = 2,
+     layout = lay2, 
+     main='Network 2 (Girvan-Newman)',
+     mark.groups = cluster_edge_betweenness(m2)) # just use the mark.groups argument
+
+plot(m2,
+     vertex.color = ifelse(V(m2)$gender=='female','sandybrown','royalblue'), 
+     vertex.shape = ifelse(V(m2)$position=='manager','square','circle'), 
+     vertex.size = 3*sqrt(V(m2)$age), 
+     vertex.label = substr(V(m2)$name,4,5), 
+     edge.width = 2,
+     layout = lay2, 
+     main='Network 2 (Walktrap)',
+     mark.groups = cluster_walktrap(m2,step=10))
+
+plot(m2,
+     vertex.color = ifelse(V(m2)$gender=='female','sandybrown','royalblue'), 
+     vertex.shape = ifelse(V(m2)$position=='manager','square','circle'), 
+     vertex.size = 3*sqrt(V(m2)$age), 
+     vertex.label = substr(V(m2)$name,4,5), 
+     edge.width = 2,
+     layout = lay2, 
+     main='Network 2 (Cohesive blocks)',
+     mark.groups = cohesive_blocks(m2)$blocks)
+```

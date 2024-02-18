@@ -1,0 +1,411 @@
+---
+title: 'Social Network Analysis: Lab 4'
+author: 'José Luis Estévez; contact: jose.luis.estevez@liu.se'
+date: "February 9th, 2024"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+# 0) Mathematical models for network graphs: Lab Contents
+
+1) "Classical" Random Graph model (Erdos-Renyi)
+2) Generalized random graph models
+3) Small world random networks (Watts-Strogatz)
+4) Preferential attachment or 'scale-free' networks (Barabasi-Albert)
+
+---
+
+# 1) "Classical" Random Graph model (Erdos-Renyi)
+
+```{r math 1,warning=FALSE,message=FALSE}
+# Clear the environment
+rm(list=ls())
+# Load the igraph and networkdata packages
+library(igraph);library(data.table);library(ggplot2)
+```
+
+In this model, we begin with $n$ isolated nodes. 
+Then, with probability $p > 0$, each pair of nodes is connected by a link.
+Thus, the network is determined only the number of nodes ($n$) and the probability of a link ($p$).
+Alternatively, you can opt for specifying the number of links ($m$), rather than the probability
+```{r math 2}
+prob <- c(0,0.05,0.2,0.5) # Let's pick 4 prob: 0%, 5%, 20% and 50%
+ER_graphs <- list() # This is an empty list where results will be stored
+
+for(i in 1:length(prob)){
+  # you can use erdos.renyi.game() or random.graph.game()
+  ER_graphs[[i]] <- erdos.renyi.game(n=25, # the number of nodes
+                                     p=prob[i], # the prob of a tie (0%, 5%, 20% and 50%)
+                                     type='gnp', # gnp if you use prob. of a tie. 
+                                     # If fixed number of ties, gnm
+                                     # This notation comes from G(n,p) and G(n,m), respectively
+                                     directed=FALSE,loops=FALSE)
+}
+```
+
+We can observe the networks we have just created.
+```{r math 3}
+par(mfrow=c(2,2)) # A 2*2 grid
+
+for(i in seq_along(ER_graphs)){
+  plot(ER_graphs[[i]],
+       vertex.size = 12,
+       vertex.label = NA,
+       layout=layout_in_circle(ER_graphs[[i]]), # I use the layout in circle to facilitate comparison
+       main=paste('n=25, p=',prob[i],sep=''))
+}
+```
+
+Random graph models have properties that has been studies extensively.
+For example, the expected average degree of the nodes ($\hat{k}$) is also determined by $n$ and $p$
+Specifically, $\hat{k} = p*(n-1)$.
+Let's see this with one example.
+
+```{r math 4}
+set.seed(123)
+ER_1000 <- erdos.renyi.game(1000, # A network of 1,000 nodes
+                            .04, # with prob. of a tie = 4% 
+                            type='gnp',directed=FALSE,loops=FALSE)
+
+# In our case, k-hat should be approximately 0.04*(1000-1) = is 39.96
+ER_1000deg <- as.data.frame(table(degree(ER_1000)))
+summary(ER_1000deg)
+ER_1000deg$Var1 <- as.numeric(as.character(ER_1000deg$Var1)) # define the variable as numeric
+
+# Let's visualise it
+ggplot(data=ER_1000deg) +
+  geom_point(aes(x=Var1,y=Freq/sum(Freq))) +
+  xlab('k')+ylab('p(k)') +
+  # let's add the normal curve
+  stat_function(fun=dnorm,
+                args=list(mean=mean(degree(ER_1000)),sd=sd(degree(ER_1000))),colour='blue')+
+  theme_classic()
+```
+
+For large values of $n$, it approaches a Poisson distribution.
+
+Random graph networks display other properties.
+Concretely, (1) short distances and (2) low clustering coefficient.
+```{r math 5}
+# Distance
+diameter(ER_1000)
+mean_distance(ER_1000)
+# Clustering coefficient, much smaller than that for real world networks with the same density
+transitivity(ER_1000)
+```
+
+Another interesting property (in fact, this is the fundamental result of Erdos and Renyi's original paper in 1960) is that when $p$ increases, most nodes then to be clustered in on giant component, while the rest of the nodes are isolated or clustered in very small components.
+
+According to their results, the structure of $G_{ER}(n,p)$ changes as a function of $p = \hat{k}/(n-1)$, giving raise to three stages: 
+
+1) sub-critical ($\hat{k} < 1$; where all components are simple and very small); 
+
+2) critical ($\hat{k} = 1$);
+
+3) super-critical ($\hat{k} > 1$); where there is a giant component and the rest are very small ones
+
+Let's see this visually.
+
+```{r math 6}
+# Say n=100, and we want 3 values of k representing each of the 3 stages (e.g. .75, 1, and 2.5)
+critical_stages <- c(0.75/(100-1), 1/(100-1), 2.5/(100-1))
+round(critical_stages,3) # These are the corresponding p 
+
+ER_stages <- list()
+
+set.seed(456)
+for(i in 1:length(critical_stages)){
+  ER_stages[[i]] <- erdos.renyi.game(n=100, p=critical_stages[i],
+                                     type='gnp', directed=FALSE, loops=FALSE)
+}
+
+# Let's see it visually
+par(mfrow=c(1,3)) 
+
+for(i in seq_along(ER_stages)){
+  plot(ER_stages[[i]],
+       vertex.size = 8,
+       vertex.label = NA,
+       layout=layout_with_fr(ER_stages[[i]]), # I am using the FR algorithm now
+       main=paste('n=100, p=',round(critical_stages[i],3),sep=''))
+}
+```
+
+---
+
+# 2) Generalized random graph models
+
+The most common are random graph models with a fixed degree sequence. 
+Just for fun, let's pick a movie from the `networkdata` package and use it for obtaining degrees.
+
+```{r math 7}
+library(networkdata)
+# data(package = 'networkdata') # Run if you want to see the data available
+```
+
+I choose The Lord of the Rings (part 3) because there are parallel stories (and cluster of characters).
+```{r math 8,message=FALSE}
+LOTR <- movie_440 
+
+# Let's visualie it
+par(mfrow=c(1,1))
+V(LOTR)$name <- tolower(V(LOTR)$name) # use lowercase letters 
+plot(LOTR,
+     vertex.size=8,
+     layout=layout_with_kk(LOTR), 
+     main='LOTR (part 3)') # Girvan-Newman algorithm for graph partitioning
+```
+
+Let' see the degree of every character, and use these degrees to create a random graph
+
+```{r math 9}
+# Degree of every character 
+degree(LOTR)[order(degree(LOTR),decreasing=TRUE)]
+
+# Random graph based on observed degreed
+set.seed(456)
+fake_LOTR <- degree.sequence.game(degree(LOTR),method='vl')
+
+# comparison real vs random graph
+plot(fake_LOTR,
+     vertex.size=8,
+     vertex.label=NA,
+     layout=layout_with_kk(fake_LOTR),
+     main='Random graph with same degrees as LOTR')
+```
+
+If we compare some properties of the two graphs, we observe that the diameter has reduced. And transitivty in the random graph is around two thirds of the real network.
+As with classical random graph models, short distances and low clustering coefficientsare characteristics of this networks.
+```{r math 10}
+lapply(list(LOTR,fake_LOTR),diameter)
+lapply(list(LOTR,fake_LOTR),transitivity)
+
+```
+
+---
+
+# 3) Small world random networks (Watts-Strogatz)
+
+While random graph models display short distances (small average path), they fail to reproduce the relatively high clustering coefficient characteristic of most social networks [find Milgram's experiments (1967): short average path ('six degree of separation') and large group interconnection].
+
+In 1998, Watts and Strogatz proposed a model that can produce networks with short average paths and large clustering coefficients in a very simple manner. Let $n$ be the number of nodes, and let $k$ be an even number.
+
+1) Place all nodes in a circle, and connect every node to its first $k/2$ clockwise nearest neighbours as well as to its $k/2$ counterclockwise neighbors. This will create a ring, which for $k > 2$ is full of triangles (therefore, has a large clustering coefficient).
+```{r math 11}
+# let's make a network of 25 nodes, and k = 4
+sworld_1 <- watts.strogatz.game(1, # number of examples
+                                25, # 25 nodes
+                                2, # if k=4, then k/2 = 2
+                                0, # rewiring prob. = 0
+                                loops=FALSE,multiple = FALSE)
+
+plot(sworld_1,
+     vertex.size=8,
+     vertex.label=NA,
+     layout=layout_in_circle(sworld_1),
+     edge.curved=.5, # I am adding curvature to see the ties better
+     main='n=25, k=4, p=0')
+```
+
+Because it is populated by triangles, this network has a high clustering coefficient. 
+However, the networks is now characterized by large distances.
+```{r math 12}
+transitivity(sworld_1) # high clustering (50%)
+diameter(sworld_1) # here 6 steps away
+```
+
+In fact, when the network is sparse, as the network size grows, the average path lengths tend to $n/2$
+```{r math 13}
+sworld_sparce <- watts.strogatz.game(1,25,1,0, loops=FALSE, multiple = FALSE) # n = 25 and k = 2
+
+plot(sworld_sparce,
+     vertex.size=8,
+     vertex.label=NA,
+     layout=layout_in_circle(sworld_1),
+     main='n=25, k=2, p=0')
+
+diameter(sworld_sparce) # the diameter here is n/2
+```
+
+Watts and Storgatz solved the issue of large distances by considering a probability ($p$) of rewiring the links in the ring. 
+By doing so, the average path length decreases very fast while the clustering coefficient still remains high. 
+Obviously, as $p$ approaches 1, the network becomes a random graph.
+
+Let's see this with a network of $n= 25$ and $k = 4$ using the same probabilities than we used before for random graphs.
+```{r math 14}
+prob # remember these are the probabilities
+SW_graphs <- list()
+
+set.seed(123)
+for(i in seq_along(prob)){
+  SW_graphs[[i]] <- watts.strogatz.game(1,25,2,prob[i],loops=FALSE, multiple = FALSE)
+}
+
+par(mfrow=c(2,2))
+
+for(i in seq_along(SW_graphs)){
+  plot(SW_graphs[[i]],
+       vertex.size = 5,
+       vertex.label = NA,
+       layout=layout_in_circle(SW_graphs[[i]]),
+       edge.curved=.5,
+       main=paste('n=25, k=4, p=',prob[i],sep=''))
+}
+```
+
+As we see, whereas a random graph could be written as a two-parameter graph $G(n,p)$, a small world network can be written as a three-parameter graph: $G(n,k,p)$.
+
+What happens to small world graphs is that, while the average path length decreases very rapidly as $p$ increases, the clustering coefficient decreases, yet more slowly. As a consequence, there is a region of $p$ values for which the networks display relatively large clustering coefficients and small distances [as most real networks!]. 
+
+To see this better, let us use a larger network ($n = 200$) and $k = 12$.
+```{r math 15}
+prob <- seq(0,0.5,by=.001) # from 0 to 0.1 by 0.001: 0, 0.001, 0.002, ... 0.499, 0.500.
+
+SW_200 <- list()
+for(i in seq_along(prob)){
+  SW_200[[i]] <- watts.strogatz.game(1,200,6,prob[i], # same n and k, different p
+                                     loops=FALSE, multiple = FALSE) 
+}
+
+# Calculate mean distance and transitivity
+SW_200path <- lapply(SW_200,mean_distance)
+SW_200clus <- lapply(SW_200,transitivity)
+
+# Results as a data table
+SW_200results <- data.table(p = prob,
+                            ave_path = unlist(SW_200path),
+                            clustering = unlist(SW_200clus))
+
+head(SW_200results,6) # show first 6 lines
+```
+
+```{r math 16,echo=FALSE,warning=FALSE}
+library(ggpubr)
+
+p1 <- ggplot(aes(x=p,y=ave_path),data=SW_200results) +
+  geom_line(color='red') +
+  theme_classic() + xlab('Rewiring probability') + ylab('Mean average path')
+p2 <- ggplot(aes(x=p,y=clustering),data=SW_200results) +
+  geom_line(color='blue') +
+  theme_classic() + xlab('Rewiring probability') + ylab('Transitivity')
+
+ggarrange(p1,p2,labels=c('A','B'),ncol=2)
+```
+
+In the same way as random graph networks, small world random networks also display Poissoinian degree distribution.
+In this case, the distribution is centered around $k$.
+
+We can see this with a network a small world netword of $n=1000$, $k=12$, and $p=0.2$
+```{r math 17}
+SW_1000 <- watts.strogatz.game(1,1000,6,.2,
+                               loops=FALSE, multiple = FALSE) 
+
+SW_1000deg <- as.data.frame(table(degree(SW_1000)))
+SW_1000deg$Var1 <- as.numeric(as.character(SW_1000deg$Var1)) # define the variable as numeric
+
+ggplot(data=SW_1000deg) +
+  geom_point(aes(x=Var1,y=Freq/sum(Freq))) +
+  xlab('k')+ylab('p(k)') +
+  # let's add the normal curve
+  stat_function(fun=dnorm,
+                args=list(mean=mean(degree(SW_1000)),sd=sd(degree(SW_1000))),colour='blue')+
+  theme_classic()
+```
+
+---
+
+# 4) Preferential attachment or 'scale-free' networks (Barabasi-Albert)
+
+This property of Poissoinian (or bell-shaped) degree distribution, however, does not match most real-world networks. 
+As observed by Barabasi and Albert, many real-world networks are characterized by a few nodes of high degree and a large proportion of nodes with relatively few degree.
+
+The easiest way of conceptualizing such topological characteristic is to consider a model in which $p(k) ~ k^{-gamma}$: A model in which the probability of finding a node with degree $k$ decreases as a power-law of its degree.
+
+Barabasi's and Albert's model follows this procedure:
+Begin with a small number, $m_0$, of nodes. 
+At each step, add a new node $u$ to the network, and connect it to $m <= m_0$ of the existing nodes $v$ with probability: $p_u = {k_v} / {sum_w(k_w)}$
+
+Preferential attachment networks can be written as two-parameter graphs $G(n,power)$, where power is the power of attraction
+
+Let's see it with three powers: 1, 1.5, and 3.
+```{r math 18}
+power <- c(1,1.5,3)
+PA_graphs <- list()
+
+for(i in seq_along(power)){
+  PA_graphs[[i]] <- barabasi.game(200,
+                                  power[i],
+                                  directed=FALSE)
+}
+
+par(mfrow=c(1,3))
+for(i in seq_along(PA_graphs)){
+  plot(PA_graphs[[i]],
+       vertex.size=8,
+       vertex.label=NA,
+       layout=layout_with_fr(PA_graphs[[i]]),
+       main=paste('n=200, power=',power[i],sep=''))
+}
+```
+
+We can see already that the degrees in these graphs do not follow a normal distribution.
+Instead, the distribution of degrees is heavy-tailed.
+```{r math 19}
+PAexample <- PA_graphs[[1]]
+
+PAdeg <- as.data.table(table(degree(PAexample)))
+PAdeg[,V1 := as.numeric(as.character(V1))] # define the variable as numeric
+
+ggplot(data=PAdeg,aes(x=V1,y=N/sum(N))) +
+  geom_point() +
+  geom_line() +
+  xlab('Degree')+ylab('Proportion of nodes presenting x degree') + 
+  theme_classic()
+```
+
+We can compare with the small world random network we used before
+```{r math 20}
+par(mfrow=c(1,2))
+plot(PAexample,
+     vertex.size=12,
+     vertex.label=NA,
+     layout=layout_with_fr(PAexample),
+     main='n=200, power=1')
+
+SW_200example <- SW_200[[51]]
+plot(SW_200example,
+     vertex.size=12,
+     vertex.label=NA,
+     layout=layout_with_kk(SW_200example),
+     main='n=200, k=12, p=0.05')
+```
+
+```{r math 21,message=FALSE}
+# Degrees
+histdata <- data.table(pa = degree(PAexample),
+                       sw = degree(SW_200example))
+
+ppa <- ggplot(data=histdata)+
+  geom_histogram(aes(x=pa),fill='grey50') +
+  theme_classic()
+
+psw <- ggplot(data=histdata)+
+  geom_histogram(aes(x=sw),fill='grey50') +
+  theme_classic()
+
+ggarrange(ppa,psw,labels=c('A','B'),ncol=2)
+```
+
+Other properties of preferential attachment networks are that they fully connected into a single component, that distances are large, and that transitiviy is zero.
+```{r math 22}
+is_connected(PAexample) # one component
+diameter(PAexample) # large distances
+transitivity(PAexample) # zero transitivity
+```
+
+---
+
+## Reference
+
+- Estrada, E. (2012). *The structure of complex networks: Theory and applications*. Chapter 12. Oxford University Press.
