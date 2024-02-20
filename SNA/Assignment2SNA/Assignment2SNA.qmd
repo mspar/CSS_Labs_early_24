@@ -32,9 +32,24 @@ data$entity <- as.numeric(data$entity)
 data <- data |> left_join(country_codes_gain, join_by(gainer)) |> select(-gainer) |> rename(gainer = StateNme) |>
   left_join(country_codes_entity, join_by(entity)) |> select(-entity) |> rename(entity = StateNme) |>
   left_join(country_codes_loser, join_by(loser)) |> select(-loser) |> rename(loser = StateNme) |> 
-  relocate(any_of(c("gainer", "loser", "entity")), .before = year) |> select(-version) |> drop_na(any_of(c("gainer", "loser"))) |> 
-  filter(procedur == 6)
+  relocate(any_of(c("gainer", "loser", "entity")), .before = year) |> select(-version) |> drop_na(any_of(c("gainer", "loser")))
 
+North_America <- c("United States of America", "Canada", "Bahamas", "Cuba", "Haiti", "Dominican Republic", "Jamaica", "Trinidad and Tobago", "Barbados", "Dominica", "Grenada", "St. Lucia", "St. Vincent and the Grenadines", "Antigua & Barbuda", "St. Kitts and Nevis", "Mexico", "Belize", "Guatemala", "Honduras", "El Salvador", "Nicaragua", "Costa Rica", "Panama")
+
+South_America <- c("Colombia", "Venezuela", "Guyana", "Suriname", "Ecuador", "Peru", "Brazil", "Bolivia", "Paraguay", "Chile", "Argentina", "Uruguay")
+
+Europe <- c("United Kingdom", "Ireland", "Netherlands", "Belgium", "Luxembourg", "France", "Monaco", "Liechtenstein", "Switzerland", "Spain", "Andorra", "Portugal", "Hanover", "Bavaria", "Germany", "German Federal Republic", "German Democratic Republic", "Baden", "Saxony", "Wuerttemburg", "Hesse Electoral", "Hesse Grand Ducal", "Mecklenburg Schwerin", "Poland", "Austria-Hungary", "Austria", "Hungary", "Czechoslovakia", "Czech Republic", "Slovakia", "Italy", "Papal States", "Two Sicilies", "San Marino", "Modena", "Parma", "Tuscany", "Malta", "Albania", "Montenegro", "Macedonia", "Croatia", "Yugoslavia", "Bosnia and Herzegovina", "Kosovo", "Slovenia", "Greece", "Cyprus", "Bulgaria", "Moldova", "Romania", "Russia", "Estonia", "Latvia", "Lithuania", "Ukraine", "Belarus", "Armenia", "Georgia", "Azerbaijan", "Finland", "Sweden", "Norway", "Denmark", "Iceland")
+
+Africa <- c("Cape Verde", "Sao Tome and Principe", "Guinea-Bissau", "Equatorial Guinea", "Gambia", "Mali", "Senegal", "Benin", "Mauritania", "Niger", "Ivory Coast", "Guinea", "Burkina Faso", "Liberia", "Sierra Leone", "Ghana", "Togo", "Cameroon", "Nigeria", "Gabon", "Central African Republic", "Chad", "Congo", "Democratic Republic of the Congo", "Uganda", "Kenya", "Tanzania", "Zanzibar", "Burundi", "Rwanda", "Somalia", "Djibouti", "Ethiopia", "Eritrea", "Angola", "Mozambique", "Zambia", "Zimbabwe", "Malawi", "South Africa", "Namibia", "Lesotho", "Botswana", "Swaziland", "Madagascar", "Comoros", "Mauritius", "Seychelles", "Morocco", "Algeria", "Tunisia", "Libya", "Sudan", "South Sudan", "Egypt")
+
+Asia <- c("Iran", "Turkey", "Iraq", "Syria", "Lebanon", "Jordan", "Israel", "Saudi Arabia", "Yemen Arab Republic", "Yemen", "Yemen People's Republic", "Kuwait", "Bahrain", "Qatar", "United Arab Emirates", "Oman", "Afghanistan", "Turkmenistan", "Tajikistan", "Kyrgyzstan", "Uzbekistan", "Kazakhstan", "China", "Mongolia", "Taiwan", "Korea", "North Korea", "South Korea", "Japan", "India", "Bhutan", "Pakistan", "Bangladesh", "Myanmar", "Sri Lanka", "Maldives", "Nepal", "Thailand", "Cambodia", "Laos", "Vietnam", "Republic of Vietnam", "Malaysia", "Singapore", "Brunei", "Philippines", "Indonesia", "East Timor")
+
+Oceania <- c("Australia", "Papua New Guinea", "New Zealand", "Vanuatu", "Solomon Islands", "Kiribati", "Tuvalu", "Fiji", "Tonga", "Nauru", "Marshall Islands", "Palau", "Federated States of Micronesia", "Samoa")
+
+
+```
+
+```{r}
 graph <- igraph::graph_from_data_frame(data, directed = TRUE, vertices = NULL)
 
 plot.igraph(graph,
@@ -47,25 +62,6 @@ main = 'Gainers and losers of territory as result of military conflict 1816 - 20
 #cases where contiguity == 0 and military conflict is involved
 # Dyads of countries engaged in military conflict despite not being contiguous exhibit distinct network structures compared to contiguous dyads.
 # countries who've experiuenced "far away" military intervention are more likely to afterwards experience conflict with immediate neighbours
-
-North America:
-"United States of America", "Canada", "Bahamas", "Cuba", "Haiti", "Dominican Republic", "Jamaica", "Trinidad and Tobago", "Barbados", "Dominica", "Grenada", "St. Lucia", "St. Vincent and the Grenadines", "Antigua & Barbuda", "St. Kitts and Nevis", "Mexico", "Belize", "Guatemala", "Honduras", "El Salvador", "Nicaragua", "Costa Rica", "Panama"
-
-South America:
-"Colombia", "Venezuela", "Guyana", "Suriname", "Ecuador", "Peru", "Brazil", "Bolivia", "Paraguay", "Chile", "Argentina", "Uruguay"
-
-Europe:
-"United Kingdom", "Ireland", "Netherlands", "Belgium", "Luxembourg", "France", "Monaco", "Liechtenstein", "Switzerland", "Spain", "Andorra", "Portugal", "Hanover", "Bavaria", "Germany", "German Federal Republic", "German Democratic Republic", "Baden", "Saxony", "Wuerttemburg", "Hesse Electoral", "Hesse Grand Ducal", "Mecklenburg Schwerin", "Poland", "Austria-Hungary", "Austria", "Hungary", "Czechoslovakia", "Czech Republic", "Slovakia", "Italy", "Papal States", "Two Sicilies", "San Marino", "Modena", "Parma", "Tuscany", "Malta", "Albania", "Montenegro", "Macedonia", "Croatia", "Yugoslavia", "Bosnia and Herzegovina", "Kosovo", "Slovenia", "Greece", "Cyprus", "Bulgaria", "Moldova", "Romania", "Russia", "Estonia", "Latvia", "Lithuania", "Ukraine", "Belarus", "Armenia", "Georgia", "Azerbaijan", "Finland", "Sweden", "Norway", "Denmark", "Iceland"
-
-Africa:
-"Cape Verde", "Sao Tome and Principe", "Guinea-Bissau", "Equatorial Guinea", "Gambia", "Mali", "Senegal", "Benin", "Mauritania", "Niger", "Ivory Coast", "Guinea", "Burkina Faso", "Liberia", "Sierra Leone", "Ghana", "Togo", "Cameroon", "Nigeria", "Gabon", "Central African Republic", "Chad", "Congo", "Democratic Republic of the Congo", "Uganda", "Kenya", "Tanzania", "Zanzibar", "Burundi", "Rwanda", "Somalia", "Djibouti", "Ethiopia", "Eritrea", "Angola", "Mozambique", "Zambia", "Zimbabwe", "Malawi", "South Africa", "Namibia", "Lesotho", "Botswana", "Swaziland", "Madagascar", "Comoros", "Mauritius", "Seychelles"
-
-Asia:
-"Morocco", "Algeria", "Tunisia", "Libya", "Sudan", "South Sudan", "Iran", "Turkey", "Iraq", "Egypt", "Syria", "Lebanon", "Jordan", "Israel", "Saudi Arabia", "Yemen Arab Republic", "Yemen", "Yemen People's Republic", "Kuwait", "Bahrain", "Qatar", "United Arab Emirates", "Oman", "Afghanistan", "Turkmenistan", "Tajikistan", "Kyrgyzstan", "Uzbekistan", "Kazakhstan", "China", "Mongolia", "Taiwan", "Korea", "North Korea", "South Korea", "Japan", "India", "Bhutan", "Pakistan", "Bangladesh", "Myanmar", "Sri Lanka", "Maldives", "Nepal", "Thailand", "Cambodia", "Laos", "Vietnam", "Republic of Vietnam", "Malaysia", "Singapore", "Brunei", "Philippines", "Indonesia", "East Timor"
-
-Oceania:
-"Australia", "Papua New Guinea", "New Zealand", "Vanuatu", "Solomon Islands", "Kiribati", "Tuvalu", "Fiji", "Tonga", "Nauru", "Marshall Islands", "Palau", "Federated States of Micronesia", "Samoa"
-
 ```
 
 

@@ -1,0 +1,683 @@
+---
+title: "Computer lab 5"
+date: last-modified
+date-format: "MMMM DD, YYYY"
+author: "Richard Öhrvall"
+format: pdf
+---
+
+
+# Introduction
+
+This is the fifth computer lab for the course Discrete Choice Modelling. At various position in this document, you'll find the prompt ***Your turn***. This indicates a question for you to solve during the lab. At the end of this document you find your weekly assignment where you are supposed to use the techniques presented below.
+
+We will be using Quarto documents for the computer labs and assignments in this course. More information about Tidyverse, Quarto, etc. can be found in the first computer lab, see Lisam.
+
+# Multinmomial models
+In previous computer labs, we have analysed situations with two possible outcomes using binary logistic regression. We will now shift focus to situations with three or more outcomes. This can be studied in different ways depending on the character of the dependent variable and how we model, e.g. what assumptions we make and what theoretical approach we take. In this lab, we will focus on multinomial models. In other words, we treat the dependent variable as a nominal variable. This is approach that can be used for ordinal variables as well, even if we then do not take into account the ordering of the outcomes.
+
+Multinomial models cannot be estimated using glm, so we need some R package for our estimation. There are several options, but the two main choices are the nnet or the mlogit package (there are also packages such as VGAM, Bioconductor, mnlogit - a faster version of mlogit- and packages more suitable for a machine learning approach, such as glmnet and pmlr or packages in the tidymodels framework). 
+
+In this computer lab, we will use the nnet package. The main advantages include that it can use a traditional data structure and that it can be used together with the broom package, in  a similar way as we have done in previous labs. In the following labs, we will introduce the mlogit package, which is more flexible and better suited for estimating conditional logit models.
+
+# Our data: The European Social Survey
+In this computer lab, we will use data from the European Social Survey. It is a large-scale general population survey conducted in many European countries every two years. The data is collected by face-to-face interview, so there are many variables for each individual included in the survey. More information about the survey can be found on the ESS website <https://www.europeansocialsurvey.org/>. There you can find information about the variables, the wording of the question asked, the fieldwork carried out in each country, etc.
+
+Unfortunately, ESS is not provided as an R dataset and the csv files are not well-constructed, so we will be using Stata datasets and import them into R. We will begin by using two subsets of the 2016 round of the survey, only including only the Swedish respondents and one including only the German respondents. We will also use a dataset with information about the sample design. The three files are the following 
+
+- ESS8e02_1_se.dta
+- ESS8e02_1_de.dta
+- ESS8SDDFe01_1.dta
+
+The three datasets can be found in Lisam under Course documents/computer labs/lab 5. Download the datasets to your computer (preferably to a folder you have for this course for which you have an R project). We can import datasets from other statistical software, such as Stata, SPSS or SAS, using the haven package. The full datasets with respondents from all countries and for other waves (years) of the survey can be downloaded from the ESS data portal, see <https://www.europeansocialsurvey.org/data>.
+
+Note that Microsoft windows uses backslashes for file paths, but backslashes are escape characters in R. In order to write a backslash you need two backslashes, i.e. "\\". But you can of course use forward slashes instead. There is an add-on to Windows called Path Copy Copy that lets you copy unix paths, see <https://pathcopycopy.github.io/>. It is generally not recommended to have fixed file paths in R code, as we have discussed in previous labs. One great alternative is to use R projects (and in combination with the here package).
+
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+
+# Load the tidyverse, if you haven't installed them before do so by type install.packages("tidyverse"), or click "Install" in your Packages frame in R Studio, first. The same goes for all other packages in this lab.
+
+library(tidyverse)
+library(here)
+# We also need the package haven to read the ESS file, which is a Stata dataset
+library(haven)
+
+# Change the path to where you stored the dataset (note the forward slashes, see above!)
+# You could also give the full path if you don't get the here package to work
+
+# The Swedish part of ESS 2016
+ess2016se <- read_dta("C:/Users/marcs/Desktop/Labs/CSS_Labs_early_24/DCM/lab5/ESS8e02_1_se.dta")
+
+# The German part of ESS 2016
+ess2016de <- read_dta("C:/Users/marcs/Desktop/Labs/CSS_Labs_early_24/DCM/lab5/ESS8e02_1_de.dta")
+
+```
+
+## Handling value labels and recoding
+Other statistical software have a different way of handling categorical variables. They tend to use numeric values with associated value labels. We can see that in the ESS Stata file that we have imported. We also notice that it has different types of categories where there is no response: Not applicable, Refusal and Don't know. Depending on the analysis we want to do and how we think about these categories, we can either classify them as NA or use them as a category in our analysis.
+
+
+```{r}
+
+# Check the distribution of party choice in previous election
+# You can see that it has a format with numbers and associated labels
+# This is common in other statistical software, like Stata
+ess2016se |> 
+  count(prtvtbse)
+
+
+# We can change this variable to a factor
+# Notice that all different NA categories
+# become separate levels
+ess2016se |> 
+  mutate(party = as_factor(prtvtbse)) |> 
+  count(party)
+
+# We could then change the different nonresponse categories to NA
+ess2016se |> 
+  mutate(party = as_factor(prtvtbse),
+         party = na_if(party, "Not applicable"),
+         party = na_if(party, "Refusal"),
+         party = na_if(party, "Don't know")) |> 
+  count(party)
+
+
+# But we could also first change them to one NA category, 
+# using the zap_missing function
+ess2016se |> 
+  mutate(party = zap_missing(prtvtbse)) |> 
+  count(party)
+
+# So we could change into one NA category and then make a factor variable 
+ess2016se |> 
+  mutate(party = zap_missing(prtvtbse),
+         party = as_factor(party)) |> 
+  count(party)
+
+
+# This procedure can be used for multiple variables at once using mutate and across
+# and an anonymous function with \(x)
+# See the qmd file for lecture 4 for more information on across
+
+ess2016se |> 
+  mutate(across(trstprl:trstun, \(x) as_factor(zap_missing(x)))) |> 
+  count(trstun)
+
+# However for these variables, you probably want to change them to numeric instead, e.g.
+ess2016se |> 
+  count(trstun)
+
+ess2016se |> 
+  mutate(across(trstprl:trstun, \(x) as.numeric(x))) |> 
+  count(trstun)
+
+
+# Note that all the code above only make changes for the output, i.e. it is not assigned to any object. If you want to make changes and then use the changed data frame, you need to assign it to an object using <- 
+
+```
+
+
+## Creating a codebook
+The Stata dataset have both variable names and variable labels. They get imported into R using Haven, but it's difficult to see all the variables in a nice way. To get a better overview of all our variables, we could create a codebook. You could also take a look at the R package sjlabelled. It is a very useful package when handling labels in R, see <https://strengejacke.github.io/sjlabelled/index.html>. Other ways to create codebooks in by using the package codebookr, <https://brad-cannell.github.io/codebookr/>, or the codebook package, <https://rubenarslan.github.io/codebook/index.html>.
+
+```{r}
+# If you check in the viewer, you'll see that all variables (columns) have a label that gives more information than the variable name
+View(ess2016se)
+
+# We can take that information and create some kind of codebook (don't worry if you don't get this code right now)
+ess_codebook <-   ess2016se |> 
+  summarise(across(everything(), \(x) attr(x, "label"))) |>   
+  pivot_longer(cols = -1,
+               names_to = "variable",
+               values_to = "label") |> 
+  select(-1)
+
+```
+
+# Estimating a model 
+Say that we want to estimate a vote choice model. There are many political parties in Sweden, so to simplify it a bit, let us begin by recoding the party choices in the Swedish 2014 election to four groups of parties: left, right, radical right, and other parties. 
+
+```{r}
+
+# Let us create new variables and change some variable names
+# and create a new variable that combines parties that are similar.
+# And we want to set left as our reference category, i.e. the first
+# level of the factor variable.
+
+ess2016se_adj <- ess2016se |>  
+  mutate(gender = as_factor(zap_missing(gndr)),
+         party = as_factor(zap_missing(prtvtbse)),
+         party_bloc = fct_recode(party, 
+                                 right = "Centern", 
+                                 right = "Folkpartiet liberalerna",
+                                 right = "Moderata samlingspartiet",
+                                 right = "Kristdemokraterna",
+                                 left = "Socialdemokraterna",
+                                 left = "Vänsterpartiet",
+                                 left = "Miljöpartiet de gröna",
+                                 radical = "Sverigedemokraterna",
+                                 other = "FI (Feministiskt initiativ)",
+                                 other = "Piratpartiet",
+                                 other = "Annat parti"),
+         party_bloc = fct_relevel(party_bloc, "left"),
+         turnout = if_else(vote == 1, 1, 0)) |> 
+  rename(newscons = nwspol,
+         age = agea) 
+
+
+# We can check that our recoding seems ok.  
+ess2016se_adj |> 
+  count(party_bloc, party)
+
+```
+
+Let us say that we want to estimate a multinomial model where the choice of party bloc is our dependent variable and we want to use sex and age as explanatory variables.
+
+
+```{r}
+library(nnet)
+library(broom)
+library(modelr)
+
+# Let us estimate a model using multinom from the nnet package
+mod1 <- multinom(party_bloc ~ gender + age, data = ess2016se_adj)
+
+# We can get some information about our estimates using summary
+summary(mod1)
+
+# We can get additional information using tidy and glance from the broom package
+tidy(mod1)
+
+glance(mod1)
+
+# As with the binary regression models, we can get the odds ratios and confidence intervals in this way
+exp(coef(mod1))
+exp(confint(mod1))
+
+# Or by using tidy, and we can add the confidence intervals as well
+tidy(mod1, exponentiate = TRUE, conf.int = TRUE)
+
+```
+
+***Your turn***: Add trust in politicians to the estimated (you might have to look up in the documentation what variable to use). How do you think it will relate to the party choice? Are the results in line with your expectations?
+
+
+## Presenting the model estimates in a table
+We can present our results in a table using modelsummary, just as we did with the binary logistic regression models. Here, we add a second model where we also add news consumption as a variable.
+
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+library(modelsummary)
+
+models <- list(
+    "A" = multinom(party_bloc ~ gender + age, data = ess2016se_adj, trace = FALSE),
+    "B" = multinom(party_bloc ~ gender + age + newscons, data = ess2016se_adj, trace = FALSE))
+
+# We can combine them in a table in this way
+modelsummary(models, shape = term + response ~ statistic)
+
+
+# Or present the table in these ways, or some other way, e.g.
+modelsummary(models, shape = model + term ~ response)
+
+modelsummary(models, shape = term ~ model + response)
+
+# Or set exponentiate = TRUE to get the odds ratios and specify that we want confidence intervals, e.g.
+modelsummary(models, shape =  term ~ model + response,
+             fmt = 2,
+             statistic = 'conf.int',
+             exponentiate = TRUE)
+```
+
+
+# Predicted probabilities
+Unfortunately, augment from the broom package does not handle multinom model objects (at least not yet). But we can use the predict function instead.
+
+```{r}
+
+# We can create a tibble with two cases and predict their probabilities
+grid_age_gen_news <- tribble(
+  ~age, ~gender, ~newscons,
+  30, "Male", 30,
+  30, "Female", 30
+) 
+
+# The prediction is then done like this
+predict(mod1, newdata = grid_age_gen_news, type = "probs")
+
+# We can also predict their discrete vote choice by changing the type to class
+predict(mod1, newdata = grid_age_gen_news, type = "class")
+
+# We can create a tibble with more combinations. This can be done in various ways, here we set news consumption to 30 minutes and add ages between 20 and 80 in steps of 5, for both men and women.
+grid_age <- expand_grid(age = seq(20, 80, 5), 
+                           gender = c("Male", "Female"), 
+                           newscons = 30)
+
+
+# And we can then predict their probabilities in the same way.
+predict(mod1, newdata = grid_age, type = "probs")
+
+# We can also add the probabilities to our tibble, 
+# using bind_cols, which makes it easier to handle the results
+pred_age <- predict(mod1, newdata = grid_age, "probs") |> 
+  as_tibble() |> 
+  bind_cols(grid_age)
+
+pred_age
+### We can then plot our data
+# In order to make it easier to plot, we want to change our tibble to long format, i.e. a tidy format
+# This is done using pivot_longer
+pred_age_long <- pred_age |> 
+  pivot_longer(cols = left:radical,
+               names_to = "party_bloc",
+               values_to = "prediction")
+
+pred_age_long
+
+# And now we can plot our predicted probabilities
+theme_set(theme_light())
+library(scales)
+
+ggplot(pred_age_long, aes(age, prediction, color = party_bloc)) +
+  geom_line(linewidth = 1.5) +
+  facet_wrap(~ gender) +
+  scale_y_continuous(breaks = seq(0, 1, .1), 
+                     labels = percent_format(accuracy = 1)) +
+  labs(title = "Party bloc choices in the Swedish 2014 parliament election by sex",
+       subtitle = "Estimates from multinomial logistic regression",
+       y = "Predicted probability of vote choice",
+       x = "Age",
+       color = "Party bloc",
+       caption = "Data from ESS 2016.")
+
+
+
+```
+
+***Your turn***: Add trust in politicians to the model and illustrate the predicted probabilities for different levels of trust, separate lines for the party blocs and separate graph by sex. Set age to 30 years of age. Is the results in line with your expectations?
+
+
+
+```{r}
+# We can also use the marginaleffects package, which
+# makes everything a bit easier.
+library(marginaleffects)
+predictions(mod1, newdata = grid_age)
+
+predictions(mod1, newdata = grid_age) |>  
+  ggplot(aes(age, estimate, color = group)) +
+  geom_line(linewidth = 1.5) +
+  facet_wrap(~ gender) +
+  scale_y_continuous(breaks = seq(0, 1, .1), 
+                     labels = percent_format(accuracy = 1)) +
+  labs(title = "Party bloc choices in the Swedish 2014 parliament election by sex",
+       subtitle = "Estimates from multinomial logistic regression",
+       y = "Predicted probability of vote choice",
+       x = "Age",
+       color = "Party bloc",
+       caption = "Data from ESS 2016.")
+
+  
+
+```
+
+
+# Model estimation
+Let us say that we want to predict vote choice in Germany by estimate a multinomial model where we want variables that capture both the left-right economic dimension and the so-called GAL-TAN dimension, e.g. environment/liberal versus traditional/nationalism. 
+
+```{r}
+# Let's create some variables of interest
+# We could rename some of the variables instead of creating new variables
+# using mutate, but here I get rid of the value labels from Stata
+ess2016de_adj <- ess2016de |> 
+  mutate(party_vote = zap_missing(prtvede1),
+         party_vote = as_factor(party_vote),
+         party_vote = fct_lump(party_vote, 4),
+         turnout = if_else(vote == 1, 1, 0),
+         work = as.integer(pdwrk),
+         high_edu = as.integer(edulvlb >= 500),
+         female = as.integer(gndr == 2),
+         age = as.integer(agea),
+         left_right = as.integer(lrscale),
+         immigrants_better = as.integer(imwbcnt),
+         trust_politicans = as.integer(trstplt),
+         attached_country = as.integer(atchctr),
+         gincdif = fct_rev(as_factor(zap_missing(gincdif)))
+         )
+
+ess2016de_adj |> 
+  count(prtvede1)
+
+
+```
+
+We can now estimate a model using some of these variables.
+
+```{r}
+# Check what we have as our base level
+levels(ess2016de_adj$party_vote)
+
+# Let us estimate our model
+party_de <- multinom(party_vote ~ female + age + high_edu + left_right + immigrants_better,
+                     data = ess2016de_adj)
+
+
+# We can look at the estimated coefficients
+tidy(party_de)
+
+# Or as odds ratios
+tidy(party_de, exponentiate = TRUE, conf.int = TRUE) 
+
+```
+
+
+## Visualizing the odds ratios
+
+```{r}
+
+# Let's start with a simple graph where we facet the party choices
+tidy(party_de, exponentiate = TRUE, conf.int = TRUE) |> 
+  filter(term != "(Intercept)") |> 
+  ggplot(aes(estimate, term)) +
+  geom_vline(xintercept = 1, colour = "red", lty = 2) +
+  geom_point() +
+  facet_wrap(~ y.level) +
+  labs(x = "Odds ratios",
+       y = "",
+       caption = "Data from ESS 2016")
+
+# We could change the scale to a log scale and add confidence intervals
+# Here we use geom_pointrange 
+tidy(party_de, exponentiate = TRUE, conf.int = TRUE) |> 
+  filter(term != "(Intercept)") |>  
+  ggplot(aes(estimate, term)) +
+  geom_vline(xintercept = 1, colour = "red", lty = 2) +
+  geom_pointrange(aes(xmin = conf.low, xmax = conf.high)) +
+  scale_x_log10(breaks = seq(0.4, 1.4, by = .2)) +
+  facet_wrap(~ y.level) +
+  labs(x = "Odds ratios",
+       y = "",
+       caption = "Data from ESS 2016")
+
+# We could change "term" to a factor and change the order and the name of the levels to make the graph looking better. We should also add an informative title, and so on. Instead of geom_pointrange, we could use geom_point and geom_errorbarh, as we have done in previous labs.
+
+# Comparisons between levels is probably easier without the faceting
+tidy(party_de, exponentiate = TRUE, conf.int = TRUE) |> 
+  filter(term != "(Intercept)") |> 
+  ggplot(aes(estimate, term, colour = y.level)) +
+  geom_vline(xintercept = 1, colour = "red", lty = 2) +
+  geom_pointrange(aes(xmin = conf.low, xmax = conf.high),
+                  position = position_dodge(width = 1/2)) +
+  scale_x_log10(breaks = seq(0.4, 1.4, by = .2)) +
+  labs(y = "Odds ratios",
+       x = "",
+       colour = "Outcomes (CDU ref.)",
+       caption = "Data from ESS 2016")
+
+# Note the "positions_dodge" that separates the estimates in the graph.
+
+```
+
+
+## Predicting outcomes
+We can predict the outcomes for the observations in our dataset.
+
+```{r}
+# Let's estimate our model again
+party_de <- multinom(party_vote ~ female + age + high_edu + left_right + immigrants_better,
+                     data = ess2016de_adj)
+
+# We can get our predictions in this way
+party_de_pred <- predict(party_de, type = "prob")
+
+# However, we can see that we are not using all observations from ESS for our model
+# This is due to row-wise deletion. 
+# Hence, we can't just bind the two objects together
+nrow(party_de_pred)
+nrow(ess2016de)
+
+# This can be seen in this way as well
+nrow(residuals(party_de))
+
+# We could get the data frame that is used for the model estimation
+mf <- model.frame(party_vote ~ female + age + high_edu + left_right + immigrants_better,
+                     data = ess2016de_adj, na.action=na.omit)
+nrow(mf)
+
+# We could then bind this frame with the predictions.
+party_de_pred <- predict(party_de, type = "prob") |> 
+  as_tibble() |> 
+  bind_cols(mf)
+
+
+# Instead, we could also add "na.action = na.exclude" to our model, this will keep observations not used 
+party_de <- multinom(party_vote ~ female + age + high_edu + left_right + immigrants_better,
+                     data = ess2016de_adj, na.action = na.exclude)
+
+nrow(residuals(party_de))
+
+party_de_pred <- predict(party_de, type = "prob") |> 
+  as_tibble() |> 
+  bind_cols(ess2016de)
+
+## If we want the predicted classes we can just change type to "class"-
+# For example, with only observations used in the model
+
+party_de <- multinom(party_vote ~ female + age + high_edu + left_right + immigrants_better,
+                     data = ess2016de_adj)
+
+pred_party_de <- predict(party_de, type = "class") |> 
+  as_tibble() |>  
+  bind_cols(mf)
+
+view(pred_party_de)
+# We can now calculate how big share of the observations we predicted correctly
+mean(pred_party_de$value == pred_party_de$party_vote, na.rm = TRUE)
+
+
+```
+
+***Your turn***: Add trust in politicians to the model and predict the party choices. How big share of the observations are now correctly predicted?
+
+
+## Predictions from a multinomial model with confidence intervals
+
+So far, we've estimated multinomial models and retrieved predictions using -predict-. We can also get predictions using the effects package and thereby also get the associated uncertainty, including the confidence intervals. More information about the effects package can be found here <https://cran.r-project.org/web/packages/effects/effects.pdf> and here <https://cran.r-project.org/web/packages/effects/vignettes/predictor-effects-gallery.pdf>
+
+
+We can also use the ggeffects package, where the function ggeffects is a wrapper for the effects function in the Effects package. You can find more information about ggeffects here <https://strengejacke.github.io/ggeffects/> 
+
+
+```{r}
+library(effects)
+library(ggeffects)
+
+# Let us estimate a party choice model
+party_de <- multinom(party_vote ~ female + age + left_right,
+                     data = ess2016de_adj)
+
+tidy(party_de)
+
+
+# We can get the predicted probabilities for various levels of left-right
+# While other variables are kept at their mean
+party_de_prob <- effect(term = "left_right", mod = party_de) |> 
+  as_tibble()
+
+party_de_prob
+
+# We can get the same from ggeffect, but in a nicer, tidier form
+party_de_prob_gg <- ggeffect(party_de, term = "left_right")
+party_de_prob_gg
+View(party_de_prob_gg)
+
+# This can then be piped into ggplot to get a graph
+party_de_prob_gg |> 
+  ggplot(aes(x, predicted, colour = response.level, fill = response.level)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
+              alpha=0.2, colour = NA) +
+  scale_y_continuous(labels = label_percent()) +
+  scale_x_continuous(breaks = seq(0, 10, by = 2)) +
+  labs(title = "Party choice in Germany",
+       subtitle = "Estimates from multinomial logistic regression",
+       x = "Position on left-right scale (0-10)",
+       y = "Predicted probability",
+       caption = "Data from ESS 2016.",
+       colour = "Party",
+       fill = "Party")
+
+
+```
+
+We could use ggpredict instead of ggeffect - ggpredict is a wrapper around predict. The main difference is in how other variables are handled and in that ggpredict will keep categorical values at their reference level, but ggeffect will use the proportion of each category. We could also use ggemmeans, which is a wrapper around the emmeans package. For information about the differences between the different functions, see <https://strengejacke.github.io/ggeffects/articles/introduction_marginal_effects.html>
+
+Note that ggeffects can also be used for linear models using lm and logistic models using glm, i.e. for models we have discussed earlier in this course.
+
+***Your turn***: Change the factor variable for party choice so that AfD, the radical right party in Germany, is also included. How do you think the line with predicted probabilities will look for AfD? Reestimate the model and make a graph where they are also included, is the result in line with your expectations?
+
+
+### Using marginaleffects
+You could also take a look at what you can do with marginaleffects, e.g. see <https://vincentarelbundock.github.io/marginaleffects/articles/predictions.html#average-adjusted-predictions-by-group>
+
+You could use predictions from marginaleffects and then plot the results, or use plot_predictions directly.
+
+```{r}
+
+# Using plot_predictions from marginaleffects
+plot_predictions(
+    party_de,
+    type = "probs",
+    condition ="left_right") +
+  facet_wrap(~group)
+
+plot_predictions(
+    party_de,
+    type = "probs",
+    condition = c("left_right", "group")) 
+
+# And we can fix the graph a bit, since it's a ggplot object
+plot_predictions(
+    party_de,
+    type = "probs",
+    condition = c("left_right", "group")) +
+  scale_y_continuous(labels = percent_format()) +
+  scale_x_continuous(breaks = seq(0, 10, by = 2)) +
+  labs(title = "Party choice in Germany",
+       subtitle = "Estimates from multinomial logistic regression",
+       x = "Position on left-right scale (0-10)",
+       y = "Predicted probability",
+       caption = "Data from ESS 2016.",
+       colour = "Party",
+       fill = "Party")
+  
+```
+
+
+## Complex survey data
+The ESS data is survey data. As we discussed in lecture 4, when using survey data, you should take weights and sample design into account. In this course, we do not consider those aspects, but here is some information on how to do that. 
+
+### Estimation using weights in regular packages.
+In ESS, you have weights adjusted for nonresponse, called pspwght.
+
+
+```{r}
+
+turnout_de <- glm(turnout ~ female + work + age + high_edu, 
+                  data = ess2016de_adj, family = binomial(link = "logit"))
+summary(turnout_de)
+
+# You get a warning message if you add weights to glm
+# because glm expects integer counts
+
+turnout_se_w <- glm(turnout ~ female + work + age + high_edu,
+                  data = ess2016de_adj, weights = pspwght,
+                    family = binomial(link = "logit"))
+summary(turnout_se_w)
+
+# You could also specify the family to quasibinomial instead,
+# then you don't get any warnings
+turnout_se_w <- glm(turnout ~ female + work + age + high_edu,
+                  data = ess2016de_adj, weights = pspwght,
+                    family = quasibinomial(link = "logit"))
+summary(turnout_se_w)
+
+
+```
+
+
+
+```{r}
+# You could also cluster the standard errors using miceadds
+# First, import the survey design file (it can be found on the ESS website as well)
+ess2016_sddf <- read_dta(here("computer labs/lab 5", "ESS8SDDFe01_1.dta"))
+
+# Then join them together
+ess2016de_adj_sd <- ess2016de_adj |> 
+  left_join(ess2016_sddf, join_by(cntry, idno))
+
+# And use glm.cluster from the miceadds package
+library(miceadds)
+
+turnout_de_w <- glm.cluster(turnout ~ female + work + age + high_edu, 
+                           data = ess2016de_adj_sd, 
+                          weights = ess2016de_adj_sd$pspwght,
+                          cluster = ess2016de_adj_sd$psu,
+                           family = binomial(link = "logit"))
+summary(turnout_de_w)
+
+
+```
+
+
+## Using the survey package
+
+In order to fully take the sampling design into account, we need to use the survey package. And we can use the srvyr package, which is a wrapper for the survey package and uses a tidyverse approach.
+
+```{r}
+library(srvyr)
+library(survey)
+
+# We read the dataset with sample design information
+# and we declare the sampling design
+
+ess2016_design_de <- ess2016de_adj_sd |> 
+  as_survey_design(ids = psu, strata = stratum, weights = pspwght)
+  
+turnout_de_sd <- svyglm(turnout ~ female + age + work + high_edu, 
+                        design = ess2016_design_de, 
+                        family = binomial(link = "logit"))
+
+# Note that the estimates are the same when using glm, but the standard
+# errors differ.
+turnout_de_w <- glm(turnout ~ female + work + age + high_edu,
+                  data = ess2016de_adj, weights = pspwght,
+                    family = binomial(link = "logit"))
+summary(turnout_de_sd)
+summary(turnout_de_w)
+
+```
+
+
+It's a bit more complicated when it comes to multinomial models. You can, of course, add weights and cluster the standard errors at the psu level. There are also other approaches, using other packages, such as svyVGAM, see <https://cran.r-project.org/web/packages/svyVGAM/index.html>. One example can be found here: <https://tech.popdata.org/pma-data-hub/posts/2021-08-15-covid-analysis/>
+
+
+```{r}
+library(svyVGAM)
+  
+party_de_svy <- svy_vglm(party_vote ~ female + age + left_right,
+                     design = ess2016_design_de,
+                     family = multinomial)
+
+summary(party_de_svy)
+```
+
