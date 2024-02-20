@@ -20,8 +20,10 @@ Formulate theoretical arguments and expectations about interstate relations. Thi
 library(tidyverse)
 library(igraph)
 
-data <- read_csv("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/SNA/Assignment2SNA/terr-changes-v6/tc2018.csv")
-country_codes <- read.csv("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/SNA/Assignment2SNA/COW-country-codes.csv")
+#data <- read_csv("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/SNA/Assignment2SNA/terr-changes-v6/tc2018.csv")
+data <- read_csv("C:/Users/marcs/Desktop/Labs/CSS_Labs_early_24/SNA/Assignment2SNA/terr-changes-v6/tc2018.csv")
+#country_codes <- read.csv("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/SNA/Assignment2SNA/COW-country-codes.csv")
+country_codes <- read.csv("C:/Users/marcs/Desktop/Labs/CSS_Labs_early_24/SNA/Assignment2SNA/COW-country-codes.csv")
 
 country_codes_gain <- country_codes |> rename(gainer = CCode) |> select(-StateAbb) |> distinct()
 country_codes_entity <- country_codes |> rename(entity = CCode) |> select(-StateAbb) |> distinct()
@@ -42,22 +44,58 @@ Europe <- c("United Kingdom", "Ireland", "Netherlands", "Belgium", "Luxembourg",
 
 Africa <- c("Cape Verde", "Sao Tome and Principe", "Guinea-Bissau", "Equatorial Guinea", "Gambia", "Mali", "Senegal", "Benin", "Mauritania", "Niger", "Ivory Coast", "Guinea", "Burkina Faso", "Liberia", "Sierra Leone", "Ghana", "Togo", "Cameroon", "Nigeria", "Gabon", "Central African Republic", "Chad", "Congo", "Democratic Republic of the Congo", "Uganda", "Kenya", "Tanzania", "Zanzibar", "Burundi", "Rwanda", "Somalia", "Djibouti", "Ethiopia", "Eritrea", "Angola", "Mozambique", "Zambia", "Zimbabwe", "Malawi", "South Africa", "Namibia", "Lesotho", "Botswana", "Swaziland", "Madagascar", "Comoros", "Mauritius", "Seychelles", "Morocco", "Algeria", "Tunisia", "Libya", "Sudan", "South Sudan", "Egypt")
 
-Asia <- c("Iran", "Turkey", "Iraq", "Syria", "Lebanon", "Jordan", "Israel", "Saudi Arabia", "Yemen Arab Republic", "Yemen", "Yemen People's Republic", "Kuwait", "Bahrain", "Qatar", "United Arab Emirates", "Oman", "Afghanistan", "Turkmenistan", "Tajikistan", "Kyrgyzstan", "Uzbekistan", "Kazakhstan", "China", "Mongolia", "Taiwan", "Korea", "North Korea", "South Korea", "Japan", "India", "Bhutan", "Pakistan", "Bangladesh", "Myanmar", "Sri Lanka", "Maldives", "Nepal", "Thailand", "Cambodia", "Laos", "Vietnam", "Republic of Vietnam", "Malaysia", "Singapore", "Brunei", "Philippines", "Indonesia", "East Timor")
+Asia <- c("Turkmenistan", "Tajikistan", "Kyrgyzstan", "Uzbekistan", "Kazakhstan", "China", "Mongolia", "Taiwan", "Korea", "North Korea", "South Korea", "Japan", "India", "Bhutan", "Pakistan", "Bangladesh", "Myanmar", "Sri Lanka", "Maldives", "Nepal", "Thailand", "Cambodia", "Laos", "Vietnam", "Republic of Vietnam", "Malaysia", "Singapore", "Brunei", "Philippines", "Indonesia", "East Timor")
+
+Middle_East <- c("Iran", "Turkey", "Iraq", "Syria", "Lebanon", "Jordan", "Israel", "Saudi Arabia", "Yemen Arab Republic", "Yemen", "Yemen People's Republic", "Kuwait", "Bahrain", "Qatar", "United Arab Emirates", "Oman", "Afghanistan")
 
 Oceania <- c("Australia", "Papua New Guinea", "New Zealand", "Vanuatu", "Solomon Islands", "Kiribati", "Tuvalu", "Fiji", "Tonga", "Nauru", "Marshall Islands", "Palau", "Federated States of Micronesia", "Samoa")
 
+Southeast_Asia <- c("Thailand", "Cambodia", "Laos", "Vietnam", "Republic of Vietnam", "Malaysia", "Singapore", "Brunei", "Philippines", "Indonesia", "East Timor", "Myanmar")
 
+Island_States <- c(
+    "Bahamas", "Cuba", "Haiti", "Dominican Republic", "Jamaica",
+    "Trinidad and Tobago", "Barbados", "Dominica", "Grenada", "St. Lucia",
+    "St. Vincent and the Grenadines", "Antigua & Barbuda", "St. Kitts and Nevis",
+    "Sao Tome and Principe", "Guinea-Bissau", "Equatorial Guinea", "Gambia",
+    "Cape Verde", "Comoros", "Mauritius", "Seychelles", "Maldives",
+    "Sri Lanka", "Indonesia", "East Timor", "Australia", "Papua New Guinea",
+    "New Zealand", "Vanuatu", "Solomon Islands", "Kiribati", "Tuvalu",
+    "Fiji", "Tonga", "Nauru", "Marshall Islands", "Palau",
+    "Federated States of Micronesia", "Samoa"
+)
+
+data <- data |> 
+  rowwise() |> 
+  mutate(
+    contains_oceanic = if_any(c(gainer, entity, loser), ~. %in% Oceania),
+    contains_africa = if_any(c(gainer, entity, loser), ~. %in% Africa),
+    contains_middle_east = if_any(c(gainer, entity, loser), ~. %in% Middle_East),
+    contains_asia = if_any(c(gainer, entity, loser), ~. %in% Asia),
+    contains_south_east_asia = if_any(c(gainer, entity, loser), ~. %in% Southeast_Asia),
+    contains_europe = if_any(c(gainer, entity, loser), ~. %in% Europe),
+    contains_south_america = if_any(c(gainer, entity, loser), ~. %in% South_America),
+    contains_north_america = if_any(c(gainer, entity, loser), ~. %in% North_America),
+    island_state = if_any(c(gainer, entity, loser), ~. %in% Island_States)
+  ) |> 
+  ungroup()
 ```
 
 ```{r}
-graph <- igraph::graph_from_data_frame(data, directed = TRUE, vertices = NULL)
+data_graph <- data |> filter(island_state == T) |> mutate(
+  entity = if_else(entity == gainer, " ", entity)
+)
+
+graph <- igraph::graph_from_data_frame(data_graph, directed = TRUE, vertices = NULL)
+
+#maybe add independence here or something interesting
+## figure out a way to deal with entity and loser the same
 
 plot.igraph(graph,
-            edge.label = data$entity,
+            edge.label = data_graph$entity,
 vertex.size = 4,
 edge.color = 'grey20',
 edge.arrow.size = .3,
-main = 'Gainers and losers of territory as result of military conflict 1816 - 2015')
+main = 'Gainers and losers of territory with island states involved 1816 - 2015')
 
 #cases where contiguity == 0 and military conflict is involved
 # Dyads of countries engaged in military conflict despite not being contiguous exhibit distinct network structures compared to contiguous dyads.

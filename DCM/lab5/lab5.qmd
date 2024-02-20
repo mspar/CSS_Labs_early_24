@@ -199,6 +199,8 @@ glance(mod1)
 exp(coef(mod1))
 exp(confint(mod1))
 
+#! The odds for women to vote right, compared to men, compared to left, is 2.1 times higher.
+
 # Or by using tidy, and we can add the confidence intervals as well
 tidy(mod1, exponentiate = TRUE, conf.int = TRUE)
 
