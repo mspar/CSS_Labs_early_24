@@ -16,14 +16,16 @@ header-includes:
 
 Formulate theoretical arguments and expectations about interstate relations. Think in network terms. Select the appropriate part of the data for analysis.
 
+> 
+
 ```{r}
 library(tidyverse)
 library(igraph)
 
-#data <- read_csv("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/SNA/Assignment2SNA/terr-changes-v6/tc2018.csv")
-data <- read_csv("C:/Users/marcs/Desktop/Labs/CSS_Labs_early_24/SNA/Assignment2SNA/terr-changes-v6/tc2018.csv")
-#country_codes <- read.csv("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/SNA/Assignment2SNA/COW-country-codes.csv")
-country_codes <- read.csv("C:/Users/marcs/Desktop/Labs/CSS_Labs_early_24/SNA/Assignment2SNA/COW-country-codes.csv")
+data <- read_csv("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/SNA/Assignment2SNA/terr-changes-v6/tc2018.csv")
+#data <- read_csv("C:/Users/marcs/Desktop/Labs/CSS_Labs_early_24/SNA/Assignment2SNA/terr-changes-v6/tc2018.csv")
+country_codes <- read.csv("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/SNA/Assignment2SNA/COW-country-codes.csv")
+#country_codes <- read.csv("C:/Users/marcs/Desktop/Labs/CSS_Labs_early_24/SNA/Assignment2SNA/COW-country-codes.csv")
 
 country_codes_gain <- country_codes |> rename(gainer = CCode) |> select(-StateAbb) |> distinct()
 country_codes_entity <- country_codes |> rename(entity = CCode) |> select(-StateAbb) |> distinct()
@@ -35,6 +37,8 @@ data <- data |> left_join(country_codes_gain, join_by(gainer)) |> select(-gainer
   left_join(country_codes_entity, join_by(entity)) |> select(-entity) |> rename(entity = StateNme) |>
   left_join(country_codes_loser, join_by(loser)) |> select(-loser) |> rename(loser = StateNme) |> 
   relocate(any_of(c("gainer", "loser", "entity")), .before = year) |> select(-version) |> drop_na(any_of(c("gainer", "loser")))
+
+data$entry[data$entry == -9] <- NA
 
 North_America <- c("United States of America", "Canada", "Bahamas", "Cuba", "Haiti", "Dominican Republic", "Jamaica", "Trinidad and Tobago", "Barbados", "Dominica", "Grenada", "St. Lucia", "St. Vincent and the Grenadines", "Antigua & Barbuda", "St. Kitts and Nevis", "Mexico", "Belize", "Guatemala", "Honduras", "El Salvador", "Nicaragua", "Costa Rica", "Panama")
 
@@ -86,20 +90,6 @@ data_graph <- data |> filter(island_state == T) |> mutate(
 )
 
 graph <- igraph::graph_from_data_frame(data_graph, directed = TRUE, vertices = NULL)
-
-#maybe add independence here or something interesting
-## figure out a way to deal with entity and loser the same
-
-plot.igraph(graph,
-            edge.label = data_graph$entity,
-vertex.size = 4,
-edge.color = 'grey20',
-edge.arrow.size = .3,
-main = 'Gainers and losers of territory with island states involved 1816 - 2015')
-
-#cases where contiguity == 0 and military conflict is involved
-# Dyads of countries engaged in military conflict despite not being contiguous exhibit distinct network structures compared to contiguous dyads.
-# countries who've experiuenced "far away" military intervention are more likely to afterwards experience conflict with immediate neighbours
 ```
 
 
@@ -109,6 +99,54 @@ On the selected data, make a table that contains descriptive network statistics 
 
 ```{r}
 
+# calucate density
+density <- edge_density(graph)
+
+# due to this being an undirected network, it makes no sense to caluclate in/outdegree. Instead, only the degrees are caluclated.
+degrees <- igraph::degree(graph, mode='all')
+degrees_in <- igraph::degree(graph, mode='in')
+degrees_out <- igraph::degree(graph, mode='out')
+
+mean_degrees <- mean(degrees)
+mean_degrees_in <- mean(degrees_in)
+mean_degrees_out <- mean(degrees_out)
+
+median_degrees <- median(degrees)
+median_degrees_in <- median(degrees_in)
+median_degrees_out <- median(degrees_out)
+
+# calucate standard deviation of degrees
+sd_degrees <- sd(degrees)
+sd_degrees_in <- sd(degrees_in)
+sd_degrees_out <- sd(degrees_out)
+
+# calucate reciprocity
+reciprocity <- reciprocity(graph)
+
+# calucate transitivity
+transitivity <- transitivity(graph)
+
+# average path length
+av_p_length <- mean_distance(graph)
+
+# number of isolates
+# there are no isolates due to the nature of this data set
+
+# how many components
+
+n_components <- components(graph)$no
+
+#which node highest degree
+
+degrees
+# uk with 32
+
+#which node highest betweenness
+
+betweenness <- betweenness(graph)
+betweenness
+# uk with 174
+
 ```
 
 
@@ -117,7 +155,20 @@ On the selected data, make a table that contains descriptive network statistics 
 Visualize the network. Vary degree color and size according to key node attributes. Try to pick a node attribute that relates to an important characteristic (e.g., power, GDP per capita).
 
 ```{r}
+#maybe add independence here or something interesting
+## figure out a way to deal with entity and loser the same
 
+# find way to deal with several rows but differing "entry"
+
+# size according to pop or area
+
+plot.igraph(graph,
+            edge.label = data_graph$entity,
+vertex.size = 4,
+vertex.color = if_else(data_graph$entry == 1,"Green", "Red"),
+edge.color = 'grey20',
+edge.arrow.size = .3, 
+main = 'Gainers and losers of territory with island states involved 1816 - 2015')
 ```
 
 ## Task 4
@@ -125,6 +176,34 @@ Visualize the network. Vary degree color and size according to key node attribut
 Implement and compare the results (community compositions, their size) of TWO different community detection algorithms to find communities (e.g., Girvan-Newman, Louvain, walktrap, cohesive blocks, Leiden). Please take into account that most of these methods can use undirected graphs only, others (such as Girvan-Newman) might work with weighted graphs. Before carrying out this task, simplify the data if necessary. Create a plot where nodes are either colored based on detected community membership, or you circulate the groups with some color in the background.
 
 ```{r}
+#edge.betweenness.community
+eb_graph <- cluster_edge_betweenness(graph, directed = T)
+plot(eb_graph, graph, edge.label = data_graph$entity,
+vertex.size = 4,
+vertex.color = if_else(data_graph$entry == 1,"Green", "Red"),
+edge.color = 'grey20',
+edge.arrow.size = .3, 
+main = 'Gainers and losers of territory with island states involved 1816 - 2015')
+
+#dendro
+eb_dendro <- plot_dendrogram(eb_graph, mode="phylo", colbar = palette(), use.edge.length = TRUE)
+#modularity
+modularity(graph, eb_graph$membership)
+
+
+#INFOMAP
+info_graph <- cluster_infomap(graph, modularity = TRUE, nb.trials = 100)
+plot(info_graph, graph, edge.label = data_graph$entity,
+vertex.size = 4,
+vertex.color = if_else(data_graph$entry == 1,"Green", "Red"),
+edge.color = 'grey20',
+edge.arrow.size = .3, 
+main = 'Gainers and losers of territory with island states involved 1816 - 2015')
+
+#dendro
+info_dendro <- as.dendrogram(info_graph)
+#modularity
+modularity(graph, info_graph$membership)
 
 ```
 
@@ -133,6 +212,7 @@ Implement and compare the results (community compositions, their size) of TWO di
 Make meaningful comparisons between the results of community detection algorithms. Summarize the differences and similarities and try to explain these. Please refer to the relevant literature describing the logic of these algorithms if necessary. 
 
 ```{r}
-
+compare(info_graph,eb_graph)
 ```
+
 
