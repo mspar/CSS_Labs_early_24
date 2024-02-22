@@ -137,6 +137,8 @@ av_p_length <- mean_distance(graph)
 n_components <- components(graph)$no
 
 #which node highest degree
+#
+# as data frame with order and slice to get highest value
 
 degrees
 # uk with 32
@@ -187,6 +189,7 @@ main = 'Gainers and losers of territory with island states involved 1816 - 2015'
 
 #dendro
 eb_dendro <- plot_dendrogram(eb_graph, mode="phylo", colbar = palette(), use.edge.length = TRUE)
+eb_dendro
 #modularity
 modularity(graph, eb_graph$membership)
 
