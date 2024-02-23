@@ -184,12 +184,12 @@ V(graph)$conflict <- if_else(V(graph)$name %in% conflict_pull, TRUE, FALSE)
 
 #ERROR HERE --> NEEDS SPECIFIC VALUE FOR EACH NODE, NOT EACH ROW
 
+#COLOR CONFLICT TIES RED
+
 plot.igraph(graph,
-            edge.label = data_graph$entity,
 vertex.size = 4,
 vertex.color = ifelse(V(graph)$independence == TRUE,"Green", "Red"),
-vertex.shape = ifelse(V(graph)$conflict == TRUE ,'square','circle'),
-edge.color = 'grey20',
+edge.color = ifelse(data_graph$conflict == 1 ,'Orange','Blue'),
 edge.arrow.size = .2, 
 main = 'Gainers and losers of territory with island states involved 1816 - 2015')
 ```
@@ -199,13 +199,27 @@ main = 'Gainers and losers of territory with island states involved 1816 - 2015'
 Implement and compare the results (community compositions, their size) of TWO different community detection algorithms to find communities (e.g., Girvan-Newman, Louvain, walktrap, cohesive blocks, Leiden). Please take into account that most of these methods can use undirected graphs only, others (such as Girvan-Newman) might work with weighted graphs. Before carrying out this task, simplify the data if necessary. Create a plot where nodes are either colored based on detected community membership, or you circulate the groups with some color in the background.
 
 ```{r}
+# as undirected
+graph_undi <- as.undirected(graph, mode='collapse')
+
+fastgreedy <- cluster_fast_greedy(graph_undi, modularity = "TRUE")
+plot(fastgreedy, graph_undi,
+     vertex.size = 4,
+vertex.color = ifelse(V(graph)$independence == TRUE,"Green", "Red"),
+edge.color = ifelse(data_graph$conflict == 1 ,'Orange','Blue'),
+edge.arrow.size = .2, 
+main = 'Gainers and losers of territory with island states involved 1816 - 2015')
+
+plot_dendrogram(fastgreedy, mode="phylo", colbar = palette(), use.edge.length = TRUE)
+fastgreedy_tree
+
+
 #edge.betweenness.community
 eb_graph <- cluster_edge_betweenness(graph, directed = T)
-plot(eb_graph, graph, edge.label = data_graph$entity,
-vertex.size = 4,
-vertex.color = if_else(data_graph$entry == 1,"Green", "Red"),
-edge.color = 'grey20',
-edge.arrow.size = .3, 
+plot(eb_graph, graph, vertex.size = 4,
+vertex.color = ifelse(V(graph)$independence == TRUE,"Green", "Red"),
+edge.color = ifelse(data_graph$conflict == 1 ,'Orange','Blue'),
+edge.arrow.size = .2, 
 main = 'Gainers and losers of territory with island states involved 1816 - 2015')
 
 #dendro
@@ -217,11 +231,10 @@ modularity(graph, eb_graph$membership)
 
 #INFOMAP
 info_graph <- cluster_infomap(graph, modularity = TRUE, nb.trials = 100)
-plot(info_graph, graph, edge.label = data_graph$entity,
-vertex.size = 4,
-vertex.color = ifelse(data_graph$entry == 1,"Green", "Red"),
-edge.color = 'grey20',
-edge.arrow.size = .3, 
+plot(info_graph, graph, vertex.size = 4,
+vertex.color = ifelse(V(graph)$independence == TRUE,"Green", "Red"),
+edge.color = ifelse(data_graph$conflict == 1 ,'Orange','Blue'),
+edge.arrow.size = .2, 
 main = 'Gainers and losers of territory with island states involved 1816 - 2015')
 
 #dendro
