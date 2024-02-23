@@ -16,7 +16,7 @@ header-includes:
 
 Formulate theoretical arguments and expectations about interstate relations. Think in network terms. Select the appropriate part of the data for analysis.
 
-> 
+> The bigger the island, the more conflict around it and the more 
 
 ```{r}
 library(tidyverse)
@@ -32,6 +32,7 @@ country_codes_entity <- country_codes |> rename(entity = CCode) |> select(-State
 country_codes_loser <- country_codes |> rename(loser = CCode) |> select(-StateAbb) |> distinct()
 
 data$entity <- as.numeric(data$entity)
+data$area <- as.numeric(data$area)
 
 data <- data |> left_join(country_codes_gain, join_by(gainer)) |> select(-gainer) |> rename(gainer = StateNme) |>
   left_join(country_codes_entity, join_by(entity)) |> select(-entity) |> rename(entity = StateNme) |>
@@ -60,13 +61,11 @@ Island_States <- c(
     "Bahamas", "Cuba", "Haiti", "Dominican Republic", "Jamaica",
     "Trinidad and Tobago", "Barbados", "Dominica", "Grenada", "St. Lucia",
     "St. Vincent and the Grenadines", "Antigua & Barbuda", "St. Kitts and Nevis",
-    "Sao Tome and Principe",
-    "Cape Verde", "Comoros", "Mauritius", "Seychelles", "Maldives",
+    "Sao Tome and Principe", "Cape Verde", "Comoros", "Mauritius", "Seychelles", "Maldives",
       "Sri Lanka", "Indonesia", "East Timor", "Papua New Guinea",
     "New Zealand", "Vanuatu", "Solomon Islands", "Kiribati", "Tuvalu",
     "Fiji", "Tonga", "Nauru", "Marshall Islands", "Palau",
-    "Federated States of Micronesia", "Samoa", "Bahrain", "Brunei", "Cyprus", "Iceland", "Ireland", "Japan",
-    "Madagascar", "Malta", "Philippines", "Singapore", "Taiwan", "Zanzibar"
+    "Federated States of Micronesia", "Samoa", "Bahrain", "Brunei", "Cyprus", "Iceland", "Ireland",       "Japan", "Madagascar", "Malta", "Philippines", "Singapore", "Taiwan", "Zanzibar"
 )
 
 data <- data |> 
@@ -83,6 +82,8 @@ data <- data |>
     island_state = if_any(c(gainer, entity, loser), ~. %in% Island_States)
   ) |> 
   ungroup()
+
+data <- data |> mutate(area_log = log(area))
 ```
 
 ```{r}
@@ -103,7 +104,7 @@ On the selected data, make a table that contains descriptive network statistics 
 # calucate density
 density <- edge_density(graph)
 
-# due to this being an undirected network, it makes no sense to caluclate in/outdegree. Instead, only the degrees are caluclated.
+# due to this being an undirected network, it makes no sense to calculate in/outdegree. Instead, only the degrees are caluclated.
 degrees <- igraph::degree(graph, mode='all')
 degrees_in <- igraph::degree(graph, mode='in')
 degrees_out <- igraph::degree(graph, mode='out')
@@ -141,21 +142,15 @@ n_components <- components(graph)$no
 #
 # as data frame with order and slice to get highest value
 
-# ecount(m2) # there are 39 ties
-# E(m2)
-# (edge_btw_1 <- edge_betweenness(m2))
-# max(edge_btw_1)
-# which(edge_btw_1 == max(edge_btw_1))
-# delete.edges(m2,19)
-
-degrees
-# uk with 32
+highest_degrees <- degrees |> as.data.frame() |> arrange(desc(degrees)) |> slice(1)
+# uk with 41
 
 #which node highest betweenness
 
 betweenness <- betweenness(graph)
-betweenness
-# uk with 174
+
+highest_betweenness <- betweenness |> as.data.frame() |> arrange(desc(betweenness)) |> slice(1)
+# uk with 473
 
 ```
 
@@ -177,21 +172,26 @@ conflict_gain_pull <- data_graph |> filter(conflict == 1) |> pull(gainer)
 conflict_lose_pull <- data_graph |> filter(conflict == 1) |> pull(loser)
 conflict_ent_pull <- data_graph |> filter(conflict == 1) |> pull(entity)
 
+
+data_graph <- data_graph |> summarise(area_gained = sum(area), .by = "gainer") |> left_join(x = data_graph,y = _, by = join_by(gainer))
+
+pull_area <- data_graph |> group_by(gainer) |> distinct(area_gained) |> rbind(data.frame(gainer = c("Korea", "Denmark", "India"),
+                                                                            area_gained = 0000000000000000.1)) |> ungroup()
+
 conflict_pull <- union(conflict_gain_pull,conflict_lose_pull) |> union(conflict_ent_pull) |> head(-2)
 
 V(graph)$independence <- if_else(V(graph)$name %in% independence_pull, TRUE, FALSE)
 V(graph)$conflict <- if_else(V(graph)$name %in% conflict_pull, TRUE, FALSE)
-
-#ERROR HERE --> NEEDS SPECIFIC VALUE FOR EACH NODE, NOT EACH ROW
-
-#COLOR CONFLICT TIES RED
+V(graph)$log_gained <- log(pull_area$area_gained)
 
 plot.igraph(graph,
-vertex.size = 4,
+vertex.size = 4+0.4*V(graph)$log_gained,
 vertex.color = ifelse(V(graph)$independence == TRUE,"Green", "Red"),
 edge.color = ifelse(data_graph$conflict == 1 ,'Orange','Blue'),
 edge.arrow.size = .2, 
 main = 'Gainers and losers of territory with island states involved 1816 - 2015')
+
+#plot(g, rescale = FALSE, ylim=c(1,4),xlim=c(-17,24), asp = 0)
 ```
 
 ## Task 4
@@ -204,7 +204,7 @@ graph_undi <- as.undirected(graph, mode='collapse')
 
 fastgreedy <- cluster_fast_greedy(graph_undi, modularity = "TRUE")
 plot(fastgreedy, graph_undi,
-     vertex.size = 4,
+     vertex.size = 4+0.5*V(graph)$log_gained,
 vertex.color = ifelse(V(graph)$independence == TRUE,"Green", "Red"),
 edge.color = ifelse(data_graph$conflict == 1 ,'Orange','Blue'),
 edge.arrow.size = .2, 
