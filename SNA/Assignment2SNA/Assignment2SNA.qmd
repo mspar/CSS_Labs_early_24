@@ -1,5 +1,5 @@
 ---
-title: "Assignment 2 SNA"
+title: "Assignment 2 SNA - Island State Communities"
 author: "Marc Sparhuber"
 format: pdf
 editor: source
@@ -29,10 +29,10 @@ library(knitr)
 library(kableExtra)
 library(ape)
 
-#data <- read_csv("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/SNA/Assignment2SNA/terr-changes-v6/tc2018.csv")
-data <- read_csv("C:/Users/marcs/Desktop/Labs/CSS_Labs_early_24/SNA/Assignment2SNA/terr-changes-v6/tc2018.csv")
-#country_codes <- read.csv("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/SNA/Assignment2SNA/COW-country-codes.csv")
-country_codes <- read.csv("C:/Users/marcs/Desktop/Labs/CSS_Labs_early_24/SNA/Assignment2SNA/COW-country-codes.csv")
+data <- read_csv("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/SNA/Assignment2SNA/terr-changes-v6/tc2018.csv")
+#data <- read_csv("C:/Users/marcs/Desktop/Labs/CSS_Labs_early_24/SNA/Assignment2SNA/terr-changes-v6/tc2018.csv")
+country_codes <- read.csv("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/SNA/Assignment2SNA/COW-country-codes.csv")
+#country_codes <- read.csv("C:/Users/marcs/Desktop/Labs/CSS_Labs_early_24/SNA/Assignment2SNA/COW-country-codes.csv")
 
 country_codes_gain <- country_codes |> rename(gainer = CCode) |> select(-StateAbb) |> distinct()
 country_codes_entity <- country_codes |> rename(entity = CCode) |> select(-StateAbb) |> distinct()
@@ -207,7 +207,7 @@ edge.arrow.size = .3,
 main = 'Gainers and losers of territory with island states involved 1819 - 1994')
 ```
 
-> In this network visualization, node size scales with the log of total territory gained from corresponding loser nodes, which the color indicates whether this state has obtained independence, with green indicating independence, and the tie color orange indicating whether military conflict was involved in the territory exchange indicated by the tie. Importantly, the direction of the arrow indicates the gaining of territory, so that many green-coloured small island states pointing toward the UK represents them gaining their independence. At first glance, excluding the two smaller components, the main component seems to be roughly divisible into two to four communities (depending on seed), each centering around a colonizing power with island states contested by more than one colonizing power often serving connectors between the modules.
+> In this network visualization, node size scales with the log of total territory gained from corresponding loser nodes, which the color indicates whether this state has obtained independence, with green indicating independence, and the tie color orange indicating whether military conflict was involved in the territory exchange indicated by the tie. Importantly, the direction of the arrow indicates the gaining of territory, so that many green-coloured small island states pointing toward the UK represents them gaining their independence - most frequently without military intervention. At first glance, excluding the two smaller components, the main component seems to be roughly divisible into two to four communities (depending on seed), each centering around a colonizing power with island states contested by more than one colonizing power often serving connectors between the modules.
 
 ## Task 4
 
@@ -269,9 +269,17 @@ main = 'Territory change in island states 1816 - 2015: Infomap')
 Make meaningful comparisons between the results of community detection algorithms. Summarize the differences and similarities and try to explain these. Please refer to the relevant literature describing the logic of these algorithms if necessary. 
 
 ```{r}
-compare(walky, eb_graph)
-compare(info_graph, eb_graph)
-compare(walky, info_graph)
+# compare(walky, eb_graph, method = "vi")
+# compare(info_graph, eb_graph, method = "vi")
+# compare(walky, info_graph, method = "vi")
+# 
+# modularity(walky)
+# modularity(eb_graph)
+# modularity(info_graph)
 ```
 
+> To make meaningful comparisons between community detection strategies past the a visual interpretation, certain measures can be interpreted. One such measure is modularity. It is close to 1 when there are strongly connected communities, while their connections to other communities are rather weak, indicating clear separations between communities. Meanwhile, values between and around 0 and -1 indicate low modularity, meaning that there are few clear cut communities or that the algorithm doesn't work well with the particular network (Clauset & Newman, 2004). All three community detection algorithms used here result in values around 0.5, indicating moderate modularity. Interestingly, the edge betweenness method scores ~0.05 percentage points lower than the other two, which maybe explained by the many one-country communities it detected, thereby decreasing its modularity.
 
+> Another method is the variation of information metric, proposed by Marina Meilă (2005). It measures the amount of information lost and gained in changing from the first provided community structure to the second and can take values from 0 to positive infinity. The values the measure produces here indicate a greater dissimilarity of the walktrap algorithm to the edge betweenness algorithm (0.94), than the Infomap community to the edge betweenness community (0.78) and the walktrap algorithm to the Infomap algorithm (0.71). This intuitively makes sense, as the walktrap algorithm creates the least communities, while the edge betweenness algorithm creates the most. Correspondingly, the resuts of the walktrap algorithm and the Infomap algorithm also do look the most similar when plotted. Notably, these results are the ones produced by just one run and should ideally be averaged across different results of outcomes of community detection algorithms, as they slightly vary from run to run.
+
+> Coming back to the initially posed hypothesis it can be said that there is no indication of it being correct, with the exception being cases where it could explain results (i.e., Indonesia or Japan). This has to do with little theoretical groundwork to justify it (and make it worthwhile investigating) and a lack of data to answer it.
