@@ -12,20 +12,27 @@ header-includes:
       - \floatplacement{table}{H}
 ---
 
-## Task 1 & Packages
+\newpage 
+
+## Task 1
 
 Formulate theoretical arguments and expectations about interstate relations. Think in network terms. Select the appropriate part of the data for analysis.
 
-> The bigger the island, the more conflict around it and the more 
+> In the following, a subset of the territorial change data set will be analyzed. The terriotrial exchange data set contains all territorial changes involving at least one nation-state for the period 1816-2015. It captures the country which gained, lost and (if applicable), a territorial entity exchanged. Furthermore, other notable variables such as the area, population of the gained/lost territory are captured, as well as dummy variables indicating whether independence was gained, military conflict was involved, and what kind of territorial exchange took place are recorded.
+
+> The following subset contains only those entries in the data set in which an island state is recorded as either the gainer, loser or exchanged territory of a territorial change. It is hypothesized that Island states which are bigger in area are more fought for and thus have more ties indicating military conflict. Within a meso context looking at communities within these countries, it is expected that although the communities will to a large extent reproduce the colonia history that many island states endured, that islands which are bigger (and thus, more valuable) had a larger number of territoral exchanges and serve as the nodes between or within more than one community, as they attracted the attention of not just one colonial power. It has to be noted that the ability to test this hypothesis is limited by the fact that islands which are still part of their past colonial power's state are not part of this data set (e.g., Dutch Carribbean).
 
 ```{r}
 library(tidyverse)
 library(igraph)
+library(knitr)
+library(kableExtra)
+library(ape)
 
-data <- read_csv("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/SNA/Assignment2SNA/terr-changes-v6/tc2018.csv")
-#data <- read_csv("C:/Users/marcs/Desktop/Labs/CSS_Labs_early_24/SNA/Assignment2SNA/terr-changes-v6/tc2018.csv")
-country_codes <- read.csv("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/SNA/Assignment2SNA/COW-country-codes.csv")
-#country_codes <- read.csv("C:/Users/marcs/Desktop/Labs/CSS_Labs_early_24/SNA/Assignment2SNA/COW-country-codes.csv")
+#data <- read_csv("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/SNA/Assignment2SNA/terr-changes-v6/tc2018.csv")
+data <- read_csv("C:/Users/marcs/Desktop/Labs/CSS_Labs_early_24/SNA/Assignment2SNA/terr-changes-v6/tc2018.csv")
+#country_codes <- read.csv("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/SNA/Assignment2SNA/COW-country-codes.csv")
+country_codes <- read.csv("C:/Users/marcs/Desktop/Labs/CSS_Labs_early_24/SNA/Assignment2SNA/COW-country-codes.csv")
 
 country_codes_gain <- country_codes |> rename(gainer = CCode) |> select(-StateAbb) |> distinct()
 country_codes_entity <- country_codes |> rename(entity = CCode) |> select(-StateAbb) |> distinct()
@@ -92,6 +99,23 @@ data_graph <- data |> filter(island_state == T) |> mutate(
 )
 
 graph <- igraph::graph_from_data_frame(data_graph, directed = TRUE, vertices = NULL)
+
+
+independence_pull <- data_graph |> filter(indep == 1) |> pull(gainer)
+conflict_gain_pull <- data_graph |> filter(conflict == 1) |> pull(gainer)
+conflict_lose_pull <- data_graph |> filter(conflict == 1) |> pull(loser)
+conflict_ent_pull <- data_graph |> filter(conflict == 1) |> pull(entity)
+
+
+data_graph <- data_graph |> summarise(area_gained = sum(area), .by = "gainer") |> left_join(x = data_graph,y = _, by = join_by(gainer))
+
+pull_area <- data_graph |> group_by(gainer) |> distinct(area_gained) |> rbind(data.frame(gainer = c("Korea", "Denmark", "India"), area_gained = 0000000000000000.1)) |> ungroup()
+
+conflict_pull <- union(conflict_gain_pull,conflict_lose_pull) |> union(conflict_ent_pull) |> head(-2)
+
+V(graph)$independence <- if_else(V(graph)$name %in% independence_pull, TRUE, FALSE)
+V(graph)$conflict <- if_else(V(graph)$name %in% conflict_pull, TRUE, FALSE)
+V(graph)$log_gained <- log(pull_area$area_gained)
 ```
 
 
@@ -99,7 +123,10 @@ graph <- igraph::graph_from_data_frame(data_graph, directed = TRUE, vertices = N
 
 On the selected data, make a table that contains descriptive network statistics for the network and for key node-level variables. Please mention the historical period covered, the nature of tie(s), the number of nodes and ties, average degree, density, the standard deviation of degrees (or outdegrees and of indegrees if network is directed), and average path length. Identify the number of isolates if there are any. Please check if the network is a single component. Which node has the highest degree, and which has the highest betweenness centrality? What do these measures represent in terms of the specific type of relations and data you have selected?
 
+> The subset data contains entries ranging from 1819 to 1994. Due to nature of this dataset, all ties ties are directed. Any dyads in which either the gaining or losing side were not clearly indicated, were removed, thereby reducing the number of all isolates to 0. In total, this leaves 62 nodes and 107 ties within 3 components, the largest of which contains most nodes, at 56 nodes. The single node with the highest betweenness and degree centrality is the United Kingdom, with 473 and 41, respectively. This foreshadows a highly hierarchical graph with the UK at its core, backed up by its seafaring prowess in previous centuries leading to the colonialization of many island territories (and their later cession).
+
 ```{r}
+#| fig-align: center
 
 # calucate density
 density <- edge_density(graph)
@@ -135,8 +162,8 @@ av_p_length <- mean_distance(graph)
 # there are no isolates due to the nature of this data set
 
 # how many components
-
-n_components <- components(graph)$no
+components <- components(graph)
+n_components <- components$no
 
 #which node highest degree
 #
@@ -149,99 +176,92 @@ highest_degrees <- degrees |> as.data.frame() |> arrange(desc(degrees)) |> slice
 
 betweenness <- betweenness(graph)
 
+V(graph)$betweenness <- betweenness
+
 highest_betweenness <- betweenness |> as.data.frame() |> arrange(desc(betweenness)) |> slice(1)
 # uk with 473
 
+tibble(
+  `Measure/Variable` = c("Degrees","Outdegrees","Indegrees", "Path length", "Density","Reciprocity","Transitivity","Area gained"),
+  `Mean/Value` = c(mean_degrees, mean_degrees_out, mean_degrees_in, av_p_length, density, reciprocity, transitivity, mean(pull_area$area_gained)),
+  `Standard Deviation` = c(sd_degrees, sd_degrees_out, sd_degrees_in, NA_integer_, NA_integer_,NA_integer_,NA_integer_,sd(pull_area$area_gained)),
+  Median = c(median_degrees, median_degrees_out, median_degrees_in, NA_integer_, NA_integer_, NA_integer_, NA_integer_,median(pull_area$area_gained))
+) |> kable(caption = "Network Descriptives")
 ```
 
+> Table 1 shows network descriptives and the distribution of gained area in the observed dyads. The large SD and the vastly differing Median and mean indicate the strongly varying sizes in territory gained by regulating the size of node in later visualizations. Meanwhile, the low degree-related measures, specifically the median, indicate that this graph will contain few highly central nodes, which is to be expected, as seafaring and colonizing nations such as the UK, Netherlands and Spain are expected to have the highest centrality with most island states only having a single tie to their previous colonizers. The low density of ~0.03 shows that this is a rather sparse network, with many potential but unrealized ties. Regarding reciprocity, 35% of ties are reciprocated. This is larger than anticipated, as most island state ties are expected to only contain the "freeing" tie, rather than the "colonizing" tie, which in many cases falls outside the time frame of this data set. Without interpreting the rest of the measures, these descriptives indicate that many of the island states are unlikely to have ties with one another and largely have "one-way" ties with their previous colonizers that serve as highly central hubs.
 
 ## Task 3 
 
 Visualize the network. Vary degree color and size according to key node attributes. Try to pick a node attribute that relates to an important characteristic (e.g., power, GDP per capita).
 
 ```{r}
-#maybe add independence here or something interesting
-## figure out a way to deal with entity and loser the same
-
-# find way to deal with several rows but differing "entry"
-
-# size according to pop or area
-
-independence_pull <- data_graph |> filter(indep == 1) |> pull(gainer)
-conflict_gain_pull <- data_graph |> filter(conflict == 1) |> pull(gainer)
-conflict_lose_pull <- data_graph |> filter(conflict == 1) |> pull(loser)
-conflict_ent_pull <- data_graph |> filter(conflict == 1) |> pull(entity)
-
-
-data_graph <- data_graph |> summarise(area_gained = sum(area), .by = "gainer") |> left_join(x = data_graph,y = _, by = join_by(gainer))
-
-pull_area <- data_graph |> group_by(gainer) |> distinct(area_gained) |> rbind(data.frame(gainer = c("Korea", "Denmark", "India"),
-                                                                            area_gained = 0000000000000000.1)) |> ungroup()
-
-conflict_pull <- union(conflict_gain_pull,conflict_lose_pull) |> union(conflict_ent_pull) |> head(-2)
-
-V(graph)$independence <- if_else(V(graph)$name %in% independence_pull, TRUE, FALSE)
-V(graph)$conflict <- if_else(V(graph)$name %in% conflict_pull, TRUE, FALSE)
-V(graph)$log_gained <- log(pull_area$area_gained)
+#| fig-width: 10
+#| fig-height: 10
 
 plot.igraph(graph,
 vertex.size = 4+0.4*V(graph)$log_gained,
 vertex.color = ifelse(V(graph)$independence == TRUE,"Green", "Red"),
 edge.color = ifelse(data_graph$conflict == 1 ,'Orange','Blue'),
-edge.arrow.size = .2, 
-main = 'Gainers and losers of territory with island states involved 1816 - 2015')
-
-#plot(g, rescale = FALSE, ylim=c(1,4),xlim=c(-17,24), asp = 0)
+edge.arrow.size = .3,
+main = 'Gainers and losers of territory with island states involved 1819 - 1994')
 ```
+
+> In this network visualization, node size scales with the log of total territory gained from corresponding loser nodes, which the color indicates whether this state has obtained independence, with green indicating independence, and the tie color orange indicating whether military conflict was involved in the territory exchange indicated by the tie. Importantly, the direction of the arrow indicates the gaining of territory, so that many green-coloured small island states pointing toward the UK represents them gaining their independence. At first glance, excluding the two smaller components, the main component seems to be roughly divisible into two to four communities (depending on seed), each centering around a colonizing power with island states contested by more than one colonizing power often serving connectors between the modules.
 
 ## Task 4
 
 Implement and compare the results (community compositions, their size) of TWO different community detection algorithms to find communities (e.g., Girvan-Newman, Louvain, walktrap, cohesive blocks, Leiden). Please take into account that most of these methods can use undirected graphs only, others (such as Girvan-Newman) might work with weighted graphs. Before carrying out this task, simplify the data if necessary. Create a plot where nodes are either colored based on detected community membership, or you circulate the groups with some color in the background.
 
+> Here, three (because the last one is not listed in the instructions) different community detection algorithms are run and plotted, the last of which is meant specifically for directed networks and the earlier two are accompanied by dendrograms. As many community detection algorithms only allow for undirected networks and/or disallow multiple ties between the same nodes, the necessary versions of the graph are calculated. When comparing the first two plots, a clear distinction can be made: the walktrap algorithms leads to much easier to interpret and cogent results, by attempting to find densly connected subgraphs using random walks, while the edge betweenness algorithm (aka. Girvan-Newman) detects a handful of communities consisting of single nodes, by removing edges from the original graph with the still connected nodes being identified as communities. In this case, the prior leads to much clearer interpretability, while the latter seemingly "overdetects" communities. The third algorithm run is called Infomap and is able to take into account directed ties. While this leads to improved results compared to the Girvan-Newman algorithm, there are still some single country communities that admittedly make sense (as these tend to be more central than others, e.g., Zanzibar), yet do not compare to the results of the walktrap algorithm. The dendrograms show the iterative assimilation of countries into their respective communities by the first two algorithms.  
+
 ```{r}
+#| fig-width: 10
+#| fig-height: 10
+
 # as undirected
 graph_undi <- as.undirected(graph, mode='collapse')
 
-fastgreedy <- cluster_fast_greedy(graph_undi, modularity = "TRUE")
-plot(fastgreedy, graph_undi,
+walky <- cluster_walktrap(graph_undi, steps = 100)
+plot(walky, graph_undi,
      vertex.size = 4+0.5*V(graph)$log_gained,
 vertex.color = ifelse(V(graph)$independence == TRUE,"Green", "Red"),
 edge.color = ifelse(data_graph$conflict == 1 ,'Orange','Blue'),
 edge.arrow.size = .2, 
-main = 'Gainers and losers of territory with island states involved 1816 - 2015')
+main = 'Territory change in island states 1816 - 2015: Walktrap')
 
-plot_dendrogram(fastgreedy, mode="phylo", colbar = palette(), use.edge.length = TRUE)
-fastgreedy_tree
+plot_dendrogram(walky, mode="phylo", colbar = palette(), use.edge.length = TRUE, main = "Dendrogram for communities detected with Walktrap algorithm")
+```
 
+```{r}
+#| fig-width: 10
+#| fig-height: 10
 
 #edge.betweenness.community
 eb_graph <- cluster_edge_betweenness(graph, directed = T)
-plot(eb_graph, graph, vertex.size = 4,
+plot(eb_graph, graph, vertex.size = 4+0.5*V(graph)$log_gained,
 vertex.color = ifelse(V(graph)$independence == TRUE,"Green", "Red"),
 edge.color = ifelse(data_graph$conflict == 1 ,'Orange','Blue'),
 edge.arrow.size = .2, 
-main = 'Gainers and losers of territory with island states involved 1816 - 2015')
+main = 'Territory change in island states 1816 - 2015: Edge Betweenness')
 
 #dendro
-eb_dendro <- plot_dendrogram(eb_graph, mode="phylo", colbar = palette(), use.edge.length = TRUE)
-eb_dendro
+plot_dendrogram(eb_graph, mode="phylo", colbar = palette(), use.edge.length = TRUE, main = "Dendrogram for communities detected with Edge Betweenness algorithm")
 #modularity
-modularity(graph, eb_graph$membership)
+#modularity(graph, eb_graph$membership)
+```
 
+```{r}
+#| fig-width: 10
+#| fig-height: 10
 
-#INFOMAP
 info_graph <- cluster_infomap(graph, modularity = TRUE, nb.trials = 100)
-plot(info_graph, graph, vertex.size = 4,
+
+plot(info_graph, graph, vertex.size = 4+0.5*V(graph)$log_gained,
 vertex.color = ifelse(V(graph)$independence == TRUE,"Green", "Red"),
 edge.color = ifelse(data_graph$conflict == 1 ,'Orange','Blue'),
 edge.arrow.size = .2, 
-main = 'Gainers and losers of territory with island states involved 1816 - 2015')
-
-#dendro
-info_dendro <- as.dendrogram(info_graph)
-#modularity
-modularity(graph, info_graph$membership)
-
+main = 'Territory change in island states 1816 - 2015: Infomap')
 ```
 
 ## Task 5
@@ -249,7 +269,9 @@ modularity(graph, info_graph$membership)
 Make meaningful comparisons between the results of community detection algorithms. Summarize the differences and similarities and try to explain these. Please refer to the relevant literature describing the logic of these algorithms if necessary. 
 
 ```{r}
-compare(info_graph,eb_graph)
+compare(walky, eb_graph)
+compare(info_graph, eb_graph)
+compare(walky, info_graph)
 ```
 
 
