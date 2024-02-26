@@ -1,0 +1,88 @@
+---
+title: "Assignment 2 SNA - Island State Communities"
+author: "Marc Sparhuber"
+format: pdf
+editor: source
+execute:
+  warning: false
+  echo: false
+toc: true
+header-includes:
+      - \usepackage{float}
+      - \floatplacement{table}{H}
+---
+
+\newpage 
+
+## Data
+
+```{r}
+library(tidyverse)
+library(haven)
+library(modelsummary)
+library(knitr)
+library(kableExtra)
+
+ess2018_uk <- read_dta("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/DCM/Assignment3/ESS10_gb.dta")
+```
+
+## Preparing Analyses
+
+```{r}
+data <- ess2018_uk |> 
+  select(prtvtdgb, imwbcnt, gndr, agea, edulvlb) |>
+  drop_na(prtvtdgb, imwbcnt, gndr, agea, edulvlb) |>
+  mutate(tertiary_education = as_factor(if_else(as.numeric(edulvlb) > 500, 1, 0)),
+         party_vote = fct_relevel(fct_collapse(as.factor(prtvtdgb),
+                                   "Labour" = 2,
+                                   "Liberal Democrat" = 3,
+                                   "Conservative" = 1,
+                                   other_level = "Others"
+                                   ), "Labour"),
+         gender = as.factor(if_else(gndr == 1, "Male", "Female")),
+         age = as.numeric(agea),
+         Immigration = as.numeric(imwbcnt)
+         )
+  
+
+# attributes(ess2018_uk$edulvlb)
+# attributes(ess2018_uk$prtvtdgb)
+# attributes(ess2018_uk$gndr)
+# attributes(ess2018_uk$imwbcnt)
+
+# levels(data$party_vote)[1]
+
+# depend: voting outcome
+
+# independ: immgration, sex, age, and education
+```
+
+## Summary Statistics
+
+```{r}
+datasummary((`Tertiary Education` = tertiary_education) + (`Vote General Election 2017` = party_vote) + (`Gender` = gender) + Heading("Immigration", nearData = FALSE) * Immigration + Heading("Age", nearData = FALSE) * age + Heading("All", nearData = FALSE) * 1 ~ Mean + Median + SD + N + Percent(),
+                       data = data,
+                       title = "Descriptive TITLE",
+                       notes = c("Comments: European Social Survey data from the UK - 2018")) |>
+                       kable_styling(latex_options = "scale_down")
+```
+
+
+```{r}
+library(nnet)
+library(broom)
+library(modelr)
+
+mod_no_Immigration <- multinom(party_vote ~ gender + age + tertiary_education, data = data, trace = FALSE)
+mod_Immigration <- multinom(party_vote ~ gender + age + tertiary_education + Immigration, data = data, trace = FALSE)
+
+mods <- list(
+  "Model 1" = mod_no_Immigration,
+  "Model 2" = mod_Immigration)
+
+modelsummary(mods, shape =  term ~ model + response,
+             fmt = 2,
+             statistic = 'conf.int',
+             exponentiate = TRUE)
+```
+
