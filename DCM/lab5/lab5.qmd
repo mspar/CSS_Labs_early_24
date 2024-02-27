@@ -51,10 +51,10 @@ library(haven)
 # You could also give the full path if you don't get the here package to work
 
 # The Swedish part of ESS 2016
-ess2016se <- read_dta("C:/Users/marcs/Desktop/Labs/CSS_Labs_early_24/DCM/lab5/ESS8e02_1_se.dta")
+ess2016se <- read_dta("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/DCM/lab5/ESS8e02_1_se.dta")
 
 # The German part of ESS 2016
-ess2016de <- read_dta("C:/Users/marcs/Desktop/Labs/CSS_Labs_early_24/DCM/lab5/ESS8e02_1_de.dta")
+ess2016de <- read_dta("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/DCM/lab5/ESS8e02_1_de.dta")
 
 ```
 

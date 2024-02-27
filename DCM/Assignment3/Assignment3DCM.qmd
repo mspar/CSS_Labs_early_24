@@ -1,5 +1,5 @@
 ---
-title: "Assignment 2 SNA - Island State Communities"
+title: "Assignment 3 DCM - Party Vote and Views on Immigration in the UK 2018"
 author: "Marc Sparhuber"
 format: pdf
 editor: source
@@ -23,8 +23,8 @@ library(modelsummary)
 library(knitr)
 library(kableExtra)
 
-#ess2018_uk <- read_dta("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/DCM/Assignment3/ESS10_gb.dta")
-ess2018_uk <- read_dta("C:/Users/marcs/Desktop/Labs/CSS_Labs_early_24/DCM/Assignment3/ESS10_gb.dta")
+ess2018_uk <- read_dta("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/DCM/Assignment3/ESS10_gb.dta")
+#ess2018_uk <- read_dta("C:/Users/marcs/Desktop/Labs/CSS_Labs_early_24/DCM/Assignment3/ESS10_gb.dta")
 ```
 
 ## Preparing Analyses
@@ -43,47 +43,129 @@ data <- ess2018_uk |>
          gender = as.factor(if_else(gndr == 1, "Male", "Female")),
          age = as.numeric(agea),
          Immigration = as.numeric(imwbcnt)
-         )
-  
-
-# attributes(ess2018_uk$edulvlb)
-# attributes(ess2018_uk$prtvtdgb)
-# attributes(ess2018_uk$gndr)
-# attributes(ess2018_uk$imwbcnt)
-
-# levels(data$party_vote)[1]
-
-# depend: voting outcome
-
-# independ: immgration, sex, age, and education
+         ) |>
+  select(-c(prtvtdgb, imwbcnt, gndr, agea, edulvlb))
 ```
 
 ## Summary Statistics
 
 ```{r}
-datasummary((`Tertiary Education` = tertiary_education) + (`Vote General Election 2017` = party_vote) + (`Gender` = gender) + Heading("Immigration", nearData = FALSE) * Immigration + Heading("Age", nearData = FALSE) * age + Heading("All", nearData = FALSE) * 1 ~ Mean + Median + SD + N + Percent(),
+datasummary((`Tertiary Education` = tertiary_education) + (`Vote General Election 2017` = party_vote) + (`Gender` = gender) + Heading("Immigration Attitude", nearData = FALSE) * Immigration + Heading("Age", nearData = FALSE) * age + Heading("All", nearData = FALSE) * 1 ~ Mean + Median + SD + N + Percent(),
                        data = data,
-                       title = "Descriptive TITLE",
-                       notes = c("Comments: European Social Survey data from the UK - 2018")) |>
+                       title = "European Social Survey (UK, 2018): Descriptive statistics") |>
                        kable_styling(latex_options = "scale_down")
 ```
 
 
 ```{r}
+
 library(nnet)
 library(broom)
 library(modelr)
 
-mod_no_Immigration <- multinom(party_vote ~ gender + age + tertiary_education, data = data, trace = FALSE)
-mod_Immigration <- multinom(party_vote ~ gender + age + tertiary_education + Immigration, data = data, trace = FALSE)
+mod_no_Immigration <- multinom(party_vote ~ gender + age + tertiary_education, data = data, trace = F, model = T, na.action = na.exclude)
+mod_Immigration <- multinom(party_vote ~ gender + age + tertiary_education + Immigration, data = data, trace = F, model = T, na.action = na.exclude)
 
 mods <- list(
   "Model 1" = mod_no_Immigration,
   "Model 2" = mod_Immigration)
 
+cm <- c("genderMale" = "Male",
+        "age" = "Age",
+        "tertiary_education1" = "Tertiary Education",
+        "Immigration" = "Immigration Attitude")
+
 modelsummary(mods, shape =  term ~ model + response,
              fmt = 2,
              statistic = 'conf.int',
-             exponentiate = TRUE)
+             title = "Voting in the 2017 UK general election: Multinomial logistic regression",
+             exponentiate = TRUE,
+             stars = TRUE,
+             gof_omit = "RMSE|R2|R2 Adj.",
+             coef_map = cm,
+             notes = list("Source: ESS data from 2018 in the UK.", 
+                          "Comments: Immigration attitude was assessed with the question 'Immigrants make country worse (0) or better (10) place to live'. The reference category is 0.",
+             "The reference category for the voted for party is Labour."))
 ```
+
+```{r}
+#| fig-align: center
+
+library(DescTools)
+library(lmtest)
+
+lr_test <- lrtest(mod_no_Immigration, mod_Immigration)
+
+mod1_nagel <- PseudoR2(mod_no_Immigration, which = "Nagelkerke")
+mod2_nagel <- PseudoR2(mod_Immigration, which = "Nagelkerke")
+
+
+mf1 <- model.frame(party_vote ~ gender + age + tertiary_education,
+                     data = data, na.action = na.omit)
+mf2 <- model.frame(party_vote ~ gender + age + tertiary_education + Immigration,
+                     data = data, na.action = na.omit)
+
+
+mod1_pred <- predict(mod_no_Immigration, type = "class") |> 
+  as_tibble() |> 
+  bind_cols(mf1)
+share_correct_m1 <- mean(mod1_pred$value == mod1_pred$party_vote)
+
+mod2_pred <- predict(mod_Immigration, type = "class") |> 
+  as_tibble() |> 
+  bind_cols(mf2)
+share_correct_m2 <- mean(mod2_pred$value == mod2_pred$party_vote)
+
+hl_mod1 <- generalhoslem::logitgof(data$party_vote, fitted(mod_no_Immigration))
+hl_mod2 <- generalhoslem::logitgof(data$party_vote, fitted(mod_Immigration))
+
+data_fit <- as.data.frame(tribble(
+  ~`Model 1`, ~`Model 2`,
+  as.character(round(mod1_nagel,5)), as.character(round(mod2_nagel,5)),
+  as.character(round(hl_mod1$statistic,5)), as.character(round(hl_mod2$statistic,5)),
+  as.character(round(hl_mod1$p.value,5)), as.character(round(hl_mod2$p.value,5)),
+  as.character(round(share_correct_m1,5)), as.character(round(share_correct_m2,5)),
+  as.character(round(lr_test[1,2],5)), as.character(round(lr_test[2,2],5)),
+  " ", as.character(round(lr_test[2,4],5)),
+  " ", as.character(round(lr_test[2,5],5))))
+
+rownames(data_fit) <- c("Nagelkerke’s pseudo-R2", "Hosmer-Lemeshow", "Hosmer-Lemeshow (p-values)", "Share of correct predictions", "Log Likelihood", "Likelihood Ratio", "Likelihood Ratio (p-value)")
+
+kable(data_fit,
+      caption = "Voting for Obama: Model fit statistics") |> 
+  footnote(footnote_as_chunk = TRUE,
+           threeparttable = TRUE, 
+           general = "The Likelihood ratio is always calculated with the nested model to the left. Data from ESS (UK) 2018.")
+```
+
+
+
+```{r}
+#| fig-width: 10
+#| fig-height: 6
+#| fig-align: center
+
+library(ggeffects)
+library(scales)
+
+vote_prob_immigration <- ggeffect(mod_Immigration, term = "Immigration")
+
+vote_prob_immigration |> 
+  ggplot(aes(x, predicted, colour = response.level, fill = response.level)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), 
+              alpha=0.5, colour = NA) +
+  scale_y_continuous(labels = label_percent()) +
+  scale_x_continuous(breaks = seq(0, 10, by = 2)) +
+  theme_light() +
+  labs(title = "Party choice in the 2017 UK general election",
+       subtitle = "Estimates from multinomial logistic regression",
+       x = "Immigrants make country worse (0) or better (10) place to live",
+       y = "Predicted probability",
+       caption = "Data from ESS (UK) 2018.",
+       colour = "Party",
+       fill = "Party")
+```
+
+
 

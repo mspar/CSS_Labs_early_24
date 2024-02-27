@@ -1,0 +1,295 @@
+---
+title: "Assignment 2"
+subtitle: "A solution"
+author: "Benjamin Jarvis"
+date: last-modified
+date-format: "MMMM DD, YYYY"
+format: pdf
+crossref:
+  fig-title: '**Figure**'
+  fig-labels: arabic
+  title-delim: "**.**"
+---
+
+# Voting in the 2012 US presidential election
+The 2012 US Presidential election pitted Barack Obama, a Democrat seeking a second term, against Mitt Romney, a Republican. In this short data vignette, I will look at whether and how happiness is associated with voting behavior among a subset of the US population that voted in the election. This voting behavior is reported retrospectively in the 2016 General Social Survey, a long-running survey of attitudes, political views, and socioeconomic conditions among the US public. The predictors of voting behavior I will use include overall happiness, sex, age, and whether at least one of the respondents' parents had a college degree. 
+
+It is unclear how happiness should be related to voting. To the extent that happiness stems from satisfaction with the government, one would expect happy people to be more likely to vote for the incumbent. In that case, we would expect happier people to be more likely to vote for Obama. This argument doesn't quite hold water in this particular case, however, because the survey was conducted in 2016, years after the 2012 election. This creates a potential endogeneity problem: Perhaps people are happy *because* they voted for Barack Obama and he won, rather than the other way around. In either case, we would expect happier people to report higher rates of voting for Obama, but the interpretation is quite different. However, if happiness is largely driven by other phenomena that are independent of the current composition of the government, such as personal finances, changes in the family life, or general philosophy of life, then we would have to know which, if any, of these are (1) most associated with happiness and (2) most associated with voting for Democrats. It is difficult to speculate on these points. Given this indeterminacy, I offer the crude hypothesis that people who were happy in 2016 will be more likely to have voted for Barack Obama, with the caveat that such an effect could be a result of endogeneity bias.
+
+Using the 2016 GSS, I select $1,331$ observations with non-missing values for the outcome and predictor variables mentioned above. Corresponding descriptive statistics for this sample, including a breakdown by whether respondents voted for Obama or not, are presented in @tbl-descriptive. Overall, just over $60\%$ of the voters in the sample voted for Obama. As of 2016, the average voting of age of election participants was approximately $54$ years old, with the Obama voters skewing slightly younger (less than $53$ years for Obama voters versus over $55$ years for other voters). The Obama coalition has a slightly wider age distribution (std. dev.=16.7 years vs. 16.1 years for other voters), suggesting more age heterogeneity among Obama voters. The sample is majority female (approx. $57\%$), with Obama voters skewing more female ($60\%$) compared to non-Obama voters ($52\%$). Obama voters also tended to have more educated social backgrounds, with nearly $34\%$ of Obama voters claiming to have at least one parent with a college degree, compared to just over $30\%$ for non-Obama voters. Obama voters were less likely to be happy compared to other votes. While only $26.2\%$ of Obama voters reported being "Very Happy", nearly $35\%$ of other voter reported being "Very Happy." Obama voters were also more likely to report being "Not Too Happy." These descriptive statistics are suggestive that greater happiness is associated with *reduced* odds of voting for Obama, all else equal, already contradicting my hypothesis. 
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+#| include: false
+
+## Load Libraries
+libraries<-c("socviz","tidyverse","modelsummary")
+lapply(libraries, library, char = TRUE)
+
+## Prepare Data
+gss <- gss_sm |> 
+  mutate(rel = case_match(religion,
+                          "Jewish" ~ "Other",
+                          .default = religion)) |> 
+  mutate(college_background = ifelse(padeg %in% c("Bachelor", "Graduate") | 
+                                  madeg %in% c("Bachelor", "Graduate"), 1, 
+                                ifelse(is.na(padeg) | is.na(madeg), NA, 0 ))) |> 
+  select(id, rel, college_background, obama, sex, age, happy) |> 
+  drop_na() |> 
+  mutate(happy=factor(happy,levels=c("Not Too Happy","Pretty Happy","Very Happy"))) %>% 
+  mutate(college_factor = factor(college_background, labels = c("No college degree","College degree")),
+         obama_factor = factor(obama, labels = c("Not Obama","Obama")),
+         rel = relevel(factor(rel),ref="None"))
+```
+
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+#| tbl-cap: "Descriptive Statistics for 2012 US Voters"
+#| label: tbl-descriptive
+
+bind_rows(gss,gss, .id="group") %>% 
+  mutate(group=ifelse(obama_factor=="Obama" & group=="1",1,
+                      ifelse(obama_factor=="Not Obama" & group=="1",2,3))) %>%
+  mutate(group=factor(group,labels=c("Obama","Other","All"))) %>%
+  select(group,
+         Vote=obama_factor,
+         Happiness=happy,
+         Sex=sex,
+         Education=college_factor,
+         `Age (years)`=age) %>% 
+  datasummary_balance(Vote+Sex+Education+`Age (years)` ~ group,
+                      data=.,
+                      notes="Source: 2016 General Social Survey",
+                      midrule=" ",
+                      linesep="\\addlinespace[2pt]",
+                      booktabs=TRUE) |> 
+  kableExtra::row_spec(2,extra_latex_after = "\\addlinespace[4pt]") |> 
+  kableExtra::row_spec(3,hline_after=TRUE)
+
+```
+
+The reasons for the observed association between voting and happiness could be related to other covariates in our analysis. For example, younger people may report less happiness, perhaps stemming from the relatively unsettled state of life in the late teens and 20s. At the same time, the young are a key constituency in Democratic politics. However, this is not entirely born out by the data: Mean age is actually highest in the "Not Too Happy" group, which may be related to health issues and infirmities that arrive later in life. All told, it seems unlikely that age can explain the association between happiness and Obama voting.
+
+Less Obama voting among the very happy could also be related to gender. Women are another key Democratic constituency, and they also may have more reasons to be unhappy because of tensions between work and family life and experiences with pervasive sexism. However, inspecting the data, while women are more likely to identify as being "Not Too Happy" compared to men, they are also slightly more likely to indicate being "Very Happy." This suggests that gender is unlikely to explain the association either. 
+
+Finally, educational background may partly explain the relationship between happiness and Obama voting. It appears that those with at least one college educated parent are slightly happier than those lacking a college educated parent. This may be related to optimism and a sense of control that is associated with the intergenerational transmission of class position, "hard" and "soft" cognitive skills, labor market opportunity, etc. However, while those whose parents went to college are more likely to be happy, by the 2012 election, college educated voters, previously aligned with the Republican party, had more-or-less completed their realignment towards the Democratic party. This, once again, implies that educational background is unlikely to explain the happiness-Obama voting association.
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+#| include: false
+
+## Additional descriptives, not included in text
+gss |> group_by(happy) |> summarize(mean(age))
+gss |> with(data=_,table(happy,sex)) |> prop.table(x=_,margin=2)
+gss |> with(data=_,table(happy,college_factor)) |> prop.table(x=_,margin=2)
+```
+
+To investigate the association between happiness and voting for Obama, I estimate a sequence of three logistic regression models. The outcome takes the value 1 for those who voted for Obama, and 0 for those who voted for someone else. In the first model (A), I regress this indicator on dummy variables distinguishing those who identified as "pretty Happy" and "very happy,", with "not too happy" serving as the reference category. In the second model (B), I layer in a dummy variable coded 1 for respondents' who had at least one parent with a college degree, and 0 otherwise. In the third model (C), I then add age, treated linearly, and a sex dummy variable coded 1 for women and 0 for men, as additional explanatory variables. These models are nested because applying constraints to the coefficients of more complicated models reduces the model to less complicated models. That is, constraining the effects of sex and age to 0 reduces model (C) to model (B), while constraining the effects of parental education to 0 reduces model (B) to model (A).
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+#| tbl-cap: "Odds ratios from logistic regression models of 2012 Obama voting"
+#| tbl-cap-location: top
+#| label: tbl-analysis
+
+
+## Estiamte models
+models<- list("A" = glm(obama ~ happy, 
+                        data = gss, family = "binomial"),
+              "B" = glm(obama ~ happy + college_factor,
+                        data = gss, family = "binomial"),
+              "C" = glm(obama ~ happy + college_factor + sex + age,
+                        data = gss, family = "binomial"))
+
+# A function for producing modelsummary_list with a set of additions
+mslist <- function(models) {
+  # call the likelihood ratio test on all the models
+  # do.call takes a function and applies it with arguments given by list,
+  # in this case a list of names (not character!) of elements of the models list
+  lrtests <-with(models,do.call(lmtest::lrtest, lapply(names(models), as.name)))
+  # Apply modelsummary and generate a list of model outputs in tidy formats
+  mslist <- modelsummary(models, output = "modelsummary_list", statistic = 'conf.int')
+  # For each tidied model, add in model fit statistics
+  i = 1
+  for(m in names(models)) {
+    mslist[[m]]$glance$df <- lrtests[["Df"]][i]
+    mslist[[m]]$glance$chisq <- lrtests[["Chisq"]][i]
+    mslist[[m]]$glance$p.value <- lrtests[["Pr(>Chisq)"]][i]
+    mslist[[m]]$glance$pseudo.r.squared <- fmsb::NagelkerkeR2(models[[m]])[["R2"]]
+    # get name of dv
+    dv<-all.vars(models[[i]][["formula"]])[1]
+    # calculate correctly predicted using 0.5 threshold compared to dv
+    mslist[[m]]$glance$pct.correct<-broom::augment(models[[m]], type.predict = "response") |> 
+      mutate(.correct = 100 * ((.fitted > .5) == get(dv))) |> 
+      pull(.correct) |> 
+      mean()
+    i = i + 1
+  } 
+  return(mslist)
+}
+
+modlist<-mslist(models)
+
+# select fit statistics to display
+gof_map<-modelsummary::gof_map |> 
+  mutate(omit = FALSE) |> 
+  bind_rows(tibble(raw = "pct.correct",
+                   clean = "Pct Correctly Predicted",
+                   fmt = 1, omit = FALSE)) |> 
+  slice(match(c("nobs","logLik","pseudo.r.squared","pct.correct","chisq","df","p.value"), raw))
+
+ms<-modelsummary(modlist, 
+                 coef_rename = c("(Intercept)" = "Intercept",
+                                 "happyPretty Happy" = "Pretty Happy",
+                                 "happyVery Happy" = "Very Happy",
+                                 "sexFemale" = "Female (ref: Male)",
+                                 "college_factorCollege degree" = "Parent has college deg. (ref: no degree)",
+                                 "age" = "Age (years)"), 
+                 statistic = 'conf.int',
+                 stars = TRUE,
+                 exponentiate = TRUE, 
+                 gof_map = gof_map) |> 
+  kableExtra::pack_rows(index=c(" "=2,"Happiness (Ref: Not Too Happy)"=4," "=6), bold = F)
+
+ms |>  kableExtra::footnote("Author's calculations using 2016 GSS. 95% Confidence intervals are presented in brackets. Likelihood ratio tests are performed comparing each model to the model in the previous column, (i.e., A to B, and B to C)", threeparttable = T)
+
+```
+
+
+The logistic regression models demonstrate that happiness is robustly associated with voting for Obama across our model specifications. Odds ratios calculated from the coefficient estimates for models A, B, and C described above are presented in @tbl-analysis. The odds ratios from Model C are also plotted in @fig-oddsplot. Across all three specifications, greater expressed happiness is associated with a lower likelihood of voting for Obama. Regardless of specification, those who were "pretty happy" had approximately $34-35\%$ lower ($p<.05$) odds of voting for Obama than those who were "not too happy", and those who were "very happy" had approximately $53-54\%$ lower odds ($p<.001$) of voting for Obama compared to the "not too happy." Inclusion of additional explanatory variables made little difference in these results. Among the controls, parents education seems to be an uncertain predictor of voting behavior. While the effect is strong in Model B: having a college educated parent increases the odds of voting for Obama by \$20\%, it is not statistically significant ($p>0.1$). The effect weakens and remains insignificant in Model C. This makes some sense: we would expect an individuals own education to be a stronger predictor of behavior than parental education, and while the two are correlated, they are only imperfectly so. Age appears as a significant predictor of Obama voting: Each year of age is associated with $1\%$ lower odds of voting for Obama ($p<0.01$). Women were also more likely to vote for Obama, women had $45\%$ higher odds of voting for Obama than men, net of controls for age, parental education, and happiness.
+
+A comparison of model fits presented at the bottom of @tbl-analysis reveals that these are relatively weak predictive models. Pseudo R-squared is low ($0.016-0.018$) and percent of correct predictions ($60.3$) are almost exactly equal for models A and B. A likelihood ratio test comparing models A and B fails to reject the null hypothesis of no effect of parental education (i.e., prefers Model A to Model B). Fit is improved by inclusion of sex and age as explanatory variables. Percent correctly predicted rises from $60.2$ to $60.6$, and pseudo R-squared rises from $0.018$ to $0.035$. A likelihood ratio test comparing Model B and Model C rejects the null hypothesis that gender and age jointly have no effect on Obama voting net of happiness ($p<0.001$). Even so, none of these models are very good at prediction. The percent of correct predictions is nearly equal to the share of people who actually voted for Obama. In fact, these results suggest that even though we find significant relationships between the outcome and our explanatory variables, in terms of prediction, models A, B, and C are hardly better than a model that assumes that everyone voted for Obama.
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+#| fig-cap-location: bottom
+#| fig-cap: "Select odds ratios from logistic regression models of voting for Obama in 2012. Odds ratios taken from Model C presented in Table 2."
+#| label: fig-oddsplot
+
+
+# Predicted probabilities
+invlogit <- function(x) {
+  exp(x) / (1 + exp(x))
+}
+
+model_c <- models[["C"]] |> 
+  tidy() |> 
+  mutate(coef = case_match(term,
+                         "happyPretty Happy" ~ "Pretty Happy",
+                         "happyVery Happy" ~ "Very Happy",
+                         "college_factorCollege degree" ~ "Parent has\ncollege degree\n(ref: no degree)",
+                         "sexFemale" ~ "Female\n(ref: Male)",
+                         "age" ~ "Age (years)", .ptype = "factor"),
+         group = factor(str_extract(term, "happy|college_factor|sex|age")),
+         group = case_match(group,
+           "happy"~"Happiness\n(ref: Not Too Happy)",
+           "college_factor"~"Socio-demographic",
+           "age"~"Socio-demographic",
+           "sex"~"Socio-demographic"),
+         mid = exp(estimate),
+         low = exp(estimate - 1.96 * std.error),
+         high = exp(estimate + 1.96 * std.error))
+
+model_c |> 
+  filter(term != "(Intercept)") |> 
+  ggplot(aes(x = coef, y = mid, ymin = low, ymax = high, group = group)) + 
+  geom_hline(yintercept = 1, color = "red", linetype = "dashed")+
+  theme_minimal() +
+  theme(strip.placement = "outside") +
+  geom_pointrange(width = 0.1) + 
+  facet_wrap(vars(group), nrow = 1,
+             scales="free_x", 
+             strip.position = "bottom", 
+             dir = "h") +
+  labs(x= "",
+       y = "Odds Ratio",
+       caption = "Source: Author's calculations using 2016 GSS.")
+```
+
+
+
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+#| fig-cap-location: bottom
+#| fig-cap: "Predicted Probabilities of voting for Obama in the 2012 US Presidential election, by age and happiness. Predictions are produced for a hypothetical woman with at least one college-educated parent."
+#| label: fig-prplot
+
+
+# Predicted probabilities
+invlogit<-function(x) {
+  exp(x)/(1+exp(x))
+}
+
+gss_pred <- broom::augment(models[["C"]], 
+                           type.predict = "link",
+                           se_fit = TRUE,
+                           newdata = modelr::data_grid(gss, happy, age, sex, college_factor)) |> 
+  mutate(.lower = .fitted - 1.96 * .se.fit,
+         .upper = .fitted + 1.96 * .se.fit) |> 
+  mutate(across(c(.fitted, .lower, .upper), invlogit))
+
+gss_pred |>  
+  filter(sex == "Female", college_factor == "College degree") |>  
+  ggplot(aes(x = age, y = .fitted, ymin = .lower, ymax = .upper,
+             group = happy, color = happy, fill = happy)) + 
+  geom_line() + 
+  geom_ribbon(alpha = 0.2, color = NA) + 
+  theme_minimal()  + 
+  labs(x = "Age (years)",
+       y = "Predicted probability",
+       caption = "Source: Author's calculations using 2016 GSS.") +
+  guides(color = guide_legend(title = "Happiness"),
+         fill = guide_legend(title = "Happiness"))
+```
+
+@fig-prplot presents predicted probabilities of Obama voting as a function of age and happiness for a hypothetical woman with a college educated parent. The choice probabilities for this hypothetical group are all generally above 0.5, even for the very happy elderly. The choice probabilities are over 0.8 for young women low levels of happiness. This is confirmation of the fact that the 2012 election went very well for Obama.  As with the coefficient estimates, the probabilities show a very clear happiness grading of Obama voting, with highest Obama voting probabilities for the "not too happy" group and the lowest probabilities for the "very happy" group. These probabilities do decline with age, but the confidence intervals are wide. Because these are non-linear models, the predicted probability lines are (1) not straight and (2) not running perfectly in parallel.
+
+In general, the findings presented here do not suggest happier people were more likely to vote for the incumbent or for a Democrat. Quite the opposite: happier people were less likely to vote for Obama. This suggests that there are other beliefs, perhaps particularly conservative beliefs, that are closely related to people's expressions of happiness. A model of voting behavior that incorporates more about people's political views and affiliations would likely provide a better fit to observed data, and may even explain away the happiness effect we observe in the models estimated here.
+
+
+# Alternative Fit Statistics Table
+```{r}
+#| message: false
+#| warning: false
+#| echo: false
+#| tbl-cap-location: top
+#| tbl-cap: "Model fit statistics for models of Obama voting in the 2012 US Presidential election"
+#| label: tbl_fit
+
+options(knitr.kable.NA = '')
+
+# function for calculating correct predicted for a single model
+correct_pred<-function(model) {
+  response=with(attributes(terms(models[[1]])), as.character(variables[response+1]))
+  correct<-broom::augment(model,type.predict="response") |> 
+    mutate(.correct = 100 * ((.fitted > .5) == get(response))) |>
+    pull(.correct) |> 
+    mean()
+  return(correct)
+}
+
+# calculate fit statistics for each model using lapply()
+models_pr2<-lapply(lapply(models,fmsb::NagelkerkeR2),`[[`,"R2") %>% list_simplify()
+models_bic<-lapply(models,BIC) %>% list_simplify()
+models_correct<-lapply(models,correct_pred) %>% list_simplify()
+  
+# run the likelihood ratio tests, then combine with other fit statistics
+with(models,do.call(lmtest::lrtest, lapply(names(models), as.name))) |> 
+  bind_cols(Model=c("A","B","C"),X=_,'psuedo-R2'=models_pr2, BIC=models_bic) |> 
+  rename(`Params.`="#Df") |> 
+  knitr::kable(digits=c(0,0,0,0,2,3,3,0),format.args=list(big.mark=",")) |> 
+  kableExtra::footnote("Author's calculations using 2016 GSS. Model coefficients are presented in Table 2. Chi-squared tests are performed sequentially (i.e., Model B vs. A and C vs. B).", threeparttable = T)
+```
