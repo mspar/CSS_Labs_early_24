@@ -23,7 +23,8 @@ library(modelsummary)
 library(knitr)
 library(kableExtra)
 
-ess2018_uk <- read_dta("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/DCM/Assignment3/ESS10_gb.dta")
+#ess2018_uk <- read_dta("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/DCM/Assignment3/ESS10_gb.dta")
+ess2018_uk <- read_dta("C:/Users/marcs/Desktop/Labs/CSS_Labs_early_24/DCM/Assignment3/ESS10_gb.dta")
 ```
 
 ## Preparing Analyses

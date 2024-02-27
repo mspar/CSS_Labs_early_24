@@ -1,0 +1,460 @@
+---
+title: 'Lab 6: Conditional Logistic Regression Models'
+author: "Benjamin Jarvis"
+date: "27 February 2024"
+output: pdf_document
+fontsize: 11pt
+institute: |
+  | Institute for Analytical Sociology
+  | Linköping University
+---
+
+```{r setup , include=F}
+knitr::opts_chunk$set(include=T, message=F, warning=F)
+options(digits=3)
+options(knitr.kable.NA = '')
+
+# For applying colors to text
+colorize <- function(x, color) {
+  if (knitr::is_latex_output()) {
+    sprintf("\\textcolor{%s}{%s}", color, x)
+  } else if (knitr::is_html_output()) {
+    sprintf("<span style='color: %s;'>%s</span>", color, 
+      x)
+  } else x
+}
+# This is allows us to control text size for Latex output created by R
+def.chunk.hook  <- knitr::knit_hooks$get("chunk")
+knitr::knit_hooks$set(chunk = function(x, options) {
+  x <- def.chunk.hook(x, options)
+  ifelse(options$size != "normalsize", paste0("\n \\", options$size,"\n\n", x, "\n\n \\normalsize"), x)
+})
+```
+
+## Objectives
+
+- Reshape data from wide to long format for estimating choice models.
+
+- Estimate and interpret conditional logistic regression models.
+
+- Estimate and interpret decision-maker by alternative-specific covariate interactions.
+
+- Produce in and out of sample predicted probabilities. 
+
+## Reshaping (a.k.a., pivoting) data
+
+- We use pivoting when we want to take data spread across many columns and instead spread that data across rows in a data set, and vice versa.
+
+  - Taking data spread across columns and spreading it across (new) rows is called **reshaping** or **pivoting** to **long format**.
+
+  - Taking data spread across rows and spreading it across (new) columns is called **reshaping** or **pivoting** to **wide format**.
+  
+- Sometimes this is called "spreading" and "gathering", or "folding" and "unfolding". 
+  
+- `tidyr` (from `tidyverse`) has the functions `pivot_longer()` and `pivot_wider()` to accomplish this.
+
+- Another popular approach is to use the `melt()` and `dcast()` functions in the `data.table` package.
+
+
+## Pivoting wide to long^[https://www.garrickadenbuie.com/project/tidyexplain/#spread-and-gather]
+  
+:::: {.cols data-latex=""}
+
+::: {.col data-latex="{0.32\textwidth}"}
+\includegraphics[width=\textwidth]{wide} 
+:::
+
+::: {.col data-latex="{0.01\textwidth}"}
+\vspace{1ex}
+:::
+
+::: {.col data-latex="{0.32\textwidth}"}
+\includegraphics[width=\textwidth]{pivot_longer} 
+:::
+
+::: {.col data-latex="{0.01\textwidth}"}
+\vspace{1ex}
+:::
+
+::: {.col data-latex="{0.32\textwidth}"}
+\includegraphics[width=\textwidth]{long} 
+:::
+
+::::
+
+
+## Pivoting long to wide^[https://www.garrickadenbuie.com/project/tidyexplain/#spread-and-gather]
+  
+:::: {.cols data-latex=""}
+
+::: {.col data-latex="{0.32\textwidth}"}
+\includegraphics[width=\textwidth]{long} 
+:::
+
+::: {.col data-latex="{0.01\textwidth}"}
+\vspace{1ex}
+:::
+
+::: {.col data-latex="{0.32\textwidth}"}
+\includegraphics[width=\textwidth]{pivot_wider} 
+:::
+
+::: {.col data-latex="{0.01\textwidth}"}
+\vspace{1ex}
+:::
+
+::: {.col data-latex="{0.32\textwidth}"}
+\includegraphics[width=\textwidth]{wide} 
+:::
+
+::::
+
+## Packages we'll use today
+
+```{r}
+library(tidyverse)
+library(tidymodels)
+library(survival)
+library(kableExtra)
+library(RColorBrewer)
+```
+
+You also should install, but do not need to load, the `Ecdat` package.
+
+## Pivoting wide to long using `tidyr`, 1A
+
+```{r, size='footnotesize'}
+relig_income |> slice(1:10)
+```
+
+## Pivoting wide to long using `tidyr`, 1B
+
+```{r, size='footnotesize'}
+relig_income |> 
+  pivot_longer(!religion, 
+               names_to = "income", 
+               values_to = "count")
+```
+
+## Pivoting wide to long using `tidyr`, 2A
+
+```{r, size='footnotesize'}
+billboard |> slice(1:7)
+```
+
+
+## Pivoting wide to long using `tidyr`, 2B
+
+```{r , eval=F}
+billboard |> 
+    pivot_longer(
+    cols = starts_with("wk"),
+    names_to = "week",
+    names_prefix = "wk",
+    values_to = "rank",
+    values_drop_na = TRUE
+  )
+```
+
+## Pivoting wide to long using `tidyr`, 2C
+
+```{r , echo=F, size='footnotesize'}
+billboard |> 
+    pivot_longer(
+    cols = starts_with("wk"),
+    names_to = "week",
+    names_prefix = "wk",
+    values_to = "rank",
+    values_drop_na = TRUE
+  )
+```
+
+## Pivoting wide to long using `tidyr`, 3A
+```{r, size='footnotesize'}
+who |> filter(year>2000) |> slice(1:5)
+```
+
+
+## Pivoting wide to long using `tidyr`, 3B
+
+```{r, eval=F}
+who %>% select(-iso2,-iso3) |> 
+  filter(year>2000) |> 
+  pivot_longer(
+  cols = new_sp_m014:newrel_f65,
+  names_to = c("diagnosis", "gender", "age"),
+  names_pattern = "new_?(.*)_(.)(.*)",
+  values_to = "count"
+)
+```
+
+## Pivoting wide to long using `tidyr`, 3C
+
+```{r, echo=F, size='footnotesize'}
+who %>% select(-iso2,-iso3) |> 
+  filter(year>2000) |> 
+  pivot_longer(
+  cols = new_sp_m014:newrel_f65,
+  names_to = c("diagnosis", "gender", "age"),
+  names_pattern = "new_?(.*)_(.)(.*)",
+  values_to = "count"
+)
+```
+
+
+## Revisiting the cars data from the `Ecdat` package
+
+- We were working with data from a survey of California residents from 1996.
+
+- Respondents were solicited to choose a car they would buy from a menu of 6 fictive cars with varying attributes.
+
+- Focus was on assessing the appeal of alternative fuel vehicles.
+
+- Mix of decision-maker level and alternative-level covariates.
+
+## Column names in the `Car` data.
+
+```{r , size="footnotesize"}
+Car<-as_tibble(Ecdat::Car)
+names(Car)
+```
+
+## A view onto some of the `Car` data
+
+```{r , size="scriptsize", echo=F}
+Car |> slice(1:16) |> 
+  mutate(id=as.integer(row_number())) |> 
+  relocate(id,college,hsg2,coml5,choice)
+```
+
+
+## To estimate a `clogit()` model, we need to reshape this data to long format
+
+```{r , size="footnotesize"}
+CarLong <- Car |> 
+  mutate(id=row_number()) |> # adding an id for respondents
+  mutate(choice=str_extract(as.character(choice),"[1-6]"),
+    choice=as.integer(choice)) |> # make choice var a #
+  pivot_longer(
+    cols=!matches(c("id","college","hsg2","coml5","choice")),
+    names_pattern="(.+)([1-6])",  # parse colnames w/ regex
+    names_to=c(".value","alt")) |> # colnames from "()" above
+  mutate(alt=as.integer(alt)) |> 
+  relocate(id,college,hsg2,coml5,alt) # rearrange for display
+```
+
+## Result of pivot
+
+```{r , size="footnotesize", echo=F}
+head(CarLong,n=12)
+```
+
+## We still need to make our dependent variable!
+
+```{r}
+CarLong <- CarLong %>% 
+  mutate(choice=as.integer(choice==alt))
+```
+
+
+## Result, with select columns re-arranged
+
+```{r, size="footnotesize"}
+CarLong %>% 
+  slice(1:12)
+```
+
+## Check the number of responses, alternatives and choices
+
+```{r}
+CarLong |> 
+  group_by(id) |> 
+  summarize(nalts=n(),choices=sum(choice)) |> 
+  with(data=_,table(nalts,choices))
+```
+
+## Summarizing the data using `gtsummary`
+
+```{r, eval=FALSE, size='small'}
+library(gtsummary)
+CarLong |> 
+  mutate(chof=factor(choice,
+                     labels=c("Unchosen","Chosen"))) |> 
+  select(chof,type, fuel, price, range) |> 
+  tbl_summary(by=chof, type=list(range~"continuous")) |>
+  as_gt()
+```
+
+## Data summarized using `gtsummary`
+
+```{r, echo=FALSE, size='small'}
+library(gtsummary)
+CarLong |> 
+  mutate(chof=factor(choice,
+                     labels=c("Unchosen","Chosen"))) |> 
+  select(chof,type, fuel, price, range) |> 
+  tbl_summary(by=chof, type=list(range~"continuous")) |>
+  as_gt()
+```
+
+## A model
+```{r, size="footnotesize"}
+m1<-clogit(choice~type+fuel+cost+strata(id),data=CarLong)
+m1
+```
+
+## Presenting model coefficients as odds using `gtsummary`
+
+```{r, size="small", eval=F}
+tbl_regression(m1, exponentiate = TRUE) |> 
+  modify_header(list(label="**Covariate**",
+                     estimate="**Odds**")) |>
+  modify_footnote(update = list(estimate ~ NA), 
+                  abbreviation=TRUE)
+```
+
+## Model coefficients presented using `gtsummary`
+
+```{r, echo=F, size="footnotesize"}
+tbl_regression(m1, exponentiate = TRUE) |> 
+  modify_header(list(label="**Covariate**",
+                     estimate="**Odds**")) |>
+  modify_footnote(update = list(estimate ~ NA), 
+                  abbreviation=TRUE) |> 
+  as_gt()
+```
+
+
+
+## YOUR TURN
+
+Identify a variable that might explain why methanol or cng vehicles are so much less preferred than gasoline vehicles. 
+
+- Hint: check the correlation between fuel and other variables in the dataset.
+
+Estimate a model where you add in the expected mediator.
+
+Interpret the cng and methanol coefficients before and after you include the mediator.
+
+
+## SOLUTION
+
+Any suggestions? What did you all find?
+
+## In-Sample Predictions
+
+ - In sample predictions are easy to produce
+ - Specify `type="expected"` to get probabilities!
+- "Binding" it to the data set is helpful for display
+
+```{r, size="footnotesize"}
+CarLong %>% bind_cols(Pr=predict(m1,type="expected")) %>% 
+  select(id,alt,choice,type,fuel,cost,Pr)
+```
+
+## YOUR TURN
+
+Write some R code that confirms that the probabilities sum to one within values of `id`
+
+## Out of Sample Predictions
+
+- To predict with a new dataset, we need the same covariates used in our model (including `id`!).
+- Doesn't even have to be the same size choice set as in the original data.
+- Let's see how well our model encapsulates your worst stereotype of American car owners.
+
+```{r, size="footnotesize"}
+NewCar<-tibble(id=rep(1,3),
+               type=factor(c("sportcar","sportuv","regcar")),
+               fuel=factor(c("gasoline","gasoline","electric")),
+               cost=c(8,8,1))
+```
+
+## Out of Sample Predictions continued
+
+Unfortunately, the `type="expected"` option doesn't seem to work when using new data, so we have some extra work to do using the linear predictions
+
+```{r, size="footnotesize"}
+NewCar %>% bind_cols(Za=predict(m1,type="lp",newdata=.)) %>% 
+  group_by(id) %>% 
+  mutate(Pr=exp(Za)/sum(exp(Za)))
+```
+
+
+## Interactions (1/6)
+
+- What if we want to test the hypothesis that larger households care more about cargo space than smaller households?
+ 
+- We put an appropriate interaction into our model
+
+```{r, size="footnotesize"}
+m2<-clogit(choice~type+fuel+cost+space+space*hsg2+strata(id)
+           ,data=CarLong)
+```
+
+## Interactions (2/6)
+
+```{r, size="footnotesize", echo=F}
+m2
+```
+
+## Interactions (3/6)
+
+- Note the omitted category for the `hsg2` variable.
+
+- We now have two interpretations to make with the `space` variable.
+  - A small household has $e^{0.398}=1.488$ times higher probability to choose a car that has $100\%$ more cargo space than a typical, full size, gas powered car, all else equal.
+  - A large household is $e^{0.398-0.448} = 1.488 \times 0.639 =  0.951$ times lower probability to choose a car with $100\%$ more carego space than a typical gas powered car, all else equal.
+  
+- Actually, we find the opposite of what we expected... but our model is quite poorly specified.
+
+- For interactions with continuous covariates, we might select a few typical values (e.g., 1st quartile, median, and 3rd quartile) of the individual variable and calculate odds for these select values.
+ 
+## Interactions (4/6)
+
+- We could have estimated a model with the interactions specified slightly differently
+
+```{r, size="footnotesize"}
+m3<-clogit(choice~type+fuel+cost+space:factor(hsg2)+strata(id)
+           ,data=CarLong)
+```
+
+## Interactions (5/6)
+
+```{r, echo=F, size="footnotesize"}
+m3
+```
+
+## Interactions (6/6)
+
+- But notice that these models are actually the same model!
+
+```{r, echo=F, size="footnotesize"}
+lapply(list(m2=m2,m3=m3),broom::glance) |> 
+  bind_rows(...=_,.id="model") |> 
+  select(model,logLik)
+```
+
+```{r, echo=F, size="footnotesize"}
+bind_cols(pr_m2=predict(m2, type="expected" ),
+          pr_m3=predict(m3, type="expected"))
+```
+
+## YOUR TURN
+
+Hypothesize and test another decion-maker by alternative interaction. Produce *one* fictive choice set and predictions for that choice set for fictive people who differ in the decision-maker specific attribute you used for your interaction.
+
+## YOUR TURN
+
+Experiment more with `clogit()`. Try:
+
+- Additional covariates
+- Predictions based on new choice sets
+- Making the "best" model you can.
+- Compare predictions between simple models and your "best" model.
+- etc.
+
+## Next Up
+
+- Large choice sets
+- Linear hypothesis testing
+- Model fit

@@ -1,0 +1,1164 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+%
+\documentclass[
+  11pt,
+]{article}
+\usepackage{amsmath,amssymb}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\usepackage{framed}
+\definecolor{shadecolor}{RGB}{248,248,248}
+\newenvironment{Shaded}{\begin{snugshade}}{\end{snugshade}}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{0.94,0.16,0.16}{#1}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\BuiltInTok}[1]{#1}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{0.64,0.00,0.00}{\textbf{#1}}}
+\newcommand{\ExtensionTok}[1]{#1}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.00,0.81}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\ImportTok}[1]{#1}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.13,0.29,0.53}{\textbf{#1}}}
+\newcommand{\NormalTok}[1]{#1}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textit{#1}}}
+\newcommand{\RegionMarkerTok}[1]{#1}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.81,0.36,0.00}{\textbf{#1}}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.00,0.00,0.00}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.31,0.60,0.02}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{0.56,0.35,0.01}{\textbf{\textit{#1}}}}
+\usepackage{graphicx}
+\makeatletter
+\def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
+\def\maxheight{\ifdim\Gin@nat@height>\textheight\textheight\else\Gin@nat@height\fi}
+\makeatother
+% Scale images if necessary, so that they will not overflow the page
+% margins by default, and it is still possible to overwrite the defaults
+% using explicit options in \includegraphics[width, height, ...]{}
+\setkeys{Gin}{width=\maxwidth,height=\maxheight,keepaspectratio}
+% Set default figure placement to htbp
+\makeatletter
+\def\fps@figure{htbp}
+\makeatother
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{wrapfig}
+\usepackage{float}
+\usepackage{colortbl}
+\usepackage{pdflscape}
+\usepackage{tabu}
+\usepackage{threeparttable}
+\usepackage{threeparttablex}
+\usepackage[normalem]{ulem}
+\usepackage{makecell}
+\usepackage{xcolor}
+\usepackage{caption}
+\ifLuaTeX
+  \usepackage{selnolig}  % disable illegal ligatures
+\fi
+\IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  pdftitle={Lab 6: Conditional Logistic Regression Models},
+  pdfauthor={Benjamin Jarvis},
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\title{Lab 6: Conditional Logistic Regression Models}
+\author{Benjamin Jarvis}
+\date{27 February 2024}
+
+\begin{document}
+\maketitle
+
+\hypertarget{objectives}{%
+\subsection{Objectives}\label{objectives}}
+
+\begin{itemize}
+\item
+  Reshape data from wide to long format for estimating choice models.
+\item
+  Estimate and interpret conditional logistic regression models.
+\item
+  Estimate and interpret decision-maker by alternative-specific
+  covariate interactions.
+\item
+  Produce in and out of sample predicted probabilities.
+\end{itemize}
+
+\hypertarget{reshaping-a.k.a.-pivoting-data}{%
+\subsection{Reshaping (a.k.a., pivoting)
+data}\label{reshaping-a.k.a.-pivoting-data}}
+
+\begin{itemize}
+\item
+  We use pivoting when we want to take data spread across many columns
+  and instead spread that data across rows in a data set, and vice
+  versa.
+
+  \begin{itemize}
+  \item
+    Taking data spread across columns and spreading it across (new) rows
+    is called \textbf{reshaping} or \textbf{pivoting} to \textbf{long
+    format}.
+  \item
+    Taking data spread across rows and spreading it across (new) columns
+    is called \textbf{reshaping} or \textbf{pivoting} to \textbf{wide
+    format}.
+  \end{itemize}
+\item
+  Sometimes this is called ``spreading'' and ``gathering'', or
+  ``folding'' and ``unfolding''.
+\item
+  \texttt{tidyr} (from \texttt{tidyverse}) has the functions
+  \texttt{pivot\_longer()} and \texttt{pivot\_wider()} to accomplish
+  this.
+\item
+  Another popular approach is to use the \texttt{melt()} and
+  \texttt{dcast()} functions in the \texttt{data.table} package.
+\end{itemize}
+
+\hypertarget{pivoting-wide-to-long}{%
+\subsection[Pivoting wide to long]{\texorpdfstring{Pivoting wide to
+long\footnote{\url{https://www.garrickadenbuie.com/project/tidyexplain/\#spread-and-gather}}}{Pivoting wide to long}}\label{pivoting-wide-to-long}}
+
+\begin{cols}
+
+\begin{col}{0.32\textwidth}
+\includegraphics[width=\textwidth]{wide}
+
+\end{col}
+
+\begin{col}{0.01\textwidth}
+
+\vspace{1ex}
+
+\end{col}
+
+\begin{col}{0.32\textwidth}
+\includegraphics[width=\textwidth]{pivot_longer}
+
+\end{col}
+
+\begin{col}{0.01\textwidth}
+
+\vspace{1ex}
+
+\end{col}
+
+\begin{col}{0.32\textwidth}
+\includegraphics[width=\textwidth]{long}
+
+\end{col}
+
+\end{cols}
+
+\hypertarget{pivoting-long-to-wide}{%
+\subsection[Pivoting long to wide]{\texorpdfstring{Pivoting long to
+wide\footnote{\url{https://www.garrickadenbuie.com/project/tidyexplain/\#spread-and-gather}}}{Pivoting long to wide}}\label{pivoting-long-to-wide}}
+
+\begin{cols}
+
+\begin{col}{0.32\textwidth}
+\includegraphics[width=\textwidth]{long}
+
+\end{col}
+
+\begin{col}{0.01\textwidth}
+
+\vspace{1ex}
+
+\end{col}
+
+\begin{col}{0.32\textwidth}
+\includegraphics[width=\textwidth]{pivot_wider}
+
+\end{col}
+
+\begin{col}{0.01\textwidth}
+
+\vspace{1ex}
+
+\end{col}
+
+\begin{col}{0.32\textwidth}
+\includegraphics[width=\textwidth]{wide}
+
+\end{col}
+
+\end{cols}
+
+\hypertarget{packages-well-use-today}{%
+\subsection{Packages we'll use today}\label{packages-well-use-today}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(tidyverse)}
+\FunctionTok{library}\NormalTok{(tidymodels)}
+\FunctionTok{library}\NormalTok{(survival)}
+\FunctionTok{library}\NormalTok{(kableExtra)}
+\FunctionTok{library}\NormalTok{(RColorBrewer)}
+\end{Highlighting}
+\end{Shaded}
+
+You also should install, but do not need to load, the \texttt{Ecdat}
+package.
+
+\hypertarget{pivoting-wide-to-long-using-tidyr-1a}{%
+\subsection{\texorpdfstring{Pivoting wide to long using \texttt{tidyr},
+1A}{Pivoting wide to long using tidyr, 1A}}\label{pivoting-wide-to-long-using-tidyr-1a}}
+
+\footnotesize
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{relig\_income }\SpecialCharTok{|\textgreater{}} \FunctionTok{slice}\NormalTok{(}\DecValTok{1}\SpecialCharTok{:}\DecValTok{10}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 10 x 11
+##    religion `<$10k` `$10-20k` `$20-30k` `$30-40k` `$40-50k` `$50-75k` `$75-100k`
+##    <chr>      <dbl>     <dbl>     <dbl>     <dbl>     <dbl>     <dbl>      <dbl>
+##  1 Agnostic      27        34        60        81        76       137        122
+##  2 Atheist       12        27        37        52        35        70         73
+##  3 Buddhist      27        21        30        34        33        58         62
+##  4 Catholic     418       617       732       670       638      1116        949
+##  5 Don’t k~      15        14        15        11        10        35         21
+##  6 Evangel~     575       869      1064       982       881      1486        949
+##  7 Hindu          1         9         7         9        11        34         47
+##  8 Histori~     228       244       236       238       197       223        131
+##  9 Jehovah~      20        27        24        24        21        30         15
+## 10 Jewish        19        19        25        25        30        95         69
+## # i 3 more variables: `$100-150k` <dbl>, `>150k` <dbl>,
+## #   `Don't know/refused` <dbl>
+\end{verbatim}
+
+\normalsize
+
+\hypertarget{pivoting-wide-to-long-using-tidyr-1b}{%
+\subsection{\texorpdfstring{Pivoting wide to long using \texttt{tidyr},
+1B}{Pivoting wide to long using tidyr, 1B}}\label{pivoting-wide-to-long-using-tidyr-1b}}
+
+\footnotesize
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{relig\_income }\SpecialCharTok{|\textgreater{}} 
+  \FunctionTok{pivot\_longer}\NormalTok{(}\SpecialCharTok{!}\NormalTok{religion, }
+               \AttributeTok{names\_to =} \StringTok{"income"}\NormalTok{, }
+               \AttributeTok{values\_to =} \StringTok{"count"}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 180 x 3
+##    religion income             count
+##    <chr>    <chr>              <dbl>
+##  1 Agnostic <$10k                 27
+##  2 Agnostic $10-20k               34
+##  3 Agnostic $20-30k               60
+##  4 Agnostic $30-40k               81
+##  5 Agnostic $40-50k               76
+##  6 Agnostic $50-75k              137
+##  7 Agnostic $75-100k             122
+##  8 Agnostic $100-150k            109
+##  9 Agnostic >150k                 84
+## 10 Agnostic Don't know/refused    96
+## # i 170 more rows
+\end{verbatim}
+
+\normalsize
+
+\hypertarget{pivoting-wide-to-long-using-tidyr-2a}{%
+\subsection{\texorpdfstring{Pivoting wide to long using \texttt{tidyr},
+2A}{Pivoting wide to long using tidyr, 2A}}\label{pivoting-wide-to-long-using-tidyr-2a}}
+
+\footnotesize
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{billboard }\SpecialCharTok{|\textgreater{}} \FunctionTok{slice}\NormalTok{(}\DecValTok{1}\SpecialCharTok{:}\DecValTok{7}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 7 x 79
+##   artist      track date.entered   wk1   wk2   wk3   wk4   wk5   wk6   wk7   wk8
+##   <chr>       <chr> <date>       <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl> <dbl>
+## 1 2 Pac       Baby~ 2000-02-26      87    82    72    77    87    94    99    NA
+## 2 2Ge+her     The ~ 2000-09-02      91    87    92    NA    NA    NA    NA    NA
+## 3 3 Doors Do~ Kryp~ 2000-04-08      81    70    68    67    66    57    54    53
+## 4 3 Doors Do~ Loser 2000-10-21      76    76    72    69    67    65    55    59
+## 5 504 Boyz    Wobb~ 2000-04-15      57    34    25    17    17    31    36    49
+## 6 98^0        Give~ 2000-08-19      51    39    34    26    26    19     2     2
+## 7 A*Teens     Danc~ 2000-07-08      97    97    96    95   100    NA    NA    NA
+## # i 68 more variables: wk9 <dbl>, wk10 <dbl>, wk11 <dbl>, wk12 <dbl>,
+## #   wk13 <dbl>, wk14 <dbl>, wk15 <dbl>, wk16 <dbl>, wk17 <dbl>, wk18 <dbl>,
+## #   wk19 <dbl>, wk20 <dbl>, wk21 <dbl>, wk22 <dbl>, wk23 <dbl>, wk24 <dbl>,
+## #   wk25 <dbl>, wk26 <dbl>, wk27 <dbl>, wk28 <dbl>, wk29 <dbl>, wk30 <dbl>,
+## #   wk31 <dbl>, wk32 <dbl>, wk33 <dbl>, wk34 <dbl>, wk35 <dbl>, wk36 <dbl>,
+## #   wk37 <dbl>, wk38 <dbl>, wk39 <dbl>, wk40 <dbl>, wk41 <dbl>, wk42 <dbl>,
+## #   wk43 <dbl>, wk44 <dbl>, wk45 <dbl>, wk46 <dbl>, wk47 <dbl>, wk48 <dbl>, ...
+\end{verbatim}
+
+\normalsize
+
+\hypertarget{pivoting-wide-to-long-using-tidyr-2b}{%
+\subsection{\texorpdfstring{Pivoting wide to long using \texttt{tidyr},
+2B}{Pivoting wide to long using tidyr, 2B}}\label{pivoting-wide-to-long-using-tidyr-2b}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{billboard }\SpecialCharTok{|\textgreater{}} 
+    \FunctionTok{pivot\_longer}\NormalTok{(}
+    \AttributeTok{cols =} \FunctionTok{starts\_with}\NormalTok{(}\StringTok{"wk"}\NormalTok{),}
+    \AttributeTok{names\_to =} \StringTok{"week"}\NormalTok{,}
+    \AttributeTok{names\_prefix =} \StringTok{"wk"}\NormalTok{,}
+    \AttributeTok{values\_to =} \StringTok{"rank"}\NormalTok{,}
+    \AttributeTok{values\_drop\_na =} \ConstantTok{TRUE}
+\NormalTok{  )}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{pivoting-wide-to-long-using-tidyr-2c}{%
+\subsection{\texorpdfstring{Pivoting wide to long using \texttt{tidyr},
+2C}{Pivoting wide to long using tidyr, 2C}}\label{pivoting-wide-to-long-using-tidyr-2c}}
+
+\footnotesize
+
+\begin{verbatim}
+## # A tibble: 5,307 x 5
+##    artist  track                   date.entered week   rank
+##    <chr>   <chr>                   <date>       <chr> <dbl>
+##  1 2 Pac   Baby Don't Cry (Keep... 2000-02-26   1        87
+##  2 2 Pac   Baby Don't Cry (Keep... 2000-02-26   2        82
+##  3 2 Pac   Baby Don't Cry (Keep... 2000-02-26   3        72
+##  4 2 Pac   Baby Don't Cry (Keep... 2000-02-26   4        77
+##  5 2 Pac   Baby Don't Cry (Keep... 2000-02-26   5        87
+##  6 2 Pac   Baby Don't Cry (Keep... 2000-02-26   6        94
+##  7 2 Pac   Baby Don't Cry (Keep... 2000-02-26   7        99
+##  8 2Ge+her The Hardest Part Of ... 2000-09-02   1        91
+##  9 2Ge+her The Hardest Part Of ... 2000-09-02   2        87
+## 10 2Ge+her The Hardest Part Of ... 2000-09-02   3        92
+## # i 5,297 more rows
+\end{verbatim}
+
+\normalsize
+
+\hypertarget{pivoting-wide-to-long-using-tidyr-3a}{%
+\subsection{\texorpdfstring{Pivoting wide to long using \texttt{tidyr},
+3A}{Pivoting wide to long using tidyr, 3A}}\label{pivoting-wide-to-long-using-tidyr-3a}}
+
+\footnotesize
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{who }\SpecialCharTok{|\textgreater{}} \FunctionTok{filter}\NormalTok{(year}\SpecialCharTok{\textgreater{}}\DecValTok{2000}\NormalTok{) }\SpecialCharTok{|\textgreater{}} \FunctionTok{slice}\NormalTok{(}\DecValTok{1}\SpecialCharTok{:}\DecValTok{5}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 5 x 60
+##   country   iso2  iso3   year new_sp_m014 new_sp_m1524 new_sp_m2534 new_sp_m3544
+##   <chr>     <chr> <chr> <dbl>       <dbl>        <dbl>        <dbl>        <dbl>
+## 1 Afghanis~ AF    AFG    2001         129          379          349          274
+## 2 Afghanis~ AF    AFG    2002          90          476          481          368
+## 3 Afghanis~ AF    AFG    2003         127          511          436          284
+## 4 Afghanis~ AF    AFG    2004         139          537          568          360
+## 5 Afghanis~ AF    AFG    2005         151          606          560          472
+## # i 52 more variables: new_sp_m4554 <dbl>, new_sp_m5564 <dbl>,
+## #   new_sp_m65 <dbl>, new_sp_f014 <dbl>, new_sp_f1524 <dbl>,
+## #   new_sp_f2534 <dbl>, new_sp_f3544 <dbl>, new_sp_f4554 <dbl>,
+## #   new_sp_f5564 <dbl>, new_sp_f65 <dbl>, new_sn_m014 <dbl>,
+## #   new_sn_m1524 <dbl>, new_sn_m2534 <dbl>, new_sn_m3544 <dbl>,
+## #   new_sn_m4554 <dbl>, new_sn_m5564 <dbl>, new_sn_m65 <dbl>,
+## #   new_sn_f014 <dbl>, new_sn_f1524 <dbl>, new_sn_f2534 <dbl>, ...
+\end{verbatim}
+
+\normalsize
+
+\hypertarget{pivoting-wide-to-long-using-tidyr-3b}{%
+\subsection{\texorpdfstring{Pivoting wide to long using \texttt{tidyr},
+3B}{Pivoting wide to long using tidyr, 3B}}\label{pivoting-wide-to-long-using-tidyr-3b}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{who }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{select}\NormalTok{(}\SpecialCharTok{{-}}\NormalTok{iso2,}\SpecialCharTok{{-}}\NormalTok{iso3) }\SpecialCharTok{|\textgreater{}} 
+  \FunctionTok{filter}\NormalTok{(year}\SpecialCharTok{\textgreater{}}\DecValTok{2000}\NormalTok{) }\SpecialCharTok{|\textgreater{}} 
+  \FunctionTok{pivot\_longer}\NormalTok{(}
+  \AttributeTok{cols =}\NormalTok{ new\_sp\_m014}\SpecialCharTok{:}\NormalTok{newrel\_f65,}
+  \AttributeTok{names\_to =} \FunctionTok{c}\NormalTok{(}\StringTok{"diagnosis"}\NormalTok{, }\StringTok{"gender"}\NormalTok{, }\StringTok{"age"}\NormalTok{),}
+  \AttributeTok{names\_pattern =} \StringTok{"new\_?(.*)\_(.)(.*)"}\NormalTok{,}
+  \AttributeTok{values\_to =} \StringTok{"count"}
+\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{pivoting-wide-to-long-using-tidyr-3c}{%
+\subsection{\texorpdfstring{Pivoting wide to long using \texttt{tidyr},
+3C}{Pivoting wide to long using tidyr, 3C}}\label{pivoting-wide-to-long-using-tidyr-3c}}
+
+\footnotesize
+
+\begin{verbatim}
+## # A tibble: 156,128 x 6
+##    country      year diagnosis gender age   count
+##    <chr>       <dbl> <chr>     <chr>  <chr> <dbl>
+##  1 Afghanistan  2001 sp        m      014     129
+##  2 Afghanistan  2001 sp        m      1524    379
+##  3 Afghanistan  2001 sp        m      2534    349
+##  4 Afghanistan  2001 sp        m      3544    274
+##  5 Afghanistan  2001 sp        m      4554    204
+##  6 Afghanistan  2001 sp        m      5564    139
+##  7 Afghanistan  2001 sp        m      65      103
+##  8 Afghanistan  2001 sp        f      014     146
+##  9 Afghanistan  2001 sp        f      1524    799
+## 10 Afghanistan  2001 sp        f      2534    888
+## # i 156,118 more rows
+\end{verbatim}
+
+\normalsize
+
+\hypertarget{revisiting-the-cars-data-from-the-ecdat-package}{%
+\subsection{\texorpdfstring{Revisiting the cars data from the
+\texttt{Ecdat}
+package}{Revisiting the cars data from the Ecdat package}}\label{revisiting-the-cars-data-from-the-ecdat-package}}
+
+\begin{itemize}
+\item
+  We were working with data from a survey of California residents from
+  1996.
+\item
+  Respondents were solicited to choose a car they would buy from a menu
+  of 6 fictive cars with varying attributes.
+\item
+  Focus was on assessing the appeal of alternative fuel vehicles.
+\item
+  Mix of decision-maker level and alternative-level covariates.
+\end{itemize}
+
+\hypertarget{column-names-in-the-car-data.}{%
+\subsection{\texorpdfstring{Column names in the \texttt{Car}
+data.}{Column names in the Car data.}}\label{column-names-in-the-car-data.}}
+
+\footnotesize
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{Car}\OtherTok{\textless{}{-}}\FunctionTok{as\_tibble}\NormalTok{(Ecdat}\SpecialCharTok{::}\NormalTok{Car)}
+\FunctionTok{names}\NormalTok{(Car)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##  [1] "choice"     "college"    "hsg2"       "coml5"      "type1"     
+##  [6] "type2"      "type3"      "type4"      "type5"      "type6"     
+## [11] "fuel1"      "fuel2"      "fuel3"      "fuel4"      "fuel5"     
+## [16] "fuel6"      "price1"     "price2"     "price3"     "price4"    
+## [21] "price5"     "price6"     "range1"     "range2"     "range3"    
+## [26] "range4"     "range5"     "range6"     "acc1"       "acc2"      
+## [31] "acc3"       "acc4"       "acc5"       "acc6"       "speed1"    
+## [36] "speed2"     "speed3"     "speed4"     "speed5"     "speed6"    
+## [41] "pollution1" "pollution2" "pollution3" "pollution4" "pollution5"
+## [46] "pollution6" "size1"      "size2"      "size3"      "size4"     
+## [51] "size5"      "size6"      "space1"     "space2"     "space3"    
+## [56] "space4"     "space5"     "space6"     "cost1"      "cost2"     
+## [61] "cost3"      "cost4"      "cost5"      "cost6"      "station1"  
+## [66] "station2"   "station3"   "station4"   "station5"   "station6"
+\end{verbatim}
+
+\normalsize
+
+\hypertarget{a-view-onto-some-of-the-car-data}{%
+\subsection{\texorpdfstring{A view onto some of the \texttt{Car}
+data}{A view onto some of the Car data}}\label{a-view-onto-some-of-the-car-data}}
+
+\scriptsize
+
+\begin{verbatim}
+## # A tibble: 16 x 71
+##       id college  hsg2 coml5 choice  type1   type2 type3 type4 type5 type6 fuel1
+##    <int>   <dbl> <dbl> <dbl> <fct>   <fct>   <fct> <fct> <fct> <fct> <fct> <fct>
+##  1     1       0     0     0 choice1 van     regc~ van   stwa~ van   truck cng  
+##  2     2       1     1     1 choice2 regcar  van   regc~ stwa~ regc~ truck meth~
+##  3     3       0     1     0 choice5 regcar  truck regc~ van   regc~ stwa~ cng  
+##  4     4       0     0     1 choice5 regcar  truck regc~ van   regc~ stwa~ meth~
+##  5     5       0     1     0 choice5 regcar  truck regc~ van   regc~ stwa~ cng  
+##  6     6       0     0     0 choice5 truck   regc~ truck van   truck stwa~ cng  
+##  7     7       1     1     1 choice2 regcar  van   regc~ stwa~ regc~ truck meth~
+##  8     8       1     0     1 choice5 regcar  van   regc~ stwa~ regc~ truck meth~
+##  9     9       0     0     0 choice5 sportuv spor~ spor~ regc~ spor~ truck meth~
+## 10    10       1     0     0 choice2 regcar  truck regc~ van   regc~ stwa~ meth~
+## 11    11       1     0     0 choice1 regcar  truck regc~ van   regc~ stwa~ meth~
+## 12    12       1     1     0 choice2 truck   stwa~ truck regc~ truck van   meth~
+## 13    13       1     0     0 choice5 sportc~ truck spor~ spor~ spor~ regc~ meth~
+## 14    14       0     0     0 choice5 regcar  stwa~ regc~ truck regc~ van   meth~
+## 15    15       1     0     0 choice3 regcar  stwa~ regc~ truck regc~ van   meth~
+## 16    16       1     0     0 choice6 truck   van   truck stwa~ truck regc~ meth~
+## # i 59 more variables: fuel2 <fct>, fuel3 <fct>, fuel4 <fct>, fuel5 <fct>,
+## #   fuel6 <fct>, price1 <dbl>, price2 <dbl>, price3 <dbl>, price4 <dbl>,
+## #   price5 <dbl>, price6 <dbl>, range1 <dbl>, range2 <dbl>, range3 <dbl>,
+## #   range4 <dbl>, range5 <dbl>, range6 <dbl>, acc1 <dbl>, acc2 <dbl>,
+## #   acc3 <dbl>, acc4 <dbl>, acc5 <dbl>, acc6 <dbl>, speed1 <dbl>, speed2 <dbl>,
+## #   speed3 <dbl>, speed4 <dbl>, speed5 <dbl>, speed6 <dbl>, pollution1 <dbl>,
+## #   pollution2 <dbl>, pollution3 <dbl>, pollution4 <dbl>, pollution5 <dbl>, ...
+\end{verbatim}
+
+\normalsize
+
+\hypertarget{to-estimate-a-clogit-model-we-need-to-reshape-this-data-to-long-format}{%
+\subsection{\texorpdfstring{To estimate a \texttt{clogit()} model, we
+need to reshape this data to long
+format}{To estimate a clogit() model, we need to reshape this data to long format}}\label{to-estimate-a-clogit-model-we-need-to-reshape-this-data-to-long-format}}
+
+\footnotesize
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{CarLong }\OtherTok{\textless{}{-}}\NormalTok{ Car }\SpecialCharTok{|\textgreater{}} 
+  \FunctionTok{mutate}\NormalTok{(}\AttributeTok{id=}\FunctionTok{row\_number}\NormalTok{()) }\SpecialCharTok{|\textgreater{}} \CommentTok{\# adding an id for respondents}
+  \FunctionTok{mutate}\NormalTok{(}\AttributeTok{choice=}\FunctionTok{str\_extract}\NormalTok{(}\FunctionTok{as.character}\NormalTok{(choice),}\StringTok{"[1{-}6]"}\NormalTok{),}
+    \AttributeTok{choice=}\FunctionTok{as.integer}\NormalTok{(choice)) }\SpecialCharTok{|\textgreater{}} \CommentTok{\# make choice var a \#}
+  \FunctionTok{pivot\_longer}\NormalTok{(}
+    \AttributeTok{cols=}\SpecialCharTok{!}\FunctionTok{matches}\NormalTok{(}\FunctionTok{c}\NormalTok{(}\StringTok{"id"}\NormalTok{,}\StringTok{"college"}\NormalTok{,}\StringTok{"hsg2"}\NormalTok{,}\StringTok{"coml5"}\NormalTok{,}\StringTok{"choice"}\NormalTok{)),}
+    \AttributeTok{names\_pattern=}\StringTok{"(.+)([1{-}6])"}\NormalTok{,  }\CommentTok{\# parse colnames w/ regex}
+    \AttributeTok{names\_to=}\FunctionTok{c}\NormalTok{(}\StringTok{".value"}\NormalTok{,}\StringTok{"alt"}\NormalTok{)) }\SpecialCharTok{|\textgreater{}} \CommentTok{\# colnames from "()" above}
+  \FunctionTok{mutate}\NormalTok{(}\AttributeTok{alt=}\FunctionTok{as.integer}\NormalTok{(alt)) }\SpecialCharTok{|\textgreater{}} 
+  \FunctionTok{relocate}\NormalTok{(id,college,hsg2,coml5,alt) }\CommentTok{\# rearrange for display}
+\end{Highlighting}
+\end{Shaded}
+
+\normalsize
+
+\hypertarget{result-of-pivot}{%
+\subsection{Result of pivot}\label{result-of-pivot}}
+
+\footnotesize
+
+\begin{verbatim}
+## # A tibble: 12 x 17
+##       id college  hsg2 coml5   alt choice type    fuel   price range   acc speed
+##    <int>   <dbl> <dbl> <dbl> <int>  <int> <fct>   <fct>  <dbl> <dbl> <dbl> <dbl>
+##  1     1       0     0     0     1      1 van     cng     4.18   250   4      95
+##  2     1       0     0     0     2      1 regcar  cng     4.18   250   4      95
+##  3     1       0     0     0     3      1 van     elect~  4.82   400   6     110
+##  4     1       0     0     0     4      1 stwagon elect~  4.82   400   6     110
+##  5     1       0     0     0     5      1 van     gasol~  5.14   250   2.5   140
+##  6     1       0     0     0     6      1 truck   gasol~  5.14   250   2.5   140
+##  7     2       1     1     1     1      2 regcar  metha~  3.31   125   2.5    85
+##  8     2       1     1     1     2      2 van     metha~  3.31   125   2.5    85
+##  9     2       1     1     1     3      2 regcar  cng     3.59   300   4     140
+## 10     2       1     1     1     4      2 stwagon cng     3.59   300   4     140
+## 11     2       1     1     1     5      2 regcar  gasol~  4.41   300   6      95
+## 12     2       1     1     1     6      2 truck   gasol~  4.41   300   6      95
+## # i 5 more variables: pollution <dbl>, size <dbl>, space <dbl>, cost <dbl>,
+## #   station <dbl>
+\end{verbatim}
+
+\normalsize
+
+\hypertarget{we-still-need-to-make-our-dependent-variable}{%
+\subsection{We still need to make our dependent
+variable!}\label{we-still-need-to-make-our-dependent-variable}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{CarLong }\OtherTok{\textless{}{-}}\NormalTok{ CarLong }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{mutate}\NormalTok{(}\AttributeTok{choice=}\FunctionTok{as.integer}\NormalTok{(choice}\SpecialCharTok{==}\NormalTok{alt))}
+\end{Highlighting}
+\end{Shaded}
+
+\hypertarget{result-with-select-columns-re-arranged}{%
+\subsection{Result, with select columns
+re-arranged}\label{result-with-select-columns-re-arranged}}
+
+\footnotesize
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{CarLong }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{slice}\NormalTok{(}\DecValTok{1}\SpecialCharTok{:}\DecValTok{12}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 12 x 17
+##       id college  hsg2 coml5   alt choice type    fuel   price range   acc speed
+##    <int>   <dbl> <dbl> <dbl> <int>  <int> <fct>   <fct>  <dbl> <dbl> <dbl> <dbl>
+##  1     1       0     0     0     1      1 van     cng     4.18   250   4      95
+##  2     1       0     0     0     2      0 regcar  cng     4.18   250   4      95
+##  3     1       0     0     0     3      0 van     elect~  4.82   400   6     110
+##  4     1       0     0     0     4      0 stwagon elect~  4.82   400   6     110
+##  5     1       0     0     0     5      0 van     gasol~  5.14   250   2.5   140
+##  6     1       0     0     0     6      0 truck   gasol~  5.14   250   2.5   140
+##  7     2       1     1     1     1      0 regcar  metha~  3.31   125   2.5    85
+##  8     2       1     1     1     2      1 van     metha~  3.31   125   2.5    85
+##  9     2       1     1     1     3      0 regcar  cng     3.59   300   4     140
+## 10     2       1     1     1     4      0 stwagon cng     3.59   300   4     140
+## 11     2       1     1     1     5      0 regcar  gasol~  4.41   300   6      95
+## 12     2       1     1     1     6      0 truck   gasol~  4.41   300   6      95
+## # i 5 more variables: pollution <dbl>, size <dbl>, space <dbl>, cost <dbl>,
+## #   station <dbl>
+\end{verbatim}
+
+\normalsize
+
+\hypertarget{check-the-number-of-responses-alternatives-and-choices}{%
+\subsection{Check the number of responses, alternatives and
+choices}\label{check-the-number-of-responses-alternatives-and-choices}}
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{CarLong }\SpecialCharTok{|\textgreater{}} 
+  \FunctionTok{group\_by}\NormalTok{(id) }\SpecialCharTok{|\textgreater{}} 
+  \FunctionTok{summarize}\NormalTok{(}\AttributeTok{nalts=}\FunctionTok{n}\NormalTok{(),}\AttributeTok{choices=}\FunctionTok{sum}\NormalTok{(choice)) }\SpecialCharTok{|\textgreater{}} 
+  \FunctionTok{with}\NormalTok{(}\AttributeTok{data=}\NormalTok{\_,}\FunctionTok{table}\NormalTok{(nalts,choices))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+##      choices
+## nalts    1
+##     6 4654
+\end{verbatim}
+
+\hypertarget{summarizing-the-data-using-gtsummary}{%
+\subsection{\texorpdfstring{Summarizing the data using
+\texttt{gtsummary}}{Summarizing the data using gtsummary}}\label{summarizing-the-data-using-gtsummary}}
+
+\small
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{library}\NormalTok{(gtsummary)}
+\NormalTok{CarLong }\SpecialCharTok{|\textgreater{}} 
+  \FunctionTok{mutate}\NormalTok{(}\AttributeTok{chof=}\FunctionTok{factor}\NormalTok{(choice,}
+                     \AttributeTok{labels=}\FunctionTok{c}\NormalTok{(}\StringTok{"Unchosen"}\NormalTok{,}\StringTok{"Chosen"}\NormalTok{))) }\SpecialCharTok{|\textgreater{}} 
+  \FunctionTok{select}\NormalTok{(chof,type, fuel, price, range) }\SpecialCharTok{|\textgreater{}} 
+  \FunctionTok{tbl\_summary}\NormalTok{(}\AttributeTok{by=}\NormalTok{chof, }\AttributeTok{type=}\FunctionTok{list}\NormalTok{(range}\SpecialCharTok{\textasciitilde{}}\StringTok{"continuous"}\NormalTok{)) }\SpecialCharTok{|\textgreater{}}
+  \FunctionTok{as\_gt}\NormalTok{()}
+\end{Highlighting}
+\end{Shaded}
+
+\normalsize
+
+\hypertarget{data-summarized-using-gtsummary}{%
+\subsection{\texorpdfstring{Data summarized using
+\texttt{gtsummary}}{Data summarized using gtsummary}}\label{data-summarized-using-gtsummary}}
+
+\small
+
+\setlength{\LTpost}{0mm}
+\begin{longtable}{lcc}
+\toprule
+\textbf{Characteristic} & \textbf{Unchosen}, N = 23,270\textsuperscript{\textit{1}} & \textbf{Chosen}, N = 4,654\textsuperscript{\textit{1}} \\ 
+\midrule\addlinespace[2.5pt]
+type &  &  \\ 
+    regcar & 8,190 (35\%) & 2,740 (59\%) \\ 
+    sportuv & 806 (3.5\%) & 242 (5.2\%) \\ 
+    sportcar & 708 (3.0\%) & 172 (3.7\%) \\ 
+    stwagon & 4,141 (18\%) & 305 (6.6\%) \\ 
+    truck & 5,063 (22\%) & 565 (12\%) \\ 
+    van & 4,362 (19\%) & 630 (14\%) \\ 
+fuel &  &  \\ 
+    gasoline & 5,648 (24\%) & 1,310 (28\%) \\ 
+    methanol & 6,161 (26\%) & 791 (17\%) \\ 
+    cng & 5,954 (26\%) & 1,062 (23\%) \\ 
+    electric & 5,507 (24\%) & 1,491 (32\%) \\ 
+price & 4.04 (3.04, 5.24) & 4.04 (2.91, 5.14) \\ 
+range & 250 (125, 300) & 300 (250, 300) \\ 
+\bottomrule
+\end{longtable}
+\begin{minipage}{\linewidth}
+\textsuperscript{\textit{1}}n (\%); Median (IQR)\\
+\end{minipage}
+
+\normalsize
+
+\hypertarget{a-model}{%
+\subsection{A model}\label{a-model}}
+
+\footnotesize
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{m1}\OtherTok{\textless{}{-}}\FunctionTok{clogit}\NormalTok{(choice}\SpecialCharTok{\textasciitilde{}}\NormalTok{type}\SpecialCharTok{+}\NormalTok{fuel}\SpecialCharTok{+}\NormalTok{cost}\SpecialCharTok{+}\FunctionTok{strata}\NormalTok{(id),}\AttributeTok{data=}\NormalTok{CarLong)}
+\NormalTok{m1}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## Call:
+## clogit(choice ~ type + fuel + cost + strata(id), data = CarLong)
+## 
+##                coef exp(coef) se(coef)   z      p
+## typesportuv   0.821     2.273    0.140   6  5e-09
+## typesportcar  0.630     1.877    0.147   4  2e-05
+## typestwagon  -1.430     0.239    0.062 -23 <2e-16
+## typetruck    -1.013     0.363    0.049 -21 <2e-16
+## typevan      -0.808     0.446    0.047 -17 <2e-16
+## fuelmethanol -0.654     0.520    0.049 -13 <2e-16
+## fuelcng      -0.257     0.773    0.044  -6  7e-09
+## fuelelectric  0.154     1.166    0.042   4  3e-04
+## cost         -0.078     0.925    0.007 -10 <2e-16
+## 
+## Likelihood ratio test=1549  on 9 df, p=<2e-16
+## n= 27924, number of events= 4654
+\end{verbatim}
+
+\normalsize
+
+\hypertarget{presenting-model-coefficients-as-odds-using-gtsummary}{%
+\subsection{\texorpdfstring{Presenting model coefficients as odds using
+\texttt{gtsummary}}{Presenting model coefficients as odds using gtsummary}}\label{presenting-model-coefficients-as-odds-using-gtsummary}}
+
+\small
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{tbl\_regression}\NormalTok{(m1, }\AttributeTok{exponentiate =} \ConstantTok{TRUE}\NormalTok{) }\SpecialCharTok{|\textgreater{}} 
+  \FunctionTok{modify\_header}\NormalTok{(}\FunctionTok{list}\NormalTok{(}\AttributeTok{label=}\StringTok{"**Covariate**"}\NormalTok{,}
+                     \AttributeTok{estimate=}\StringTok{"**Odds**"}\NormalTok{)) }\SpecialCharTok{|\textgreater{}}
+  \FunctionTok{modify\_footnote}\NormalTok{(}\AttributeTok{update =} \FunctionTok{list}\NormalTok{(estimate }\SpecialCharTok{\textasciitilde{}} \ConstantTok{NA}\NormalTok{), }
+                  \AttributeTok{abbreviation=}\ConstantTok{TRUE}\NormalTok{)}
+\end{Highlighting}
+\end{Shaded}
+
+\normalsize
+
+\hypertarget{model-coefficients-presented-using-gtsummary}{%
+\subsection{\texorpdfstring{Model coefficients presented using
+\texttt{gtsummary}}{Model coefficients presented using gtsummary}}\label{model-coefficients-presented-using-gtsummary}}
+
+\footnotesize
+
+\setlength{\LTpost}{0mm}
+\begin{longtable}{lccc}
+\toprule
+\textbf{Covariate} & \textbf{Odds} & \textbf{95\% CI}\textsuperscript{\textit{1}} & \textbf{p-value} \\ 
+\midrule\addlinespace[2.5pt]
+type &  &  &  \\ 
+    regcar & — & — &  \\ 
+    sportuv & 2.27 & 1.73, 2.99 & <0.001 \\ 
+    sportcar & 1.88 & 1.41, 2.51 & <0.001 \\ 
+    stwagon & 0.24 & 0.21, 0.27 & <0.001 \\ 
+    truck & 0.36 & 0.33, 0.40 & <0.001 \\ 
+    van & 0.45 & 0.41, 0.49 & <0.001 \\ 
+fuel &  &  &  \\ 
+    gasoline & — & — &  \\ 
+    methanol & 0.52 & 0.47, 0.57 & <0.001 \\ 
+    cng & 0.77 & 0.71, 0.84 & <0.001 \\ 
+    electric & 1.17 & 1.07, 1.27 & <0.001 \\ 
+cost & 0.93 & 0.91, 0.94 & <0.001 \\ 
+\bottomrule
+\end{longtable}
+\begin{minipage}{\linewidth}
+\textsuperscript{\textit{1}}CI = Confidence Interval\\
+\end{minipage}
+
+\normalsize
+
+\hypertarget{your-turn}{%
+\subsection{YOUR TURN}\label{your-turn}}
+
+Identify a variable that might explain why methanol or cng vehicles are
+so much less preferred than gasoline vehicles.
+
+\begin{itemize}
+\tightlist
+\item
+  Hint: check the correlation between fuel and other variables in the
+  dataset.
+\end{itemize}
+
+Estimate a model where you add in the expected mediator.
+
+Interpret the cng and methanol coefficients before and after you include
+the mediator.
+
+\hypertarget{solution}{%
+\subsection{SOLUTION}\label{solution}}
+
+Any suggestions? What did you all find?
+
+\hypertarget{in-sample-predictions}{%
+\subsection{In-Sample Predictions}\label{in-sample-predictions}}
+
+\begin{itemize}
+\tightlist
+\item
+  In sample predictions are easy to produce
+\item
+  Specify \texttt{type="expected"} to get probabilities!
+\item
+  ``Binding'' it to the data set is helpful for display
+\end{itemize}
+
+\footnotesize
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{CarLong }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{bind\_cols}\NormalTok{(}\AttributeTok{Pr=}\FunctionTok{predict}\NormalTok{(m1,}\AttributeTok{type=}\StringTok{"expected"}\NormalTok{)) }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{select}\NormalTok{(id,alt,choice,type,fuel,cost,Pr)}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 27,924 x 7
+##       id   alt choice type    fuel      cost     Pr
+##    <int> <int>  <int> <fct>   <fct>    <dbl>  <dbl>
+##  1     1     1      1 van     cng          4 0.144 
+##  2     1     2      0 regcar  cng          4 0.323 
+##  3     1     3      0 van     electric     6 0.186 
+##  4     1     4      0 stwagon electric     6 0.0998
+##  5     1     5      0 van     gasoline     8 0.136 
+##  6     1     6      0 truck   gasoline     8 0.111 
+##  7     2     1      0 regcar  methanol     4 0.185 
+##  8     2     2      1 van     methanol     4 0.0823
+##  9     2     3      0 regcar  cng          8 0.201 
+## 10     2     4      0 stwagon cng          8 0.0481
+## # i 27,914 more rows
+\end{verbatim}
+
+\normalsize
+
+\hypertarget{your-turn-1}{%
+\subsection{YOUR TURN}\label{your-turn-1}}
+
+Write some R code that confirms that the probabilities sum to one within
+values of \texttt{id}
+
+\hypertarget{out-of-sample-predictions}{%
+\subsection{Out of Sample Predictions}\label{out-of-sample-predictions}}
+
+\begin{itemize}
+\tightlist
+\item
+  To predict with a new dataset, we need the same covariates used in our
+  model (including \texttt{id}!).
+\item
+  Doesn't even have to be the same size choice set as in the original
+  data.
+\item
+  Let's see how well our model encapsulates your worst stereotype of
+  American car owners.
+\end{itemize}
+
+\footnotesize
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{NewCar}\OtherTok{\textless{}{-}}\FunctionTok{tibble}\NormalTok{(}\AttributeTok{id=}\FunctionTok{rep}\NormalTok{(}\DecValTok{1}\NormalTok{,}\DecValTok{3}\NormalTok{),}
+               \AttributeTok{type=}\FunctionTok{factor}\NormalTok{(}\FunctionTok{c}\NormalTok{(}\StringTok{"sportcar"}\NormalTok{,}\StringTok{"sportuv"}\NormalTok{,}\StringTok{"regcar"}\NormalTok{)),}
+               \AttributeTok{fuel=}\FunctionTok{factor}\NormalTok{(}\FunctionTok{c}\NormalTok{(}\StringTok{"gasoline"}\NormalTok{,}\StringTok{"gasoline"}\NormalTok{,}\StringTok{"electric"}\NormalTok{)),}
+               \AttributeTok{cost=}\FunctionTok{c}\NormalTok{(}\DecValTok{8}\NormalTok{,}\DecValTok{8}\NormalTok{,}\DecValTok{1}\NormalTok{))}
+\end{Highlighting}
+\end{Shaded}
+
+\normalsize
+
+\hypertarget{out-of-sample-predictions-continued}{%
+\subsection{Out of Sample Predictions
+continued}\label{out-of-sample-predictions-continued}}
+
+Unfortunately, the \texttt{type="expected"} option doesn't seem to work
+when using new data, so we have some extra work to do using the linear
+predictions
+
+\footnotesize
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{NewCar }\SpecialCharTok{\%\textgreater{}\%} \FunctionTok{bind\_cols}\NormalTok{(}\AttributeTok{Za=}\FunctionTok{predict}\NormalTok{(m1,}\AttributeTok{type=}\StringTok{"lp"}\NormalTok{,}\AttributeTok{newdata=}\NormalTok{.)) }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{group\_by}\NormalTok{(id) }\SpecialCharTok{\%\textgreater{}\%} 
+  \FunctionTok{mutate}\NormalTok{(}\AttributeTok{Pr=}\FunctionTok{exp}\NormalTok{(Za)}\SpecialCharTok{/}\FunctionTok{sum}\NormalTok{(}\FunctionTok{exp}\NormalTok{(Za)))}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{verbatim}
+## # A tibble: 3 x 6
+## # Groups:   id [1]
+##      id type     fuel      cost    Za    Pr
+##   <dbl> <fct>    <fct>    <dbl> <dbl> <dbl>
+## 1     1 sportcar gasoline     8  1.32 0.305
+## 2     1 sportuv  gasoline     8  1.51 0.369
+## 3     1 regcar   electric     1  1.39 0.327
+\end{verbatim}
+
+\normalsize
+
+\hypertarget{interactions-16}{%
+\subsection{Interactions (1/6)}\label{interactions-16}}
+
+\begin{itemize}
+\item
+  What if we want to test the hypothesis that larger households care
+  more about cargo space than smaller households?
+\item
+  We put an appropriate interaction into our model
+\end{itemize}
+
+\footnotesize
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{m2}\OtherTok{\textless{}{-}}\FunctionTok{clogit}\NormalTok{(choice}\SpecialCharTok{\textasciitilde{}}\NormalTok{type}\SpecialCharTok{+}\NormalTok{fuel}\SpecialCharTok{+}\NormalTok{cost}\SpecialCharTok{+}\NormalTok{space}\SpecialCharTok{+}\NormalTok{space}\SpecialCharTok{*}\NormalTok{hsg2}\SpecialCharTok{+}\FunctionTok{strata}\NormalTok{(id)}
+\NormalTok{           ,}\AttributeTok{data=}\NormalTok{CarLong)}
+\end{Highlighting}
+\end{Shaded}
+
+\normalsize
+
+\hypertarget{interactions-26}{%
+\subsection{Interactions (2/6)}\label{interactions-26}}
+
+\footnotesize
+
+\begin{verbatim}
+## Call:
+## clogit(choice ~ type + fuel + cost + space + space * hsg2 + strata(id), 
+##     data = CarLong)
+## 
+##                coef exp(coef) se(coef)   z      p
+## typesportuv   0.820     2.270    0.140   6  5e-09
+## typesportcar  0.629     1.876    0.147   4  2e-05
+## typestwagon  -1.429     0.239    0.062 -23 <2e-16
+## typetruck    -1.013     0.363    0.049 -21 <2e-16
+## typevan      -0.808     0.446    0.047 -17 <2e-16
+## fuelmethanol -0.610     0.543    0.056 -11 <2e-16
+## fuelcng      -0.215     0.806    0.052  -4  3e-05
+## fuelelectric  0.153     1.166    0.042   4  3e-04
+## cost         -0.078     0.925    0.007 -10 <2e-16
+## space         0.398     1.488    0.200   2   0.05
+## hsg2             NA        NA    0.000  NA     NA
+## space:hsg2   -0.448     0.639    0.333  -1   0.18
+## 
+## Likelihood ratio test=1553  on 11 df, p=<2e-16
+## n= 27924, number of events= 4654
+\end{verbatim}
+
+\normalsize
+
+\hypertarget{interactions-36}{%
+\subsection{Interactions (3/6)}\label{interactions-36}}
+
+\begin{itemize}
+\item
+  Note the omitted category for the \texttt{hsg2} variable.
+\item
+  We now have two interpretations to make with the \texttt{space}
+  variable.
+
+  \begin{itemize}
+  \tightlist
+  \item
+    A small household has \(e^{0.398}=1.488\) times higher probability
+    to choose a car that has \(100\%\) more cargo space than a typical,
+    full size, gas powered car, all else equal.
+  \item
+    A large household is
+    \(e^{0.398-0.448} = 1.488 \times 0.639 = 0.951\) times lower
+    probability to choose a car with \(100\%\) more carego space than a
+    typical gas powered car, all else equal.
+  \end{itemize}
+\item
+  Actually, we find the opposite of what we expected\ldots{} but our
+  model is quite poorly specified.
+\item
+  For interactions with continuous covariates, we might select a few
+  typical values (e.g., 1st quartile, median, and 3rd quartile) of the
+  individual variable and calculate odds for these select values.
+\end{itemize}
+
+\hypertarget{interactions-46}{%
+\subsection{Interactions (4/6)}\label{interactions-46}}
+
+\begin{itemize}
+\tightlist
+\item
+  We could have estimated a model with the interactions specified
+  slightly differently
+\end{itemize}
+
+\footnotesize
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{m3}\OtherTok{\textless{}{-}}\FunctionTok{clogit}\NormalTok{(choice}\SpecialCharTok{\textasciitilde{}}\NormalTok{type}\SpecialCharTok{+}\NormalTok{fuel}\SpecialCharTok{+}\NormalTok{cost}\SpecialCharTok{+}\NormalTok{space}\SpecialCharTok{:}\FunctionTok{factor}\NormalTok{(hsg2)}\SpecialCharTok{+}\FunctionTok{strata}\NormalTok{(id)}
+\NormalTok{           ,}\AttributeTok{data=}\NormalTok{CarLong)}
+\end{Highlighting}
+\end{Shaded}
+
+\normalsize
+
+\hypertarget{interactions-56}{%
+\subsection{Interactions (5/6)}\label{interactions-56}}
+
+\footnotesize
+
+\begin{verbatim}
+## Call:
+## clogit(choice ~ type + fuel + cost + space:factor(hsg2) + strata(id), 
+##     data = CarLong)
+## 
+##                       coef exp(coef) se(coef)     z      p
+## typesportuv          0.820     2.270    0.140   5.8  5e-09
+## typesportcar         0.629     1.876    0.147   4.3  2e-05
+## typestwagon         -1.429     0.239    0.062 -23.1 <2e-16
+## typetruck           -1.013     0.363    0.049 -20.7 <2e-16
+## typevan             -0.808     0.446    0.047 -17.2 <2e-16
+## fuelmethanol        -0.610     0.543    0.056 -10.9 <2e-16
+## fuelcng             -0.215     0.806    0.052  -4.1  3e-05
+## fuelelectric         0.153     1.166    0.042   3.6  3e-04
+## cost                -0.078     0.925    0.007 -10.5 <2e-16
+## space:factor(hsg2)0  0.398     1.488    0.200   2.0   0.05
+## space:factor(hsg2)1 -0.051     0.951    0.316  -0.2   0.87
+## 
+## Likelihood ratio test=1553  on 11 df, p=<2e-16
+## n= 27924, number of events= 4654
+\end{verbatim}
+
+\normalsize
+
+\hypertarget{interactions-66}{%
+\subsection{Interactions (6/6)}\label{interactions-66}}
+
+\begin{itemize}
+\tightlist
+\item
+  But notice that these models are actually the same model!
+\end{itemize}
+
+\footnotesize
+
+\begin{verbatim}
+## # A tibble: 2 x 2
+##   model logLik
+##   <chr>  <dbl>
+## 1 m2    -7562.
+## 2 m3    -7562.
+\end{verbatim}
+
+\normalsize
+
+\footnotesize
+
+\begin{verbatim}
+## # A tibble: 27,924 x 2
+##     pr_m2  pr_m3
+##     <dbl>  <dbl>
+##  1 0.138  0.138 
+##  2 0.310  0.310 
+##  3 0.192  0.192 
+##  4 0.103  0.103 
+##  5 0.141  0.141 
+##  6 0.115  0.115 
+##  7 0.191  0.191 
+##  8 0.0850 0.0850
+##  9 0.204  0.204 
+## 10 0.0489 0.0489
+## # i 27,914 more rows
+\end{verbatim}
+
+\normalsize
+
+\hypertarget{your-turn-2}{%
+\subsection{YOUR TURN}\label{your-turn-2}}
+
+Hypothesize and test another decion-maker by alternative interaction.
+Produce \emph{one} fictive choice set and predictions for that choice
+set for fictive people who differ in the decision-maker specific
+attribute you used for your interaction.
+
+\hypertarget{your-turn-3}{%
+\subsection{YOUR TURN}\label{your-turn-3}}
+
+Experiment more with \texttt{clogit()}. Try:
+
+\begin{itemize}
+\tightlist
+\item
+  Additional covariates
+\item
+  Predictions based on new choice sets
+\item
+  Making the ``best'' model you can.
+\item
+  Compare predictions between simple models and your ``best'' model.
+\item
+  etc.
+\end{itemize}
+
+\hypertarget{next-up}{%
+\subsection{Next Up}\label{next-up}}
+
+\begin{itemize}
+\tightlist
+\item
+  Large choice sets
+\item
+  Linear hypothesis testing
+\item
+  Model fit
+\end{itemize}
+
+\end{document}
