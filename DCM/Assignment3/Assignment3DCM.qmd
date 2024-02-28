@@ -23,8 +23,8 @@ library(modelsummary)
 library(knitr)
 library(kableExtra)
 
-ess2018_uk <- read_dta("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/DCM/Assignment3/ESS10_gb.dta")
-#ess2018_uk <- read_dta("C:/Users/marcs/Desktop/Labs/CSS_Labs_early_24/DCM/Assignment3/ESS10_gb.dta")
+#ess2018_uk <- read_dta("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/DCM/Assignment3/ESS10_gb.dta")
+ess2018_uk <- read_dta("C:/Users/marcs/Desktop/Labs/CSS_Labs_early_24/DCM/Assignment3/ESS10_gb.dta")
 ```
 
 ## Preparing Analyses
@@ -85,7 +85,7 @@ modelsummary(mods, shape =  term ~ model + response,
              coef_map = cm,
              notes = list("Source: ESS data from 2018 in the UK.", 
                           "Comments: Immigration attitude was assessed with the question 'Immigrants make country worse (0) or better (10) place to live'. The reference category is 0.",
-             "The reference category for the voted for party is Labour."))
+             "The reference category for the voted for party is Labour.")) |> kable_styling(latex_options = "scale_down")
 ```
 
 ```{r}
