@@ -1,5 +1,5 @@
 ---
-title: "Assignment 3 DCM - Party Vote and Views on Immigration in the UK 2018"
+title: "Assignment 3 DCM - Party Vote and Views on Immigration in the UK"
 author: "Marc Sparhuber"
 format: pdf
 editor: source
@@ -14,7 +14,9 @@ header-includes:
 
 \newpage 
 
-## Data
+## Introduction
+
+> The following analysis tests the research question of whether vote choice in the UK can be explained by whether an inidividual considers immigration as beneficial for the quality of life in the UK. It is expected that considering immigration beneficial for the quality of life in the UK is associated with a greater likelihood of having voted Labour in the last general election (2019), as conservative parties globally tend to disincentivize migration to their country for prospective migrants, as well as market themselves as anti-immigrant during campaigning, which the Tories have done frequently in the past and before the 2019 general election, therefore attracting votes from people who think that their country would be better off without immigrantion. It is assumed that people who have voted for them for these reasons still held them when interviewed for the ESS in 2020-2022.
 
 ```{r}
 library(tidyverse)
@@ -23,15 +25,14 @@ library(modelsummary)
 library(knitr)
 library(kableExtra)
 
-#ess2018_uk <- read_dta("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/DCM/Assignment3/ESS10_gb.dta")
-ess2018_uk <- read_dta("C:/Users/marcs/Desktop/Labs/CSS_Labs_early_24/DCM/Assignment3/ESS10_gb.dta")
+ess2018_uk <- read_dta("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/DCM/Assignment3/ESS10_gb.dta")
+#ess2018_uk <- read_dta("C:/Users/marcs/Desktop/Labs/CSS_Labs_early_24/DCM/Assignment3/ESS10_gb.dta")
 ```
 
-## Preparing Analyses
 
 ```{r}
 data <- ess2018_uk |> 
-  select(prtvtdgb, imwbcnt, gndr, agea, edulvlb) |>
+  select(prtvtdgb, imwbcnt, gndr, agea, edulvlb, mode) |>
   drop_na(prtvtdgb, imwbcnt, gndr, agea, edulvlb) |>
   mutate(tertiary_education = as_factor(if_else(as.numeric(edulvlb) > 500, 1, 0)),
          party_vote = fct_relevel(fct_collapse(as.factor(prtvtdgb),
@@ -47,18 +48,25 @@ data <- ess2018_uk |>
   select(-c(prtvtdgb, imwbcnt, gndr, agea, edulvlb))
 ```
 
-## Summary Statistics
+## Data
+
+describe your data, e.g. when and how it was collected, nonresponse rate, etc., and how you defined your variables. This part should include your table of descriptive statistics for the variables in your models, and a brief discussion of notable patterns observed in this table.
+
+> To answer this research question, data from the 10th round (collected 2020 to 2022) of the European Social Survey collected in the UK is used, which is conducted every 2 years and included over 600 columns of data. Of this data, only responses participants who had no missing data in any of the variables presented in Table 1 were taken into account. This reduces the sample size from 1149 to 809. Of the remaining data points, 95% of participants were interviewed face to face, while the other 5% took part in a web-based video interview.
+
+> Table 1 shows descriptive statistics used in the analysis. Tertiary education is distributed evenly withing the sample and is coded 1 when the respondent reported their highest level of education to be at least tertiary education below bachelor level and 0 otherwise. The party choice was collapsed to include only Labour, Conservative, Liberal Democrat and Other, which included all other parties. A result of this could be the under-representation of individuals outside England that did not vote any of the listed above parties, as party choice and size in other UK countries can strongly vary (e.g., Sinn Féin in Northern Ireland or the SNP in Scotland). The repondents' 2019 general election votes differ slightly from the actual election outcomes, with Labour receiving 40% of the vote (33% in the sample), the Tories 42% (44%), and the Liberal Democrats 11% (7%). This divergence may be due to the above mentioned parties being lumped in with "Others", who make up the rest of the sample.
+
+> Immigration attitude, the main independent variable, was assessed with a 10-point Likert scale ranging from 0 (Worse) to 10 (Better) in response to the statement 'Immigrants make country worse or better place to live'. In the sample, the mean Immigration attitude is 6.44 - so, 'slightly better'. With a median of 7 and a standard deviation of 2.36. The sample had slightly more female respondents (54%) and the mean age was 58, with a median of 60 and a standard deviation of 17. All in all, this sample seems to be mostly representative of the UK voting age public, despite individuals with tertiary education and women being overrepresented.
 
 ```{r}
-datasummary((`Tertiary Education` = tertiary_education) + (`Vote General Election 2017` = party_vote) + (`Gender` = gender) + Heading("Immigration Attitude", nearData = FALSE) * Immigration + Heading("Age", nearData = FALSE) * age + Heading("All", nearData = FALSE) * 1 ~ Mean + Median + SD + N + Percent(),
+datasummary((`Tertiary Education` = tertiary_education) + (`Vote General Election 2019` = party_vote) + (`Gender` = gender) + Heading("Immigration Attitude", nearData = FALSE) * Immigration + Heading("Age", nearData = FALSE) * age + Heading("All", nearData = FALSE) * 1 ~ Mean + Median + SD + N + Percent(),
                        data = data,
-                       title = "European Social Survey (UK, 2018): Descriptive statistics") |>
+                       title = "European Social Survey (UK, 10th round): Descriptive statistics") |>
                        kable_styling(latex_options = "scale_down")
 ```
 
 
 ```{r}
-
 library(nnet)
 library(broom)
 library(modelr)
@@ -76,17 +84,21 @@ cm <- c("genderMale" = "Male",
         "Immigration" = "Immigration Attitude")
 
 modelsummary(mods, shape =  term ~ model + response,
-             fmt = 2,
-             statistic = 'conf.int',
-             title = "Voting in the 2017 UK general election: Multinomial logistic regression",
+              fmt = 2,
+              statistic = 'conf.int',
+             title = "Voting in the 2019 UK general election: Multinomial logistic regression",
              exponentiate = TRUE,
              stars = TRUE,
              gof_omit = "RMSE|R2|R2 Adj.",
              coef_map = cm,
-             notes = list("Source: ESS data from 2018 in the UK.", 
-                          "Comments: Immigration attitude was assessed with the question 'Immigrants make country worse (0) or better (10) place to live'. The reference category is 0.",
-             "The reference category for the voted for party is Labour.")) |> kable_styling(latex_options = "scale_down")
+              notes = list("Source: ESS data from the 10th round in the UK.", 
+                           "Comments: Immigration attitude was assessed with the question:",
+                           "'Immigrants make country worse (0) or better (10) place to live'. The reference category is 0.",
+             "The reference category for the voted for party is Labour.")
+             ) |> kable_styling(latex_options = "scale_down")
 ```
+
+## Results
 
 ```{r}
 #| fig-align: center
@@ -132,10 +144,10 @@ data_fit <- as.data.frame(tribble(
 rownames(data_fit) <- c("Nagelkerke’s pseudo-R2", "Hosmer-Lemeshow", "Hosmer-Lemeshow (p-values)", "Share of correct predictions", "Log Likelihood", "Likelihood Ratio", "Likelihood Ratio (p-value)")
 
 kable(data_fit,
-      caption = "Voting for Obama: Model fit statistics") |> 
+      caption = "Voting in the 2019 UK general election: Model fit statistics") |> 
   footnote(footnote_as_chunk = TRUE,
            threeparttable = TRUE, 
-           general = "The Likelihood ratio is always calculated with the nested model to the left. Data from ESS (UK) 2018.")
+           general = "The Likelihood ratio is always calculated with the nested model to the left. Data from ESS (UK, 10th round).")
 ```
 
 
@@ -148,7 +160,7 @@ kable(data_fit,
 library(ggeffects)
 library(scales)
 
-vote_prob_immigration <- ggeffect(mod_Immigration, term = "Immigration")
+vote_prob_immigration <- ggeffect(mod_Immigration, terms = c("Immigration", "tertiary_education"))
 
 vote_prob_immigration |> 
   ggplot(aes(x, predicted, colour = response.level, fill = response.level)) +
@@ -158,14 +170,15 @@ vote_prob_immigration |>
   scale_y_continuous(labels = label_percent()) +
   scale_x_continuous(breaks = seq(0, 10, by = 2)) +
   theme_light() +
-  labs(title = "Party choice in the 2017 UK general election",
+  labs(title = "Party choice in the 2019 UK general election",
        subtitle = "Estimates from multinomial logistic regression",
        x = "Immigrants make country worse (0) or better (10) place to live",
        y = "Predicted probability",
-       caption = "Data from ESS (UK) 2018.",
+       caption = "Data from ESS (UK - 10th round).",
        colour = "Party",
-       fill = "Party")
+       fill = "Party") + facet_wrap(vars(group))
 ```
 
+## Conclusion
 
 
