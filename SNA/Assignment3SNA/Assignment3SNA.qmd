@@ -22,7 +22,8 @@ library(latticeExtra)	# for nicer convergence & gof plots
 library(ergm)			# fitting & evaluating ERGMs
 library(tidyverse)
 
-load("C:/Users/marcs/Desktop/Labs/CSS_Labs_early_24/SNA/Assignment3SNA/marsp357.RData")
+#load("C:/Users/marcs/Desktop/Labs/CSS_Labs_early_24/SNA/Assignment3SNA/marsp357.RData")
+load("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/SNA/Assignment3SNA/marsp357.RData")
 ```
 
 Please program two R-functions for evaluating a given network:
@@ -33,22 +34,10 @@ applying these functions.
 
 
 ```{r}
-n_recip <- function(matrix, dims) {
-  
-  counter_recip <- 0
-  
-  for (i in 1:dims) {
-    for (j in 1:dims) {
-      if (matrix[i, j] == 1 & matrix[j, i] == 1) {
-        counter_recip <- counter_recip + 1
-      }
-    }
-  }
-  
-  return(counter_recip/2)
+n_recip <- function(matrix) {
+  dyad.census(matrix)[1]
 }
-
-n_recip(fri, 28)
+n_recip(fri)
 ```
 
 ```{r}
@@ -58,6 +47,46 @@ n_trans_closed_triads <- function(adjacency_matrix) {
 
 n_trans_closed_triads(fri)
 ```
+
+3) Bonus question: Explain for each function what its expected value is for random networks
+with the same number of nodes and the same probability of ties as your personalised school
+class network (hint: you need not generate random networks for this, it can be calculated
+analytically). Is the empirical value in your data set (calculated in Exercise 2) above this
+chance-expectation?
+
+```{r}
+# Assuming you have calculated the number of observed ties, reciprocated ties, 
+# and transitively closed triads in your personalized school class network.
+
+# Total number of nodes in the network
+total_nodes <- nrow(school_network)
+
+# Total number of possible ties in an undirected network
+total_possible_ties <- total_nodes * (total_nodes - 1) / 2
+
+# Calculate the probability of ties in the network
+probability_of_ties <- observed_ties / total_possible_ties
+
+# Calculate the expected number of reciprocated ties based on probability of ties
+expected_reciprocated_ties <- total_possible_ties * probability_of_ties^2
+
+# Calculate the expected number of transitively closed triads based on probability of ties
+expected_transitive_triads <- total_possible_ties^2 * probability_of_ties^3
+
+# Compare with empirical values
+if (empirical_reciprocated_ties > expected_reciprocated_ties) {
+  print("The empirical value for reciprocated ties is above the chance expectation.")
+} else {
+  print("The empirical value for reciprocated ties is below the chance expectation.")
+}
+
+if (empirical_transitive_triads > expected_transitive_triads) {
+  print("The empirical value for transitively closed triads is above the chance expectation.")
+} else {
+  print("The empirical value for transitively closed triads is below the chance expectation.")
+}
+```
+
 
 4) Please calculate a student-by-student matrix that indicates how many hobbies two students have in common.
 
@@ -103,22 +132,20 @@ The “null model”: A model in which also the homophily terms are dropped, and
 ```{r}
 friends <- network(fri)
 friends %v% "gender" <- fem
+friends %v% "gender_col" <- 
+	c("darkblue","darkred")[fem+1]
 friends %v% "school_attitude" <- sch
 
 # full model
-model_full <- friends ~ edges + mutual + gwesp(0.5,fixed=TRUE) + nodematch("gender") +
-  absdiff("school_attitude") + edgecov(hob_t) + twopath
-
+model_full <- friends ~ edges + mutual + gwesp(0.5,fixed=TRUE) + nodematch("gender") + absdiff("school_attitude") + edgecov(hob_t) + twopath
 results_full <- ergm(model_full, control = control.ergm(seed = 1))
 
 # reduced model
 model_reduc <- friends ~ edges + nodematch("gender") + absdiff("school_attitude") + edgecov(hob_t)
-
 results_reduc <- ergm(model_reduc, control = control.ergm(seed = 1))
 
 # null model
 model_null <- friends ~ edges
-
 results_null <- ergm(model_null, control = control.ergm(seed = 1))
 ```
 
@@ -135,7 +162,16 @@ mods <- list(
 
 library(modelsummary)
 
-modelsummary(mods)
+#coefmap
+
+modelsummary(mods,
+             stars = T,
+             fmt = 2,
+             title = "blah blah TITLE",
+             notes = list("Source: GSS data from the socviz R package.", 
+                          "Comments: The reference cateogory for happy is 'Not Too Happy'."),
+             statistic = "conf.int")
+             #coefmap
 ```
 
 > BRIEF INTERPRETATION HERE
@@ -151,5 +187,57 @@ sim_full <- simulate(results_full, nsim = 100, seed = 1)
 sim_reduc <- simulate(results_reduc, nsim = 100, seed = 1)
 sim_null <- simulate(results_null, nsim = 100, seed = 1)
 
+sims_full_results_dyad <- lapply(sim_full, n_recip)
+sims_full_results_triad <- lapply(sim_full, n_trans_closed_triads)
+
+sim_reduc_results_dyad <- lapply(sim_reduc, n_recip)
+sim_reduc_results_triad <- lapply(sim_reduc, n_trans_closed_triads)
+
+sim_null_results_dyad <- lapply(sim_null, n_recip)
+sim_null_results_triad <- lapply(sim_null, n_trans_closed_triads)
 ```
 
+```{r}
+#| fig-width: 10
+#| fig-height: 10
+
+plot(friends, vertex.col = "gender_col", main = "empirical")
+plot(sim_full[[83]],	vertex.col = "gender_col", main = "Sim Full")
+plot(sim_reduc[[52]], vertex.col = "gender_col", main = "Sim Reduc")
+plot(sim_null[[25]],	vertex.col = "gender_col", main = "Sim Null")
+```
+
+```{r}
+df_dyad <- t(data.frame(sims_full_results_dyad)) |> cbind(t(data.frame(sim_reduc_results_dyad))) |> cbind(t(data.frame(sim_null_results_dyad))) |> cbind(n_recip(fri)) |> as_tibble() |> rename(V_Full = V1, V_Reduc = V2, V_Null = V3, Constant = V4) |> as_tibble() |> pivot_longer(cols = starts_with("V"), names_to = "variable", values_to = "value")
+
+df_dyad$x <- seq_along(df_dyad$value)
+
+ggplot(df_dyad, aes(x = x, y = value, color = variable)) +
+  geom_line() +
+  geom_hline(aes(yintercept = Constant), linetype = "dashed") +
+  labs(title = "Line Graph with Constant Line",
+       x = "X Axis Label",
+       y = "Y Axis Label",
+       color = "Variables") +
+  theme_light()
+```
+
+```{r}
+df_triad <- t(data.frame(sims_full_results_triad)) |> cbind(t(data.frame(sim_reduc_results_triad))) |> cbind(t(data.frame(sim_null_results_triad))) |> cbind(n_trans_closed_triads(fri)) |> as_tibble() |> rename(V_Full = V1, V_Reduc = V2, V_Null = V3, Constant = V4) |> as_tibble() |> pivot_longer(cols = starts_with("V"), names_to = "variable", values_to = "value")
+
+df_triad$x <- seq_along(df_dyad$value)
+
+ggplot(df_triad, aes(x = x, y = value, color = variable)) +
+  geom_line() +
+  geom_hline(aes(yintercept = Constant), linetype = "dashed") +
+  labs(title = "Line Graph with Constant Line",
+       x = "X Axis Label",
+       y = "Y Axis Label",
+       color = "Variables") +
+  theme_light()
+```
+
+8) Try to substantiate your reasoning in Exercise 1) based on these results.
+
+9) Please indicate whom you collaborated with when answering the above questions, and
+whose input you considered particularly helpful.
