@@ -147,6 +147,9 @@ modelsummary(mods)
 − Make two plots, one for each function programmed in Exercise 2), each of which contains the three simulated distributions and the empirical value of the index as reference (i.e., the value you calculated in Exercise 2). 
 
 ```{r}
+sim_full <- simulate(results_full, nsim = 100, seed = 1)
+sim_reduc <- simulate(results_reduc, nsim = 100, seed = 1)
+sim_null <- simulate(results_null, nsim = 100, seed = 1)
 
 ```
 

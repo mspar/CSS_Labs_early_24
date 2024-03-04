@@ -39,7 +39,8 @@ packageVersion("ergm")
  
 # The examples make use of the s50 data set
 browseURL("https://www.stats.ox.ac.uk/~snijders/siena/s50_data.htm")
-load("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/SNA/Assignment3SNA/s50.RData")
+#load("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/SNA/Assignment3SNA/s50.RData")
+load("C:/Users/marcs/Desktop/Labs/CSS_Labs_early_24/SNA/Assignment3SNA/s50.RData")
 
 # We will analyse the first of these networks, so let us
 # start by preparing it as a network object:
