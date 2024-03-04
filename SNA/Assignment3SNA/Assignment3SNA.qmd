@@ -1,0 +1,97 @@
+---
+title: "Assignment 2 SNA - Island State Communities"
+author: "Marc Sparhuber"
+format: pdf
+editor: source
+execute:
+  warning: false
+  echo: false
+toc: true
+header-includes:
+      - \usepackage{float}
+      - \floatplacement{table}{H}
+---
+
+\newpage 
+
+```{r}
+# Load the vocabulary of the neccessary packages:
+library(network)		# network data storage
+library(sna)			# network analysis routines
+library(latticeExtra)	# for nicer convergence & gof plots
+library(ergm)			# fitting & evaluating ERGMs
+library(tidyverse)
+
+load("marsp357.RData")
+```
+
+Please program two R-functions for evaluating a given network:
+− one that calculates the number of reciprocated ties,
+− another one that calculates the number of transitively closed triads.
+Then evaluate your personalised school class network data set on these two dimensions by
+applying these functions. 
+
+
+```{r}
+n_recip <- function(matrix, dims) {
+  
+  counter_recip <- 0
+  
+  for (i in 1:dims) {
+    for (j in 1:dims) {
+      if (matrix[i, j] == 1 & matrix[j, i] == 1) {
+        counter_recip <- counter_recip + 1
+      }
+    }
+  }
+  
+  return(counter_recip/2)
+}
+
+n_recip(fri, 28)
+```
+
+```{r}
+n_trans_closed_triads <- function(adjacency_matrix) {
+  triad.census(adjacency_matrix, mode = "digraph")[9]
+}
+
+n_trans_closed_triads(fri)
+```
+
+4) Please calculate a student-by-student matrix that indicates how many hobbies two students have in common.
+
+- What is the average amount of hobbies that friends have in common in your data set? 
+- What is the average amount of hobbies that non-friends have in common? Do these numbers indicate hobby-homophily of friendship?
+
+(Note: make sure that you handle the matrix diagonal correctly in these calculations!
+Nobody is their own friend, and nobody is a “non-friend” to themselves either!) 
+
+```{r}
+#this counts a "friend" as someone you nominate as a friend - does not need to be reciprocal!
+
+hob_t <- hob %*% t(hob)
+
+diag(hob_t) <- NA
+diag(fri) <- NA
+
+avg_hobbies_friends <- mean(hob_t[fri == 1], na.rm = TRUE)
+avg_hobbies_non_friends <- mean(hob_t[fri == 0], na.rm = TRUE)
+```
+
+Finally, let us move to the modelling of your data set, in which your reasoning from Exercise 1 can be quantitatively assessed, combining empirical analysis with simulation.
+
+5) Please fit three exponential random graph models to the data:
+
+The “full model”: A model that simultaneously assesses overall tie creation tendencies, reciprocation tendencies, transitive closure tendencies (hint: use gwesp), and three homophily tendencies: for gender (hint: use nodematch), school attitude (hint: use absdiff) and shared hobbies (hint: use edgecov applied to the matrix obtained in Exercise 4). 
+
+For statistical reasons (hierarchy principle) please also include the twopath effect; this will help avoid estimation problems.
+
+The “reduced model”: A model where reciprocation, transitive closure and the twopath effect are dropped from the full model, whereas the three homophily terms and the general tie creation tendency are retained.
+
+The “null model”: A model in which also the homophily terms are dropped, and only the overall tie creation tendency is retained. 
+
+```{r}
+
+```
+
