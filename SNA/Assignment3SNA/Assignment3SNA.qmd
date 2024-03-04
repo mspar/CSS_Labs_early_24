@@ -22,7 +22,7 @@ library(latticeExtra)	# for nicer convergence & gof plots
 library(ergm)			# fitting & evaluating ERGMs
 library(tidyverse)
 
-load("marsp357.RData")
+load("C:/Users/marcs/Desktop/Labs/CSS_Labs_early_24/SNA/Assignment3SNA/marsp357.RData")
 ```
 
 Please program two R-functions for evaluating a given network:
@@ -72,24 +72,79 @@ Nobody is their own friend, and nobody is a “non-friend” to themselves eithe
 
 hob_t <- hob %*% t(hob)
 
-diag(hob_t) <- NA
-diag(fri) <- NA
+hob_t2 <- hob_t
+diag(hob_t2) <- NA
+fri2 <- fri
+diag(fri2) <- NA
 
-avg_hobbies_friends <- mean(hob_t[fri == 1], na.rm = TRUE)
-avg_hobbies_non_friends <- mean(hob_t[fri == 0], na.rm = TRUE)
+avg_hobbies_friends <- mean(hob_t2[fri2 == 1], na.rm = TRUE)
+avg_hobbies_non_friends <- mean(hob_t2[fri2 == 0], na.rm = TRUE)
 ```
 
 Finally, let us move to the modelling of your data set, in which your reasoning from Exercise 1 can be quantitatively assessed, combining empirical analysis with simulation.
 
 5) Please fit three exponential random graph models to the data:
 
-The “full model”: A model that simultaneously assesses overall tie creation tendencies, reciprocation tendencies, transitive closure tendencies (hint: use gwesp), and three homophily tendencies: for gender (hint: use nodematch), school attitude (hint: use absdiff) and shared hobbies (hint: use edgecov applied to the matrix obtained in Exercise 4). 
+The “full model”: A model that simultaneously assesses 
 
+overall tie creation tendencies, 
+reciprocation tendencies, 
+transitive closure tendencies (hint: use gwesp), and 
+three homophily tendencies: 
+for gender (hint: use nodematch), 
+school attitude (hint: use absdiff) and 
+shared hobbies (hint: use edgecov applied to the matrix obtained in Exercise 4). 
 For statistical reasons (hierarchy principle) please also include the twopath effect; this will help avoid estimation problems.
 
 The “reduced model”: A model where reciprocation, transitive closure and the twopath effect are dropped from the full model, whereas the three homophily terms and the general tie creation tendency are retained.
 
 The “null model”: A model in which also the homophily terms are dropped, and only the overall tie creation tendency is retained. 
+
+```{r}
+friends <- network(fri)
+friends %v% "gender" <- fem
+friends %v% "school_attitude" <- sch
+
+# full model
+model_full <- friends ~ edges + mutual + gwesp(0.5,fixed=TRUE) + nodematch("gender") +
+  absdiff("school_attitude") + edgecov(hob_t) + twopath
+
+results_full <- ergm(model_full, control = control.ergm(seed = 1))
+
+# reduced model
+model_reduc <- friends ~ edges + nodematch("gender") + absdiff("school_attitude") + edgecov(hob_t)
+
+results_reduc <- ergm(model_reduc, control = control.ergm(seed = 1))
+
+# null model
+model_null <- friends ~ edges
+
+results_null <- ergm(model_null, control = control.ergm(seed = 1))
+```
+
+6) Report the results in one(!) table and interpret them in a brief text. Make sure to include information criteria in your table and address them in a model comparison.
+
+Bonus addition: If you have time, you can also assess goodness of fit and include summary information (e.g., p-values) in the table and discuss them next to the information criteria. 
+
+```{r}
+mods <- list(
+  "Null Model" = results_null,
+  "Reduc. Model" = results_reduc,
+  "Full Model" = results_full
+)
+
+library(modelsummary)
+
+modelsummary(mods)
+```
+
+> BRIEF INTERPRETATION HERE
+
+7) Please simulate 100 networks from each model. Evaluate the simulated data in terms of the functions you programmed for Exercise 2) above. Compare the models in terms of their simulations to each other graphically and to the observed data. Concretely:
+
+− Make four network visualisations: one example graph from each set of simulations, and the empirical data set, with nodes coloured by gender.
+
+− Make two plots, one for each function programmed in Exercise 2), each of which contains the three simulated distributions and the empirical value of the index as reference (i.e., the value you calculated in Exercise 2). 
 
 ```{r}
 
