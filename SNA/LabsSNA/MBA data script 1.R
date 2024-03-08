@@ -5,6 +5,8 @@
 # written by Christian Steglich
 ##############################################
 
+ONLY DIRECTION MATTERS IN INTERPRETATION
+
 # The data used in this script were collected
 # by Vanina Torlò as part of her PhD study.
 # A comprehensive description and analysis can
@@ -15,7 +17,7 @@
 # Social Science Research 40(6), 1506-1520.
 
 # load data set into the workspace of this R session:
-load("MBAData.RData")
+load("C:/Users/marcs/Desktop/Labs/CSS_Labs_early_24/SNA/LabsSNA/MBAData.RData")
 ls()
 
 # quick overview of actor attribute coding:

@@ -15,7 +15,7 @@
 # Social Science Research 40(6), 1506-1520.
 
 # load data set into the workspace of this R session:
-load("MBAData.RData")
+load("C:/Users/marcs/Desktop/Labs/CSS_Labs_early_24/SNA/LabsSNA/MBAData.RData")
 ls()
 
 # load SAOM-estimation software into namespace:
