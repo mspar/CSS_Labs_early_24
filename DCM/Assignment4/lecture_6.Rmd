@@ -1,0 +1,580 @@
+---
+title: "Lecture 6: McFadden's Conditional Logistic Regression Model"
+author: Benjamin Jarvis
+institute: | 
+  | Institute for Analytical Sociology
+  | Linköping University
+date: 26 February 2024
+fontsize: 11pt
+output:
+  beamer_presentation:
+    includes:
+      in_header: 
+        - header.tex
+        - columns.tex
+    keep_tex: true
+---
+
+```{r setup , include=F}
+knitr::opts_chunk$set(include=T, message=F, warning=F)
+options(digits=3)
+options(knitr.kable.NA = '')
+
+colorize <- function(x, color) {
+  if (knitr::is_latex_output()) {
+    sprintf("\\textcolor{%s}{%s}", color, x)
+  } else if (knitr::is_html_output()) {
+    sprintf("<span style='color: %s;'>%s</span>", color, 
+      x)
+  } else x
+}
+
+library(tidyverse)
+library(tidymodels)
+library(survival)
+library(kableExtra)
+library(RColorBrewer)
+theme_set(theme_light())
+theme_update(text = element_text(size = 24))
+```
+
+```{r , include=F}
+# This is allows us to control text size for Latex output created by R
+def.chunk.hook  <- knitr::knit_hooks$get("chunk")
+knitr::knit_hooks$set(chunk = function(x, options) {
+  x <- def.chunk.hook(x, options)
+  ifelse(options$size != "normalsize", paste0("\n \\", options$size,"\n\n", x, "\n\n \\normalsize"), x)
+})
+```
+
+## Objectives
+
+- Distinguish the "decision maker" and "alternative" levels of observation.
+
+- Distinguish between decision maker specific and alternative specific variables.
+
+- Explain the conditional logistic regression probability function.
+
+- Describe the data structure needed to estimate conditional logistic regression models.
+
+- Interpret coefficient estimates for the conditional logistic regression model.
+
+- Explain why there are no main effects of decision maker level covariates.
+
+## A motivating problem: market research.
+
+- Let's say I work at a car company planning to introduce a new model.
+- I need to decide what features to include:
+  - fuel type
+  - fuel economy
+  - power
+  - space
+  - etc.
+- I'm interested in...
+  - which of these features consumers value
+  - potential sales
+- How would I make these assessments?
+
+
+## Solution: discrete choice experiments
+
+- Create a survey with a menu of options:
+\vspace{1ex}
+
+:::: {.cols data-latex=""}
+
+::: {.col data-latex="{0.32\textwidth}"}
+\includegraphics[width=0.9\textwidth]{car_wagon} \
+Volvo estate \
+\vspace{1cm} \
+\includegraphics[width=0.9\textwidth]{car_sports} \
+Ferrari sports car
+:::
+
+::: {.col data-latex="{0.02\textwidth}"}
+\vspace{1ex}
+:::
+
+::: {.col data-latex="{0.32\textwidth}"}
+\includegraphics[width=0.9\textwidth]{car_tesla} \
+Tesla sedan \
+\vspace{1cm} \
+\includegraphics[width=0.9\textwidth]{car_van} \
+Mercedes van 
+:::
+
+::: {.col data-latex="{0.02\textwidth}"}
+\vspace{1ex}
+:::
+
+::: {.col data-latex="{0.32\textwidth}"}
+\includegraphics[width=0.9\textwidth]{car_truck} \
+Dodge truck \
+\vspace{1cm} \
+\includegraphics[width=0.9\textwidth]{car_compact} \
+Fiat compact
+:::
+
+::::
+
+## Present the menu to different potential buyers
+
+- These buyers vary in some measured attributes, like family status, occupation, income, etc. 
+\vspace{1ex}
+
+:::: {.cols data-latex=""}
+
+::: {.col data-latex="{0.32\textwidth}"}
+\includegraphics[width=0.9\textwidth]{buyer_business} \
+- single \
+- lawyer \
+- 100,000 \euro
+:::
+
+::: {.col data-latex="{0.02\textwidth}"}
+\vspace{1ex}
+:::
+
+::: {.col data-latex="{0.32\textwidth}"}
+\includegraphics[width=0.9\textwidth]{buyer_construction} \
+- married \
+- electrician \
+- 50,000 \euro
+:::
+
+::: {.col data-latex="{0.02\textwidth}"}
+\vspace{1ex}
+:::
+
+::: {.col data-latex="{0.32\textwidth}"}
+\includegraphics[width=0.9\textwidth]{buyer_family} \
+- couple with child \
+- teacher and nurse \
+- 90,000 \euro
+:::
+
+::::
+
+## But what do we make of their choices?
+ 
+- We could model these outcomes using multinomial logistic regression...
+
+- But what would it matter if we discovered that some people prefer Ferrari and others prefer Dodge Rams?
+
+- How would that help us design our own car if we work for, say, Honda?
+
+- We need a different approach!
+
+## Solution: Give respondents more information
+
+\vspace{1ex}
+
+:::: {.cols data-latex=""}
+
+::: {.col data-latex="{0.32\textwidth}"}
+\includegraphics[width=0.9\textwidth]{car_wagon} \
+- 40,000 \euro \
+- 150 hp \
+- 12 km/l \
+- diesel \
+\vspace{1ex} \
+\includegraphics[width=0.9\textwidth]{car_sports} \
+- 180,000 \euro \
+- 650 hp \
+- 5 km/l \
+- petrol \
+\vspace{1ex}
+:::
+
+::: {.col data-latex="{0.02\textwidth}"}
+\vspace{1ex}
+:::
+
+::: {.col data-latex="{0.32\textwidth}"}
+\includegraphics[width=0.9\textwidth]{car_tesla} \
+- 55,000 \euro \
+- 250 hp \
+- 100 km/l (equiv.) \
+- electric \
+\vspace{1ex} \
+\includegraphics[width=0.9\textwidth]{car_van} \
+- 70,000 \euro \
+- 250 hp \
+- 9 km/l \
+- diesel \
+\vspace{1ex}
+:::
+
+::: {.col data-latex="{0.02\textwidth}"}
+\vspace{1ex}
+:::
+
+::: {.col data-latex="{0.32\textwidth}"}
+\includegraphics[width=0.9\textwidth]{car_truck} \
+- 60,000 \euro \
+- 350 hp \
+- 8 km/l \
+- petrol \
+\vspace{1ex} \
+\includegraphics[width=0.9\textwidth]{car_compact} \
+- 30,000 \euro \
+- 120 hp \
+- 120 km/l (equiv.) \
+- electric \
+\vspace{1ex}
+:::
+
+::::
+
+## Focus on the attributes
+
+- Now we can abstract away from particular brands.
+
+- Instead we can focus on attributes that could become features in our car:
+  - body type: sedan, estate, truck, etc.
+  - fuel: petrol, electric, diesel, etc.
+  - efficiency
+  - power
+  - etc.
+
+- But how do we model this?
+
+
+## The multinomial logit models no longer fits
+
+- It can represent the discrete choice.
+
+- And it can account for how/whether individual covariates influence the choice.
+
+- But it cannot account for alternative-level covariates, i.e., __alternative-specific explanatory variables__:
+  - body type
+  - purchase price
+  - fuel type
+  - etc.
+
+- And it cannot account for any potential __interactions__ between individual characteristics and alternative specific explanatory variables
+  - e.g., wealthier people less sensitive to price.
+  - families need more interior space.
+  - etc.
+
+## A modeling solution
+
+- Daniel McFadden, a Nobel Prize winner in economics, developed a set of models to predict economic choices.^[See McFadden, Daniel. 2001. “Economic Choices.” _The American Economic Review_ 91(3):351–78 for a short history and overview.]
+- McFadden's model is an extension of the _multinomial logistic model_.
+- Confusingly the model is sometimes _also_ called multinomial logistic regression.
+  - To prevent confusion, I'll refer to this model as the _conditional logit model_ or _conditional logistic regression_.
+- These models and related extensions have been to used to study:
+  - residential choices
+  - brand choices (e.g., cars, candy bars, etc.)
+  - The Academy Awards
+  - relationship formation in social networks
+  - occupational mobility
+  
+## Revisiting the multinomial logit model
+
+- Our original multinomial model could be expressed as:
+
+$$Pr(y_{ij}=1) = \frac{e^{X_i\beta_j}}{\sum_{k=1}^{K} e^{X_i\beta_k}}$$
+
+- Where...
+  - $X_i$ is a vector of attributes for decision-maker $i$.
+  - $\beta_j$ is an alternative-specific coefficient vector relating $X_i$ to the (log)odds that outcome $j$ is realized.
+    - one of $\beta_j$ must be "normalized" to zero (i.e., a reference category must be set).
+  - $y_ij$ is an outcome variable that takes on the value $1$ when $j$ is the realized outcome, and $0$ otherwise.
+  
+## The conditional logit model
+
+- The conditional logit focuses on **alternative-level attributes**:
+
+$$Pr(y_{ij}=1) = \frac{e^{Z_{ij}\alpha_{ij}}}{\sum_{k=1}^{K_i} e^{Z_{ik}\alpha_{ik}}}$$
+
+- $k$ indexes the $K_i$ **alternatives** in each person $i$'s **choice set**.
+  - The choice set includes the options decision makers had access to, which may vary across decision makers
+- $Z_{ij}$ is a vector of **alternative-level attributes** for alternative $j$, viewed from the perspective of **decision-maker** $i$.
+  - e.g., price, efficiency, etc.
+- $\alpha_{ij}$ is a coefficient vector that _may_ vary by decision-maker.
+  - e.g., people with higher incomes are less sensitive to prices.
+- $\alpha_{ij}$ _may_ also vary by alternative.
+  - e.g., range is more important for electric cars. 
+  
+## What information informs the estimates?
+
+$$Pr(y_{ij}=1) = \frac{e^{Z_{ij}\alpha_{ij}}}{\sum_{k=1}^{K_i} e^{Z_{ik}\alpha_{ik}}}$$  
+
+- So we model the probability of choosing one option from among several.
+- This is a function of:
+  - The attributes of the chosen alternatives.
+  - **AND** the attributes of the foregone alternatives.
+- The absolute values of $Z_{ij}$ and $Z_{ik}$ don't matter so much as their relative values within the choice set.
+- Once we have the estimates $\alpha_{ij}$, we can calculate predicted probabilities for the observed choice set, or for newly constructed choice sets featuring the same attributes.
+
+## An example: choices of alternate fuel vehicles
+
+- The package `Ecdat` includes data from a study investigating the appeal of alternative fuel vehicles in California.^[Brownstone, D., Bunch, D. S., Golob, T. F., & Ren, W. (1996). A transactions choice model for forecasting demand for alternative-fuel vehicles. _Research in Transportation Economics_, 4, 87–129. https://doi.org/10.1016/S0739-8859(96)80007-2]
+- Respondents in California were presented with a **choice set** of six fictive vehicles.
+- Their state choices from the set were recorded.
+- Vehicles differed in terms of:
+  - fuel type: cng, electric, gasoline, methanol, 
+  - body type: sedan, suv, sports car, wagon (estate), truck, van
+  - cost, etc.
+- Respondents' recorded attributes included:
+  - education ($1=$has college degree)
+  - size of the household ($1=$more than 2 persons in house)
+  - commute distance ($1=$commute $<5$ miles)
+
+## Inspecting travel mode data
+
+- To estimate McFadden's choice model, the data typically must be in **long form**.
+- long form better accommodates covariates that vary across alternatives.
+- The following is an extract of **$2$ observations**, distributed over **$12$ rows** in the data.
+```{r, echo=F}
+# Data prep
+Car <- Ecdat::Car %>% 
+  mutate(id=row_number()) %>% 
+  mutate(alt1=1,alt2=2,alt3=3,alt4=4,alt5=5,alt6=6) %>% 
+  pivot_longer(cols=starts_with(c("alt","type","fuel","price","range","acc","speed","pollution","size","space","cost","station")), 
+               names_to=".value",
+               names_pattern="(.+)[1-6]") %>% 
+  mutate(alt=as.integer(alt),
+    y=as.integer(as.integer(str_extract(as.character(choice),"[1-6]"))==alt)) %>% 
+  select(-choice) %>% 
+  rename(choice=y)
+
+CarDi <- Car %>% 
+  slice(1:18) %>% 
+  select(c("id","college","hsg2","coml5","alt","choice","type","fuel","cost"))
+
+CarDi %>% 
+  slice(1:12) %>% 
+  kbl() %>% kable_classic() %>% 
+  kable_styling(font_size=8) %>% 
+  column_spec(1:ncol(CarDi),
+              background=spec_color(slice(CarDi,1:12)$id),
+              color=c(rep("white",6),rep("black",6)))
+```
+
+## Correspondence between data and formula elements
+
+```{r, echo=F}
+CarDi %>% 
+  kbl() %>% kable_classic() %>% 
+  kable_styling(font_size=8) %>% 
+  column_spec(1:ncol(CarDi),
+              background=spec_color(CarDi$id),
+              color=c(rep("white",6),rep("black",6),rep("black",6))) %>% 
+  add_header_above(c("$(i)$","$X_i$"=3,"$(j)$","$y_{ij}$","$Z_{ij}$"=3),color="red",escape=F)
+```
+
+
+## Understanding check 1
+
+Which of the following is an **individual** or **decision-maker specific** explanatory variable?
+
+A) `type`
+B) `fuel`
+C) `coml5`
+D) `price`
+
+```{r, echo=F}
+CarDi %>% 
+  slice(1:12) %>% 
+  kbl() %>% kable_classic() %>% 
+  kable_styling(font_size=8) %>% 
+  column_spec(1:ncol(CarDi),
+              background=spec_color(slice(CarDi,1:12)$id),
+              color=c(rep("white",6),rep("black",6)))
+```
+
+
+## Understanding check 2
+
+Which of the following is an **alternative specific** explanatory variable?
+
+A) `cost`
+B) `college`
+C) `id`
+D) `hsg2`
+
+```{r, echo=F}
+CarDi %>% 
+  slice(1:12) %>% 
+  kbl() %>% kable_classic() %>% 
+  kable_styling(font_size=8) %>% 
+  column_spec(1:ncol(CarDi),
+              background=spec_color(slice(CarDi,1:12)$id),
+              color=c(rep("white",6),rep("black",6)))
+```
+
+## Understanding check 3
+
+How big is the choice set?
+
+```{r, echo=F}
+CarDi %>% 
+  slice(1:12) %>% 
+  kbl() %>% kable_classic() %>% 
+  kable_styling(font_size=8) %>% 
+  column_spec(1:ncol(CarDi),
+              background=spec_color(slice(CarDi,1:12)$id),
+              color=c(rep("white",6),rep("black",6)))
+```
+
+
+## Understanding check 4
+
+Did each respondent have the same choice set?
+
+```{r, echo=F}
+CarDi %>% 
+  slice(1:12) %>% 
+  kbl() %>% kable_classic() %>% 
+  kable_styling(font_size=8) %>% 
+  column_spec(1:ncol(CarDi),
+              background=spec_color(slice(CarDi,1:12)$id),
+              color=c(rep("white",6),rep("black",6)))
+```
+
+
+## A first model using the Brownstone et al.'s Car dataset
+
+```{r,echo=F, size="footnotesize"}
+m<-clogit(choice~type+fuel+cost+strata(id), data=Car)
+print(m)
+```
+
+## Interpreting coefficients (1/3)
+  
+- Interpreting $\alpha_j$ is a bit different than in the multinomial model.
+
+  - Assume that we have two alternatives $j$ and $j'$, available in the choice set, perhaps including a few other alternatives.
+  
+  - Assume that there is one covariate $Z$, with $\alpha_{ij}$ fixed.
+    
+    - $\alpha_{ij} = \alpha \, \forall$ $i$ and $j$.
+  
+  - Assume $Z=z$ for $j'$, and $Z=z+1$ for $j$ 
+  
+  - If there are other covariates in $Z$, we assume these are equal for $j$ and $j'$.
+    
+## Interpreting coefficients (2/3)
+
+We then have two probability expressions.
+
+:::: {.cols data-latex=""}
+
+::: {.col data-latex="{0.48\textwidth}"}
+$$Pr(y_{ij}=1) = \frac{e^{z\alpha}}{\sum_{k=1}^{K} e^{Z_k\alpha}}$$
+
+:::
+
+::: {.col data-latex="{0.04\textwidth}"}
+\vspace{1ex}
+:::
+
+::: {.col data-latex="{0.48\textwidth}"}
+$$Pr(y_{ij'}=1) = \frac{e^{(z+1)\alpha}}{\sum_{k=1}^{K} e^{Z_k\alpha}}$$
+:::
+
+::::
+
+Taking the ratio and canceling out the common denominators yields:
+
+$$\frac{Pr(y_{ij'}=1)}{Pr(y_{ij}=1)} = \frac{e^{(z+1)\alpha}}{e^{z\alpha}} = \frac{e^{z\alpha}e^{\alpha}}{e^{z\alpha}} =  e^{\alpha}$$
+
+## Interpreting coefficients (3/3)
+
+$$\frac{Pr(y_{ij'}=1;Z_{j'}=z+1)}{Pr(y_{ij}=1;Z_j=z)} = e^{\alpha}$$
+
+- This means that we can interpret the coefficients for $Z$ variables in terms of relative probabilities or _odds_.
+  - **NOT** odds ratios!
+- A unit change in $z$ is associated with an $e^\alpha$ multiplicative increase in the choice probability _relative to an otherwise equivalent alternative in the same choice set_.
+- So, all else equal:
+  - $\alpha>0$: as $z$ goes $\uparrow$, the choice probability $\uparrow$.
+  - $\alpha<0$: as $z$ goes $\uparrow$, the choice probability $\downarrow$.
+- But remember: the probabilities themselves are non-linear and depend on the other alternatives in the choice set.
+
+## Revisiting our first model
+
+```{r,echo=F,size="footnotesize"}
+print(m)
+```
+
+## Select interpretations of the model
+
+The model suggests that residents of California surveyed in 1996 had...
+
+- $e^{0.82088}=2.273$ times or $123\%$ higher probabilities of choosing an SUV compared to a sedan with the same cost per mile and fuel.
+
+- $e^{0.15355}=1.166$ times or $17\%$ higher probabilities of choosing a vehicle with an electric drive train than a gasoline powered car with the same body type and operating costs.
+
+- $e^{-0.07791}=0.925$ times or $7.5\%$ _lower_ probabilities of choosing a vehicle that costs $10$\textcent$\;$more per mile to operate compared to another car with the same fuel and body type. 
+
+## The estimated parameters imply a set of choice probabilities
+
+```{r, echo=F}
+CarDi %>% 
+  select(id,alt,choice,type,fuel,cost) %>% 
+  cbind(Pr=exp(predict(m,newdata=CarDi))) %>%  
+  group_by(id) %>% 
+  mutate(Pr = Pr/sum(Pr)) -> CarPr
+CarPr %>% 
+  kbl() %>% kable_classic() %>% 
+  kable_styling(font_size=8) %>% 
+  column_spec(1:ncol(CarPr),
+              background=spec_color(CarPr$id),
+              color=c(rep("white",6),rep("black",6),rep("black",6))) %>% 
+  add_header_above(c("$(i)$","$(j)$","$y_{ij}$","$Z_{ij}$"=3,"$P(y_{ij}=1)$"),color="red",escape=F)
+```
+
+## But what about characteristics of the decision maker?
+
+- Main, linear effects of decision-maker characteristics are not estimated in the conditional logit model.
+- What if we try?
+
+$$Pr(y_{ij}=1) = \frac{e^{Z_{ij}\alpha_{ij} + X_i\beta}}{\sum_{k=1}^{K_i} e^{Z_{ik}\alpha_{ik} + X_i\beta}} = \frac{e^{Z_{ij}\alpha_{ij}}e^{X_i\beta}}{\sum_{k=1}^{K_i} e^{Z_{ik}\alpha_{ik}}e^{X_i\beta}}$$
+
+- $X_i\beta$ is not indexed by $k$, meaning it only differs across _decision makers_ **NOT** _alternatives_, so
+
+$$Pr(y_{ij}=1) = \frac{e^{X_i\beta}e^{Z_{ij}\alpha_{ij}}}{e^{X_i\beta}\sum_{k=1}^{K_i} e^{Z_{ik}\alpha_{ik}}} = \frac{e^{Z_{ij}\alpha_{ij}}}{\sum_{k=1}^{K_i} e^{Z_{ik}\alpha_{ik}}}$$
+
+- Not only is it meaningless to estimate main effects for decision-maker specific individual covariates, it's statistically impossible!
+
+
+## Decision maker characteristics can enter through interactions
+
+- Our model allows for $\alpha$ coefficients that differ across respondents.
+
+$$Pr(y_{ij}=1) = \frac{e^{Z_{ij}\alpha_{ij}}}{\sum_{k=1}^{K_i} e^{Z_{ik}\alpha_{ik}}} $$
+
+- If we assume $\alpha_{ij} = \bar{\alpha} + X_{i}\gamma$, then
+
+$$Pr(y_{ij}=1) = \frac{e^{Z_{ij}\bar{\alpha} + Z_{ij}X_{i}\gamma }}{\sum_{k=1}^{K_i} e^{Z_{ik}\bar{\alpha} + Z_{ik}X_{i}\gamma }} $$
+
+- That is, we can include decision-maker specific characteristics through _multiplicative interactions_ with alternative specific covariates. 
+
+## Final comments
+
+- Statistical 
+  
+  - The estimates are produced using maximum likelihood, so likelihood ratio tests and information criteria can be used to assess model fit.
+  
+  - An alternative's choice probability is a function of the attributes of the alternative _and all other alternatives in the choice set_.
+  
+- Conceptual
+  
+  - These are models of selection into social contexts and relationships: neighborhoods, schools, groups, friendships, car ownership, musical fandom, online discussion board threads, etc. 
+  
+  - They are of great interest to analytical sociologists because of this, and provide a natural complement to models of peer and contextual effects on behaviors.
+  
+  - The models provide _one_ representation of the opportunity structure. It might not be the right representation, but at least it's not ignored.
+
+
+## Next up in the Lab
+
+- Introduction to data pivoting
+
+- Estimating and specifying conditional logistic regression models
+
+- Producing predicted probabilities
+
+

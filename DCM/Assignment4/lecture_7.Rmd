@@ -1,0 +1,472 @@
+---
+title: "Lecture 7: Conditional Logistic Regression with Samples of Alternatives"
+author: Benjamin Jarvis
+institute: | 
+  | Institute for Analytical Sociology
+  | Linköping University
+date: 4 March 2024
+fontsize: 11pt
+output:
+  beamer_presentation:
+    includes:
+      in_header: 
+        - header.tex
+        - columns.tex
+    keep_tex: true
+---
+
+```{r setup , include=F}
+#| message: false
+#| warning: false
+#| include: false
+
+set.seed(123)
+library(haven)
+library(tidyverse)
+library(survival)
+library(kableExtra)
+library(RColorBrewer)
+library(here)
+
+knitr::opts_chunk$set(include=T, message=F, warning=F)
+options(digits=3)
+options(knitr.kable.NA = '')
+
+colorize <- function(x, color) {
+  if (knitr::is_latex_output()) {
+    sprintf("\\textcolor{%s}{%s}", color, x)
+  } else if (knitr::is_html_output()) {
+    sprintf("<span style='color: %s;'>%s</span>", color, 
+      x)
+  } else x
+}
+setwd("/Users/bjarvis/Dropbox/Discrete Choice 2024/lectures/lecture 7")
+theme_set(theme_light())
+theme_update(text = element_text(size = 24))
+
+```
+
+```{r}
+#| message: false
+#| warning: false
+#| include: false
+
+# This is allows us to control text size for Latex output created by R
+def.chunk.hook  <- knitr::knit_hooks$get("chunk")
+knitr::knit_hooks$set(chunk = function(x, options) {
+  x <- def.chunk.hook(x, options)
+  ifelse(options$size != "normalsize", paste0("\n \\", options$size,"\n\n", x, "\n\n \\normalsize"), x)
+})
+
+```
+
+## Objectives
+
+- Construct choice data sets with samples of alternatives. 
+
+- Estimate choice models with samples of alternatives. 
+
+- Use appropriate sampling corrections when estimating models on samples of alternatives.
+
+- Perform statistical tests to compare sizes of coefficients
+
+## Review: The Conditional Logit Model
+
+$$Pr(y_{ij}=1) = \frac{e^{Z_{ij}\alpha_{ij}}}{\sum_{k=1}^{K_i} e^{Z_{ik}\alpha_{ik}}}$$
+
+- $k$ indexes the $K_i$ **alternatives** in each person $i$'s **choice set**.
+  - The choice set includes the options decision makers had access to, which may vary across decision makers
+- $Z_{ij}$ is a vector of **alternative-level attributes** for alternative $j$, viewed from the perspective of **decision-maker** $i$.
+  - e.g., price, efficiency, etc.
+- $\alpha_{ij}$ is a coefficient vector that _may_ vary by decision-maker.
+  - e.g., people with higher incomes are less sensitive to prices.
+- $\alpha_{ij}$ _may_ also vary by alternative.
+  - e.g., range is more important for electric cars. 
+
+## General motivating problem: occupational choices
+
+![GPT "occupations"](occs.jpg)
+
+
+## Specific problem: gender segregation (1/2)
+
+![Not GPT^[https://www.wgea.gov.au/publications/gender-segregation-in-australias-workforce]](seg.png)
+
+## Specific problem: gender segregation (2/2)
+
+![](segtrend.png)
+
+
+## Case study: Gender and occupational choice in the USA
+
+- We use data from the 1970 United States Census
+
+- This data set is accessible via IPUMS USA, which is a great source for population data that's not limited to the United States.
+
+- The data we use are micro-data from the Census, representing a large sample of individual from the US population.
+
+- This data set is handy, because it indicates where people were working in 1970 and 5 years before, in 1965.
+
+- Can use this to characterize occupations before 1970 and models outcomes in 1970.
+
+## Conceptualizing occupation choice as a discrete choice problem
+
+- Many occupations to choose from.
+
+- Occupations vary in their attributes (educational requirements, income, and gender composition)
+
+- People sort into occupations based on preferences and how they "fit" into the occupation.
+
+- But are there too many occupations?
+  - Solution: sampling alternatives!
+  
+## Simple random sampling of alternatives
+
+- We can estimate conditional logit models by sampling alternatives when choice sets are very large.
+
+- When doing simply random sampling (plus the chosen alternative), there is no adjustment necessary. We can estimate the model as if we hadn't sampled.
+
+- Sampling isn't *statistically* free: it comes at the expense of larger standard errors.
+
+- But sampling can make it *computationally* feasible to estimate models that are otherwise unfeasible to estimate.
+
+## Analytic game plan
+
+- We need two data sets:
+  - occupational decision makers and their attributes (easy part)
+  - potential occupations and their attributes (harder-ish)
+
+- We need to combine the data sets into a person-alternative data set.
+  - here's where we introduce choice-set sampling
+  - combine the data sets using `join` functions in dlyr
+
+- Estimate models.
+
+## Loading the individual data
+
+```{r}
+us_wrkrs<-haven::read_stata(
+  here("Lectures","lecture 7","ipums_1970_workers.dta"))
+```
+
+## Creating a data set of occupations
+```{r}
+us_wrkrs |> 
+  group_by(occ5yr) |> 
+  filter(occ5yr>0 & occ5yr<995) |> 
+  summarize(
+    n_workers=n(),
+    p_women=sum(sex==2)/n(),
+    p_whites=sum(race==1 & hispan==0 )/n(),
+    med_age=median(age-5)/n(),
+    p_college = sum(educ>9)/n(),
+    p_selfemp=sum(class5yr==2)/n()) ->
+  us_occs
+```
+
+
+## We can summarize the gender balance of occupations
+
+```{r}
+# Share of women in women's occupations
+with(us_occs,sum(p_women*p_women*n_workers)/
+       sum(p_women*n_workers))
+```
+
+```{r}
+# Share of women in men's occupations
+with(us_occs,sum(p_women*(1-p_women)*n_workers)/
+       sum((1-p_women)*n_workers))
+```
+
+## Focus on the "rising" adults who are 19 in 1965 and 24 in 1970
+
+```{r}
+us_wrkrs_24 <- us_wrkrs |> 
+  filter((age)==24) |> 
+  filter(empstat==1 & occ>0 & occ<990) |> 
+  filter(
+    !(occ %in% 
+        c(196,246,296,396,586,696,726,796,806,846,976,986))) |> 
+  mutate(occ=ifelse(occ>=281 & occ<=285,280,occ)) |> 
+  group_by(sex) |> slice_sample(n=2000) |> ungroup() |> 
+  mutate(id=row_number())
+```
+
+Where we make the following updates and sample limits:
+- Remove people who had their occupation imputed.
+- Update some occupations aggregated into one in the 5-years ago variable.
+
+## An alternate way of summarizing gender balance is with a join
+
+```{r}
+# Summarizing the share of women in 1965 for age 24 workers in 1970 
+us_wrkrs_24 |> 
+  select(sex,occ) |> 
+  left_join(us_occs,by=join_by(occ==occ5yr)) |> 
+  group_by(sex) |> 
+  mutate(sex=as_factor(sex)) |> 
+  summarize(`Share Women`=mean(p_women))
+```
+
+## Create a random sample of (non-chosen) alternatives for each worker
+
+```{r, size="small"}
+set.seed(123)
+size<-20
+alts<-us_occs$occ5yr
+us_wrkrs_24 %>% ungroup() |> 
+  select(id) %>% 
+  mutate(alt=list(sample(alts,size=size,replace=F))) %>% 
+  unnest(alt) %>% 
+  anti_join(us_wrkrs_24,by=join_by(id,alt==occ)) |> 
+  group_by(id) |> slice(1:(size-1)) ->
+  occ_choice
+```
+
+- `list()` in a mutate creates a list column, meaning each cell contains its own object (e.g., a vector or tibble)
+- `unnest()` "expands" a list column.
+- `anti_join()` filters out those matching on the `by` arg.
+
+## Combine random sample with observed choices
+
+```{r, size="small"}
+us_wrkrs_24 %>% 
+  select(id,alt=occ) %>% 
+  bind_rows(occ_choice) %>% 
+  group_by(id) %>% 
+  arrange(id, alt) %>% 
+  left_join(us_wrkrs_24,by=join_by(id)) %>% 
+  left_join(us_occs, by=join_by(alt==occ5yr)) |> 
+  mutate(choice=occ==alt)-> occ_choice
+```
+
+- `arrange()` with `desc(choice)` ensures that the chosen alternative is always at the top in each group, and so is always included.
+
+- Here I keep a fixed number of (sampled) alternatives for each respondent.
+
+- `left_join()` addes in the individual-level covariates and the alternative-level covariates.
+
+## Some basic data checks
+
+- It's a good idea to develop checks to make sure variable transformations and data manipulations work as expected
+
+```{r}
+sum(occ_choice$choice) == nrow(us_wrkrs_24)
+```
+
+```{r}
+sum(occ_choice$choice)*size == nrow(occ_choice)
+```
+
+## A simplified view of our data
+```{r}
+occ_choice |> select(id,sex,alt,choice,p_women)
+```
+
+## Can summarize the occupationa outcomes again
+
+```{r}
+occ_choice |> 
+  group_by(sex,choice) |> 
+  summarize(mean(p_women))
+```
+
+## Estimating with simple random samples of alternatives
+
+- No adjustment needed!
+
+$$Pr(y_{ij}=1) = \frac{e^{Z_{ij}\alpha_{ij}}}{\sum_{k=1}^{K_i} e^{Z_{ik}\alpha_{ik}}}$$
+
+
+- Here we implicitly let $\alpha_{ik}$ vary across respondents, but not alternatives, by estimating a separate model for different racial groups.
+
+  - In this case, a model for White respondents only.
+
+- BUT: There will be variations between estimates because of differences in the sampled alternatives.
+
+## Estimating the model
+
+```{r}
+clogit(choice~p_women+I(log(n_workers))+strata(id) , 
+       data=filter(occ_choice,sex==2))
+```
+
+
+## YOUR TURN: 
+
+- How do your estimates vary with changes in the random seed?
+
+- How do your estimates change as you increase the sample size?
+
+- Can you estimate the model on the full choice set?
+
+
+## Weighted samples of alternatives
+
+- We can select a weighted sample of alternative, rather than a random sample.
+  
+  - Choosing a sample strategically can increase the *precision* of our estimates.
+
+- If we do, we cannot estimate the model without an adjustment for the sampling weights.
+
+- specifically if $q_{ij}$ is the probability of sampling $j$ into the choice set of respondent $i$, then we estimate an adjusted model with:
+
+$$Pr(y_{ij}=1) = \frac{e^{Z_{ij}\alpha_{ij}-ln(q_{ij})}}{\sum_{k=1}^{K_i} e^{Z_{ik}\alpha_{ik}-ln(q_{ik})}}$$
+
+- Note that we calculate $q_{ij}$ for both the sampled alternatives and the chosen alternatives
+
+
+## Common approach: stratification
+
+- Let's divide the set of alternative into 4 strata of occupations with
+  - many men and few women
+  - many women and few men
+  - many men and many women
+  - few men and few women
+  
+- We'll disproportionately sample from the majority neighborhoods.
+
+  - Ensures substantial variation in covariates within choice sets.
+
+  - Potentially helpful, but not always so.
+
+
+## Implementing stratified sampling
+
+```{r, size="small"}
+lim<-1000
+us_occs<-us_occs %>% 
+  mutate(
+    strata=1L*(n_workers*(1-p_women)>=lim & n_workers*p_women<lim)+
+      2L*(n_workers*(1-p_women)<lim & n_workers*p_women>=lim)+
+      3L*(n_workers*(1-p_women)>=lim & n_workers*p_women>=lim)+
+      4L*(n_workers*(1-p_women)<lim & n_workers*p_women<lim)) |> 
+  group_by(strata) %>% mutate(strata_ind=row_number()) |> ungroup()
+us_occs %>% group_by(strata) %>% summarize(n(),mean(p_women))
+```
+
+## Construct the new set of sampled alternatives
+
+```{r}
+set.seed(456)
+strata<-us_occs |> group_by(strata) |> summarize(noccs=n())
+us_wrkrs_24 %>% 
+  select(id) %>% 
+  mutate(strata=list(1:4)) %>% 
+  unnest(strata) %>% left_join(strata, by=join_by(strata)) |> 
+  rowwise() |> 
+  mutate(strata_ind=list(sample(seq(1,noccs),size=size))) |> 
+  ungroup() |> unnest(strata_ind) |> 
+  group_by(id,strata) |> 
+  mutate(q=n()/noccs) |> select(-noccs) |> ungroup() |>  
+  left_join(select(us_occs,occ5yr,strata,strata_ind), 
+            by=join_by(strata,strata_ind)) |> 
+  rename(alt=occ5yr) |>  
+  anti_join(us_wrkrs_24,by=join_by(id,alt==occ)) |> 
+  group_by(id,strata) -> occ_choice_q
+```
+
+## Check the result
+
+```{r}
+
+```
+
+
+## Construct the new estimation set
+
+```{r}
+us_wrkrs_24 %>% 
+  select(id,alt=occ) %>% 
+  bind_rows(occ_choice_q) %>% 
+  group_by(id) %>% 
+  arrange(id, alt) %>% 
+  left_join(us_wrkrs_24,by=join_by(id)) %>% 
+  left_join(us_occs, by=join_by(alt==occ5yr)) |> 
+  mutate(choice=occ==alt)-> occ_choice_q
+```
+
+## Estimate the model
+
+```{r}
+clogit(choice~p_women+I(log(n_workers))+offset(-log(q))+strata(id) , 
+       data=filter(occ_choice_q,sex==2))
+```
+
+
+
+## Improving the sampling procedure using prior knowledge
+
+- We introduce variance in our estimates when we sample alternatives that are unlikely to be chosen.
+
+- It may be better to choose alternatives that we believe our respondents will be most likely to choose
+
+
+
+## YOUR TURN 
+
+- Design a different stratified sampling approach that might produce better estimates for women.
+
+- Estimate the model with your updated sampling approach
+
+
+
+## Testing differences between groups
+
+- There are two ways to test differences between coefficients.
+
+  - likelihood ratio test:
+    - Based on comparison of two models
+    - Estimate a full model that assumes coefficients differ between groups.
+    - Estimate a constrained model that assumes the coefficients are equal.
+    
+  - Wald test:
+    - Based on estimation of the "full" model only.
+    - Uses information from the variance-covariance matrix for that model.
+    
+  - Generally the likelihood ratio test is preferred because it is more sensitive, but it not always feasible or appropriate (e.g., weights, clustered data, etc.)
+
+
+## Testing differences between groups: model estimation
+
+```{r}
+d <- occ_choice |> mutate(sex=as_factor(sex))
+
+c1<-clogit(choice ~ I(log(n_workers)) + p_women + strata(id), 
+                      data = d)
+
+c2<-clogit(choice ~ I(log(n_workers)) + p_women:sex + strata(id), 
+                      data = d)
+
+```
+
+
+## Model Estimates
+
+```{r, echo=F}
+modelsummary::modelsummary(list(c1,c2),gof_map=c("nobs","logLik","bic"))
+```
+
+## Testing differences between groups: likelihood ratio test
+
+```{r, size="small"}
+lmtest::lrtest(c2,c1)
+```
+
+
+## Testing differences betwen groups: Wald test
+
+```{r, size="small"}
+car::lht(c2, c("p_women:sexMale = p_women:sexFemale"))
+```
+
+
+## YOUR TURN
+
+- Develop a more complete model that might account for the sorting of men and women into differently gendered occupations.
+- Test your more complete model against the simpler model using a likelihood ratio test.
+- Test whether effects for other covariates differ between men and women using a Wald test.
+
+
+

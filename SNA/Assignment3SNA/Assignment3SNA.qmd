@@ -1,5 +1,5 @@
 ---
-title: "Assignment 2 SNA - Island State Communities"
+title: "Assignment 3 SNA - School Networks: ERGM"
 author: "Marc Sparhuber"
 format: pdf
 editor: source
@@ -14,7 +14,8 @@ header-includes:
 
 \newpage 
 
-1) 
+## Task 1
+
 Explain why the homophily mechanism might create networks in which there is a substantial number of reciprocated ties and transitively closed triads, even if no explicit mechanisms of reciprocation and transitive closure operate.
 
 > When individuals chose one another as friends as in the case of homophily based on shared characteristics, then this can inadvertently lead to an increase in reciprocated ties. This is due to a shared characteristic in the nodes i and j leading to the nomination of j as a friend of i's. Since both nodes, however, possess the same characteristic, it is entirely feasible that j also nominates i as a friend because of the shared characteristic. This then results in the same outcomes as reciprocity (i and j nominating each other as friends) but is simply the result of similarity of node characteristics rather than due to having been chosen as a friend first.
@@ -29,15 +30,17 @@ library(latticeExtra)	# for nicer convergence & gof plots
 library(ergm)			# fitting & evaluating ERGMs
 library(tidyverse)
 
-load("C:/Users/marcs/Desktop/Labs/CSS_Labs_early_24/SNA/Assignment3SNA/marsp357.RData")
-#load("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/SNA/Assignment3SNA/marsp357.RData")
+#load("C:/Users/marcs/Desktop/Labs/CSS_Labs_early_24/SNA/Assignment3SNA/marsp357.RData")
+load("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/SNA/Assignment3SNA/marsp357.RData")
 ```
 
-2) Please program two R-functions for evaluating a given network:
+## Task 2
+
+Please program two R-functions for evaluating a given network:
 − one that calculates the number of reciprocated ties,
 − another one that calculates the number of transitively closed triads.
-Then evaluate your personalised school class network data set on these two dimensions by
-applying these functions. 
+
+Then evaluate your personalised school class network data set on these two dimensions by applying these functions. 
 
 
 ```{r}
@@ -47,7 +50,7 @@ n_recip <- function(matrix) {
 #n_recip(fri)
 ```
 
-> The number of reciprocated ties is `{r} n_recip(fri)`.
+> The number of reciprocated ties is 42.
 
 ```{r}
 n_trans_closed_triads <- function(adjacency_matrix) {
@@ -56,93 +59,47 @@ n_trans_closed_triads <- function(adjacency_matrix) {
 #n_trans_closed_triads(fri)
 ```
 
-> The number of transitively closed triads is `{r} n_trans_closed_triads(fri)`.
-
-```{r}
-# 3) Bonus question: Explain for each function what its expected value is for random networks
-# with the same number of nodes and the same probability of ties as your personalised school
-# class network (hint: you need not generate random networks for this, it can be calculated
-# analytically). Is the empirical value in your data set (calculated in Exercise 2) above this
-# chance-expectation?
-
-# # Assuming you have calculated the number of observed ties, reciprocated ties, 
-# # and transitively closed triads in your personalized school class network.
-# 
-# # Total number of nodes in the network
-# total_nodes <- nrow(fri)
-# 
-# # Total number of possible ties in an undirected network
-# total_possible_ties <- total_nodes * (total_nodes - 1) / 2
-# 
-# # Calculate the probability of ties in the network
-# probability_of_ties <- network.edgecount(friends) / total_possible_ties
-# 
-# # Calculate the expected number of reciprocated ties based on probability of ties
-# expected_reciprocated_ties <- total_possible_ties * probability_of_ties^2
-# 
-# # Calculate the expected number of transitively closed triads based on probability of ties
-# expected_transitive_triads <- total_possible_ties^2 * probability_of_ties^3
-# 
-# # Compare with empirical values
-# if (28 > expected_reciprocated_ties) {
-#   print("The empirical value for reciprocated ties is above the chance expectation.")
-# } else {
-#   print("The empirical value for reciprocated ties is below the chance expectation.")
-# }
-# 
-# if (9 > expected_transitive_triads) {
-#   print("The empirical value for transitively closed triads is above the chance expectation.")
-# } else {
-#   print("The empirical value for transitively closed triads is below the chance expectation.")
-# }
-```
+> The number of transitively closed triads is 9.
 
 
-4) Please calculate a student-by-student matrix that indicates how many hobbies two students have in common.
+## Task 4
+
+Please calculate a student-by-student matrix that indicates how many hobbies two students have in common.
 
 - What is the average amount of hobbies that friends have in common in your data set? 
 - What is the average amount of hobbies that non-friends have in common? Do these numbers indicate hobby-homophily of friendship?
 
-(Note: make sure that you handle the matrix diagonal correctly in these calculations!
-Nobody is their own friend, and nobody is a “non-friend” to themselves either!) 
-
 ```{r}
 #this counts a "friend" as someone you nominate as a friend - does not need to be reciprocal!
 
-hob_t <- hob %*% t(hob)
+hobbies <- hob %*% t(hob)
 
-hob_t2 <- hob_t
-diag(hob_t2) <- NA
+hobbies2 <- hobbies
+diag(hobbies2) <- NA
 fri2 <- fri
 diag(fri2) <- NA
 
-avg_hobbies_friends <- mean(hob_t2[fri2 == 1], na.rm = TRUE)
-avg_hobbies_non_friends <- mean(hob_t2[fri2 == 0], na.rm = TRUE)
+avg_hobbies_friends <- mean(hobbies2[fri2 == 1], na.rm = TRUE)
+avg_hobbies_non_friends <- mean(hobbies2[fri2 == 0], na.rm = TRUE)
 ```
 
-> The average amount of hobbies that friends have in common is `{r} avg_hobbies_friends`.
-> The average amount of hobbies that non-friends have in common is `{r} avg_hobbies_non_friends`.
+> The average amount of hobbies that friends have in common is 3.44.
+> The average amount of hobbies that non-friends have in common is 2.90.
 
 > These results indicate slightly higher hobby-homophily among friends than among non-friends. Importantly, the way this is measured only takes into account whether i nominates j as a friend and not whether it is reciprocal. Therefore, a friend, in this conceptualization is someone that an individual nominated as such.
 
-Finally, let us move to the modelling of your data set, in which your reasoning from Exercise 1 can be quantitatively assessed, combining empirical analysis with simulation.
 
-5) Please fit three exponential random graph models to the data:
+## Task 5 
 
-The “full model”: A model that simultaneously assesses 
+Please fit three exponential random graph models to the data:
 
-overall tie creation tendencies, 
-reciprocation tendencies, 
-transitive closure tendencies (hint: use gwesp), and 
-three homophily tendencies: 
-for gender (hint: use nodematch), 
-school attitude (hint: use absdiff) and 
-shared hobbies (hint: use edgecov applied to the matrix obtained in Exercise 4). 
-For statistical reasons (hierarchy principle) please also include the twopath effect; this will help avoid estimation problems.
+The “full model”: A model that simultaneously assesses overall tie creation tendencies, reciprocation tendencies, transitive closure tendencies (hint: use gwesp), and three homophily tendencies: for gender (hint: use nodematch), school attitude (hint: use absdiff) and shared hobbies (hint: use edgecov applied to the matrix obtained in Exercise 4). For statistical reasons (hierarchy principle) please also include the twopath effect; this will help avoid estimation problems.
 
-The “reduced model”: A model where reciprocation, transitive closure and the twopath effect are dropped from the full model, whereas the three homophily terms and the general tie creation tendency are retained.
+The “reduced model”:
+A model where reciprocation, transitive closure and the twopath effect are dropped from the full model, whereas the three homophily terms and the general tie creation tendency are retained.
 
-The “null model”: A model in which also the homophily terms are dropped, and only the overall tie creation tendency is retained. 
+The “null model”:
+A model in which also the homophily terms are dropped, and only the overall tie creation tendency is retained. 
 
 ```{r}
 friends <- network(fri)
@@ -152,11 +109,11 @@ friends %v% "gender_col" <-
 friends %v% "school_attitude" <- sch
 
 # full model
-model_full <- friends ~ edges + mutual + gwesp(0.5,fixed=TRUE) + nodematch("gender") + absdiff("school_attitude") + edgecov(hob_t) + twopath
+model_full <- friends ~ edges + mutual + gwesp(0.5,fixed=TRUE) + nodematch("gender") + absdiff("school_attitude") + edgecov(hobbies) + twopath
 results_full <- ergm(model_full, control = control.ergm(seed = 1))
 
 # reduced model
-model_reduc <- friends ~ edges + nodematch("gender") + absdiff("school_attitude") + edgecov(hob_t)
+model_reduc <- friends ~ edges + nodematch("gender") + absdiff("school_attitude") + edgecov(hobbies)
 results_reduc <- ergm(model_reduc, control = control.ergm(seed = 1))
 
 # null model
@@ -164,7 +121,9 @@ model_null <- friends ~ edges
 results_null <- ergm(model_null, control = control.ergm(seed = 1))
 ```
 
-6) Report the results in one(!) table and interpret them in a brief text. Make sure to include information criteria in your table and address them in a model comparison.
+## Task 6 
+
+Report the results in one(!) table and interpret them in a brief text. Make sure to include information criteria in your table and address them in a model comparison.
 
 Bonus addition: If you have time, you can also assess goodness of fit and include summary information (e.g., p-values) in the table and discuss them next to the information criteria. 
 
@@ -178,11 +137,11 @@ mods <- list(
 library(modelsummary)
 
 cm <- c("edges" = "Edges",
-        "mutual" = "Mutual",
+        "mutual" = "Reciprocity",
         "gwesp.OTP.fixed.0.5" = "Transitive Closure",
         "nodematch.gender" = "Gender",
         "absdiff.school_attitude" = "School Attitude",
-        "edgecov.hob_t" = "Shared Hobbies",
+        "edgecov.hobbies" = "Shared Hobbies",
         "twopath" = "Twopath")
 
 modelsummary(mods,
@@ -190,12 +149,18 @@ modelsummary(mods,
              fmt = 2,
              title = "School network: ERGM results",
              statistic = "conf.int",
-             coef_map = cm)
+             coef_map = cm,
+             exponentiate = TRUE)
+
+# my_fit <- gof(results_full,
+# 	control = control.gof.ergm(seed = 1, nsim=500))
 ```
 
-> BRIEF INTERPRETATION HERE
+> The above Table 1 shows the results of the three ERGM models previously calculated. The decreasingly smaller edges coefficient indicates that the ties are very likely not formed at random. The reduced model takes into account the vertex attributes gender, school attitude and shared hobbies. By far the greatest of these effects is attributed to Gender, the coefficient of which has conditional log odds of 6.14 and is significant. While surprisingly, the school attitude is significantly negatively associated with tie formation, shared hobbies increase their likelihood slightly at a significance level of  p < 0.01. Adding the twopath for model stability, Reciprocity and Transitive Closure results in the effects of some of the vertex attributes to become non-significant and lower, yet retain the direction of their effects, as can be seen with the effect of gender, going from conditional log odds of 6.14 to 2.03. Instead, reciprocity and transitive closure are highly significantly positive, taking large shares of the effects of the vertex attributes. Across models, the more parameters were added the lower the goodness of fit measures AIC and BIC, indicating a better fit for the full model.
 
-7) Please simulate 100 networks from each model. Evaluate the simulated data in terms of the functions you programmed for Exercise 2) above. Compare the models in terms of their simulations to each other graphically and to the observed data. Concretely:
+## Task 7
+
+Please simulate 100 networks from each model. Evaluate the simulated data in terms of the functions you programmed for Exercise 2) above. Compare the models in terms of their simulations to each other graphically and to the observed data. Concretely:
 
 − Make four network visualisations: one example graph from each set of simulations, and the empirical data set, with nodes coloured by gender.
 
@@ -205,8 +170,6 @@ modelsummary(mods,
 sim_full <- simulate(results_full, nsim = 100, seed = 1)
 sim_reduc <- simulate(results_reduc, nsim = 100, seed = 1)
 sim_null <- simulate(results_null, nsim = 100, seed = 1)
-
-#gof or mcmc.diagnostics()
 
 sims_full_results_dyad <- lapply(sim_full, n_recip)
 sims_full_results_triad <- lapply(sim_full, n_trans_closed_triads)
@@ -218,47 +181,71 @@ sim_null_results_dyad <- lapply(sim_null, n_recip)
 sim_null_results_triad <- lapply(sim_null, n_trans_closed_triads)
 ```
 
-```{r}
-#| fig-width: 10
-#| fig-height: 10
+> The following network visualizations aid in comparing the models. While the full model and the Empirical Network look very similar, as backed up by goodness of fit measures (not presented due to not being able to add them to the end of the modelsummary table). The reduced model still retains much of the visual similarity to the empirical network. This is despite the reduced number and thereby differentially strong effects compared to the full model. One way to explain this similarity is to recall the fact that homophily, which is included in the reduced model and the full model is expected to be heavily confounded with reciprocity and transitive triads which are only added in the full model. This, then hints toward why despite the dramatic shift in coefficient sizes the model looks quite similar: different process (homophily instead of reciprocity and transitive closure), similar results. Finally, the removal of both homophily as well as reciprocity and transitive closure in the null model takes away the effects of homophily completely. Whereas in the other models girls and boys are clearly more interconnected (be that due to reciprocity or homophily), the null model does not take tendencies of like this into account, only focusing on the number of ties between nodes.
 
-plot(friends, vertex.col = "gender_col", main = "empirical")
-plot(sim_full[[83]],	vertex.col = "gender_col", main = "Sim Full")
-plot(sim_reduc[[52]], vertex.col = "gender_col", main = "Sim Reduc")
-plot(sim_null[[25]],	vertex.col = "gender_col", main = "Sim Null")
+```{r}
+#| fig-width: 15
+#| fig-height: 15
+
+par(mfrow = c(1, 2))
+plot(friends, vertex.col = "gender_col", main = "Empirical Network")
+plot(sim_full[[83]],	vertex.col = "gender_col", main = "Full Model")
+
+par(mfrow = c(1, 2))
+plot(sim_reduc[[52]], vertex.col = "gender_col", main = "Reduced Model")
+plot(sim_null[[25]],	vertex.col = "gender_col", main = "Null Model")
 ```
 
+> The following two graphs present the difference between the observed and simulated data in regards to the number of reciprocated ties and number of transitively closed triads. The dashed line indicating the respective empirical values is ideally closely traced by the red line signifying the full model. In both cases, the full model seems to be closer to the observed data than the reduced and null models, although the results for the number of transitively closed triads seems to be better simulated than reciprocity. Interestingly, the values in the second graph for the reduced and null model vary highly (and near equally badly compare to the observed data) while the full model captures the observed data without much variation. This is likely due to the fact that geometrically weighted edgewise shared partners were added to the full model to account for transitivity. These graphs also highlight that "just homophily" as specified in the reduced model cannot account for the complexity of the observed network. In fact, looking at the differences in the second graph, there is barely a difference to not having specified homophilic parameters at all, while the first graph distinguishes itself from the null model but does not reach the precision of the full model.
+
 ```{r}
-df_dyad <- t(data.frame(sims_full_results_dyad)) |> cbind(t(data.frame(sim_reduc_results_dyad))) |> cbind(t(data.frame(sim_null_results_dyad))) |> cbind(n_recip(fri)) |> as_tibble() |> rename(V_Full = V1, V_Reduc = V2, V_Null = V3, Constant = V4) |> as_tibble() |> pivot_longer(cols = starts_with("V"), names_to = "variable", values_to = "value")
+df_dyad <- t(data.frame(sims_full_results_dyad)) |> cbind(t(data.frame(sim_reduc_results_dyad))) |> cbind(t(data.frame(sim_null_results_dyad))) |> cbind(n_recip(fri)) |> as_tibble() |> rename(`Full Model` = V1, `Reduced Model` = V2, `Null Model` = V3, Constant = V4) |> as_tibble() |> pivot_longer(cols = ends_with("Model"), names_to = "variable", values_to = "value")
 
 df_dyad$x <- seq_along(df_dyad$value)
+
+theme_set(theme_light())
 
 ggplot(df_dyad, aes(x = x, y = value, color = variable)) +
   geom_line() +
   geom_hline(aes(yintercept = Constant), linetype = "dashed") +
-  labs(title = "Line Graph with Constant Line",
-       x = "X Axis Label",
-       y = "Y Axis Label",
-       color = "Variables") +
-  theme_light()
+  scale_y_continuous(limits = c(NA, 120), n.breaks = 10) +
+  labs(title = "School Network: Reciprocated Ties",
+       subtitle = "Dashed line indicates empirical result",
+       x = "",
+       y = "Number of Recip. Ties",
+       color = "Models") +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
 ```
 
 ```{r}
-df_triad <- t(data.frame(sims_full_results_triad)) |> cbind(t(data.frame(sim_reduc_results_triad))) |> cbind(t(data.frame(sim_null_results_triad))) |> cbind(n_trans_closed_triads(fri)) |> as_tibble() |> rename(V_Full = V1, V_Reduc = V2, V_Null = V3, Constant = V4) |> as_tibble() |> pivot_longer(cols = starts_with("V"), names_to = "variable", values_to = "value")
+df_triad <- t(data.frame(sims_full_results_triad)) |> cbind(t(data.frame(sim_reduc_results_triad))) |> cbind(t(data.frame(sim_null_results_triad))) |> cbind(n_trans_closed_triads(fri)) |> as_tibble() |> rename(`Full Model` = V1, `Reduced Model` = V2, `Null Model` = V3, Constant = V4) |> as_tibble() |> pivot_longer(cols = ends_with("Model"), names_to = "variable", values_to = "value")
 
 df_triad$x <- seq_along(df_dyad$value)
 
 ggplot(df_triad, aes(x = x, y = value, color = variable)) +
   geom_line() +
   geom_hline(aes(yintercept = Constant), linetype = "dashed") +
-  labs(title = "Line Graph with Constant Line",
-       x = "X Axis Label",
-       y = "Y Axis Label",
-       color = "Variables") +
-  theme_light()
+  scale_y_continuous(limits = c(NA, 120), n.breaks = 10) +
+  labs(title = "School Network: Transitively Closed Triads",
+       subtitle = "Dashed line indicates empirical result",
+       x = "",
+       y = "Number of Triads",
+       color = "Models") +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
 ```
 
-8) Try to substantiate your reasoning in Exercise 1) based on these results.
+## Task 8
 
-9) Please indicate whom you collaborated with when answering the above questions, and
-whose input you considered particularly helpful.
+Try to substantiate your reasoning in Exercise 1) based on these results.
+
+> The points stated in Task 1 echo throughout the results table and later visualizations and plots. In the results section it is evident that going from the reduced to the full model the homophily coefficients get reduced in their effect strength while the reciprocity and transitivite closure effects gain significantly. This shows how intertwined the two are. When visualizing the networks, similar results can be observed: while the reduced and full model are both relatively similar to the empirical network, the null model is vastly different, showing how the null model with neither homophily nor reciprocity and transitivite closure is the only model that clearly visualy differs from the others due to have neither specified. This goes hand in hand with my suspicion that if one were to specify a second reduced model without the homophily coefficients it would also look similar to the current reduced and full model due to the confounding of these mechanisms. Finally, the last two plots show "just homophily" fails at capturing the formation of transitively closed triads, vastly overestimating them while being slightly better than the null model at arriving at the correct number of reciprocated ties. This highlights the inability of homophily coefficients to capture transitivite closure. This extends on the answer provided in task 1, as there was no discussion there of how strongly homophily would confound reciprocity compared to transitivite closure, with the last two plots indicating that there is "less homophily in transitivite closure than in reciprocity".
+
+## Task 9
+
+Please indicate whom you collaborated with when answering the above questions, and whose input you considered particularly helpful.
+
+> I was inspired by Vincent's solution to Task 4. Otherwise, ChatGPT helped a bit with adding colors to the network and polishing the final two plots.

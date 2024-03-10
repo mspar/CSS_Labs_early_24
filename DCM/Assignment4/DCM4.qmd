@@ -1,0 +1,96 @@
+---
+title: "Assignment 4 DCM - Party Vote and Views on Immigration in the UK"
+author: "Marc Sparhuber"
+format: pdf
+editor: source
+execute:
+  warning: false
+  echo: false
+toc: true
+header-includes:
+      - \usepackage{float}
+      - \floatplacement{table}{H}
+---
+
+\newpage 
+
+```{r}
+library(tidyverse)
+library(tidymodels)
+library(survival)
+library(kableExtra)
+library(RColorBrewer)
+
+data <- read.csv(here::here("DCM","Assignment4", "candidate.csv"))
+
+options(scipen=999)
+```
+
+## Data stuff
+
+```{r}
+data1 <- data |> select(c(choID, ends_with("1")))
+names(data1) <- gsub("[[:digit:]]", "", names(data1))
+data2 <- data |> select(c(choID, ends_with("2")))
+names(data2) <- gsub("[[:digit:]]", "", names(data2))
+
+data <- bind_rows(data1, data2) |> arrange(choID) |> mutate(
+  across(c(2:7, 10:11), as.factor),
+  selected = as.numeric(selected))
+names(data) <- gsub("^at", "", names(data))
+names(data) <- snakecase::to_title_case(names(data))
+data <- data |> rename(
+  Education = Ed,
+  Profession = Prof,
+  Gender = Male,
+  Income = Inc,
+  ChoiceID = `Cho Id`
+)
+```
+
+```{r}
+data |> 
+  mutate(selected_table = factor(Selected,
+                     labels = c("Unchosen","Chosen"))) |> 
+  select(selected_table, Religion, Education, Profession, Gender, Age) |> 
+  tbl_summary(by = selected_table, type = list(Age ~ "continuous")) |>
+  as_gt()
+
+
+data$Education <- fct_relevel(data$Education, "No BA")
+data$Profession <- fct_relevel(data$Profession, "Car dealer")
+#make noBA and Car Dealer reference categories
+```
+
+```{r}
+m1 <- clogit(Selected ~ Age + strata(ChoiceID), data = data)
+m1
+m2 <- clogit(Selected ~ Age + I(Age^2) + strata(ChoiceID), data = data)
+m2
+m3 <- clogit(Selected ~ Age + Education + Profession + strata(ChoiceID), data = data)
+m3
+```
+
+```{r}
+t1 <- tbl_regression(m1, exponentiate = TRUE) |> 
+  modify_header(list(label="**Covariate**",
+                     estimate="**Odds**")) |>
+  modify_footnote(update = list(estimate ~ NA), 
+                  abbreviation=TRUE)
+
+t2 <- tbl_regression(m2, exponentiate = TRUE) |> 
+  modify_header(list(label="**Covariate**",
+                     estimate="**Odds**")) |>
+  modify_footnote(update = list(estimate ~ NA), 
+                  abbreviation=TRUE)
+
+t3 <- tbl_regression(m3, exponentiate = TRUE) |> 
+  modify_header(list(label="**Covariate**",
+                     estimate="**Odds**")) |>
+  modify_footnote(update = list(estimate ~ NA), 
+                  abbreviation=TRUE)
+
+tbl_merge(tbls = list(t1, t2, t3),
+          tab_spanner = c("**Model 1**", "**Model 2**", "**Model 3**"))
+```
+
