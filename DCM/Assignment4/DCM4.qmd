@@ -95,3 +95,5 @@ tbl_merge(tbls = list(t1, t2, t3),
 ```
 
 FOR PREDICTION -> USE TWO AGES AS PREDICTIONS TRUMPS AND BIDENS
+
+--> in total 6 predictions! 2 for each model!
