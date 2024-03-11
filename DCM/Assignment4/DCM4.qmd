@@ -46,6 +46,8 @@ data <- data |> rename(
   Income = Inc,
   ChoiceID = `Cho Id`
 )
+
+REMEMBER TO DROP NA
 ```
 
 ```{r}
