@@ -94,3 +94,4 @@ tbl_merge(tbls = list(t1, t2, t3),
           tab_spanner = c("**Model 1**", "**Model 2**", "**Model 3**"))
 ```
 
+FOR PREDICTION -> USE TWO AGES AS PREDICTIONS TRUMPS AND BIDENS
