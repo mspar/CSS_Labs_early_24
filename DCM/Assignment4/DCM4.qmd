@@ -96,4 +96,10 @@ tbl_merge(tbls = list(t1, t2, t3),
 
 FOR PREDICTION -> USE TWO AGES AS PREDICTIONS TRUMPS AND BIDENS
 
---> in total 6 predictions! 2 for each model!
+--> in total 6 probabilities! 2 for each model!
+
+--> given trumps age and bidens age (+their differences on the variables, i.e., job, edu, religion)
+--> bar graph enough lmao
+
+we're doing out of sample prediction, should be in one of the early mentions of lab/lecture 6
+--> needs two extra lines of code
