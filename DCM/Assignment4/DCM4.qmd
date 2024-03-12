@@ -19,7 +19,7 @@ library(tidyverse)
 library(tidymodels)
 library(survival)
 library(kableExtra)
-library(RColorBrewer)
+library(gtsummary)
 
 data <- read.csv(here::here("DCM","Assignment4", "candidate.csv"))
 
@@ -44,18 +44,17 @@ data <- data |> rename(
   Profession = Prof,
   Gender = Male,
   Income = Inc,
-  ChoiceID = `Cho Id`
-)
-
-REMEMBER TO DROP NA
+  ChoiceID = `Cho Id`,
+  `Age (in years)` = Age
+) |> mutate(`Age Squared` = I(`Age (in years)`^2))
 ```
 
 ```{r}
 data |> 
   mutate(selected_table = factor(Selected,
                      labels = c("Unchosen","Chosen"))) |> 
-  select(selected_table, Religion, Education, Profession, Gender, Age) |> 
-  tbl_summary(by = selected_table, type = list(Age ~ "continuous")) |>
+  select(selected_table, Religion, Education, Profession, Gender, `Age (in years)`) |> 
+  tbl_summary(by = selected_table, type = list(`Age (in years)` ~ "continuous")) |>
   as_gt()
 
 
@@ -65,11 +64,11 @@ data$Profession <- fct_relevel(data$Profession, "Car dealer")
 ```
 
 ```{r}
-m1 <- clogit(Selected ~ Age + strata(ChoiceID), data = data)
+m1 <- clogit(Selected ~ `Age (in years)` + strata(ChoiceID), data = data)
 m1
-m2 <- clogit(Selected ~ Age + I(Age^2) + strata(ChoiceID), data = data)
+m2 <- clogit(Selected ~ `Age (in years)` + `Age Squared` + strata(ChoiceID), data = data)
 m2
-m3 <- clogit(Selected ~ Age + Education + Profession + strata(ChoiceID), data = data)
+m3 <- clogit(Selected ~ `Age (in years)` + Education + Profession + strata(ChoiceID), data = data)
 m3
 ```
 
@@ -96,12 +95,98 @@ tbl_merge(tbls = list(t1, t2, t3),
           tab_spanner = c("**Model 1**", "**Model 2**", "**Model 3**"))
 ```
 
+```{r}
+#| fig-align: center
+
+library(DescTools)
+library(lmtest)
+
+lr_test <- lrtest(mod_no_Immigration, mod_Immigration)
+
+mod1_nagel <- PseudoR2(mod_no_Immigration, which = "Nagelkerke")
+mod2_nagel <- PseudoR2(mod_Immigration, which = "Nagelkerke")
+
+
+mf1 <- model.frame(party_vote ~ gender + age + tertiary_education,
+                     data = data, na.action = na.omit)
+mf2 <- model.frame(party_vote ~ gender + age + tertiary_education + Immigration,
+                     data = data, na.action = na.omit)
+
+
+mod1_pred <- predict(mod_no_Immigration, type = "class") |> 
+  as_tibble() |> 
+  bind_cols(mf1)
+share_correct_m1 <- mean(mod1_pred$value == mod1_pred$party_vote)
+
+mod2_pred <- predict(mod_Immigration, type = "class") |> 
+  as_tibble() |> 
+  bind_cols(mf2)
+share_correct_m2 <- mean(mod2_pred$value == mod2_pred$party_vote)
+
+data_fit <- as.data.frame(tribble(
+  ~`Model 1`, ~`Model 2`,
+  as.character(round(mod1_nagel,5)), as.character(round(mod2_nagel,5)),
+  as.character(round(share_correct_m1,5)), as.character(round(share_correct_m2,5)),
+  " ", as.character(round(lr_test[2,4],5)),
+  " ", as.character(round(lr_test[2,5],5))))
+
+rownames(data_fit) <- c("Nagelkerke’s pseudo-R2", "Share of correct predictions", "Likelihood Ratio", "Likelihood Ratio (p-value)")
+
+kable(data_fit,
+      caption = "Voting in the 2019 UK general election: Model fit statistics") |> 
+  footnote(footnote_as_chunk = TRUE,
+           threeparttable = TRUE, 
+           general = "The Likelihood ratio is always calculated with the nested model to the left. Data from ESS (UK, 10th round).")
+```
+
+
+```{r}
+m1tib <- tibble(ChoiceID = 1,
+                `Age (in years)` = c(81, 78))
+
+p1 <- m1tib |> bind_cols(Za = predict(m1, type = "lp", newdata = .)) |>  
+  group_by(ChoiceID) |> 
+  mutate(Pr = exp(Za) / sum(exp(Za)))
+
+
+
+m2tib <- tibble(ChoiceID = 1,
+                `Age (in years)` = c(81, 78),
+                `Age Squared` = c(6561, 6084))
+
+p2 <- m2tib %>% bind_cols(Za = predict(m2, type = "lp", newdata = .)) |>  
+  group_by(ChoiceID) |> 
+  mutate(Pr = exp(Za) / sum(exp(Za)))
+
+
+
+m3tib <- tibble(ChoiceID = 1,
+                `Age (in years)` = c(81, 78),
+                Education = c("State university", "Ivy League university"),
+                Profession = c("Lawyer", "Business owner"))
+
+p3 <- m3tib %>% bind_cols(Za = predict(m3, type = "lp", newdata = .)) |>  
+  group_by(ChoiceID) |> 
+  mutate(Pr = exp(Za) / sum(exp(Za)))
+
+pred_df <- tribble(
+  ~Name, ~Pred, ~Model,
+  "Biden", p1[1,4], "Model 1",
+  "Trump", p1[2,4], "Model 1",
+  "Biden", p2[1,5], "Model 2",
+  "Trump", p2[2,5], "Model 2",
+  "Biden", p3[1,6], "Model 3",
+  "Trump", p3[2,6], "Model 3"
+) |> unnest(Pred)
+```
+
+
 FOR PREDICTION -> USE TWO AGES AS PREDICTIONS TRUMPS AND BIDENS
 
 --> in total 6 probabilities! 2 for each model!
 
 --> given trumps age and bidens age (+their differences on the variables, i.e., job, edu, religion)
---> bar graph enough lmao
+--> bar graph enough
 
 we're doing out of sample prediction, should be in one of the early mentions of lab/lecture 6
 --> needs two extra lines of code
