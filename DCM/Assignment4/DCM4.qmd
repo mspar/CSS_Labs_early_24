@@ -1,5 +1,5 @@
 ---
-title: "Assignment 4 DCM - Party Vote and Views on Immigration in the UK"
+title: "Assignment 4 DCM - Voting Biden or Trump in the 2024 US Elections"
 author: "Marc Sparhuber"
 format: pdf
 editor: source
@@ -22,11 +22,11 @@ library(kableExtra)
 library(gtsummary)
 
 data <- read.csv(here::here("DCM","Assignment4", "candidate.csv"))
-
-options(scipen=999)
 ```
 
-## Data stuff
+## Introduction
+
+
 
 ```{r}
 data1 <- data |> select(c(choID, ends_with("1")))
@@ -49,28 +49,35 @@ data <- data |> rename(
 ) |> mutate(`Age Squared` = I(`Age (in years)`^2))
 ```
 
+## Data and Methods
+
 ```{r}
+#| fig-align: center
+
 data |> 
   mutate(selected_table = factor(Selected,
                      labels = c("Unchosen","Chosen"))) |> 
-  select(selected_table, Religion, Education, Profession, Gender, `Age (in years)`) |> 
-  tbl_summary(by = selected_table, type = list(`Age (in years)` ~ "continuous")) |>
-  as_gt()
+  select(selected_table, `Age (in years)`, Gender, Education, Profession) |> 
+  tbl_summary(by = selected_table, type = list(`Age (in years)` ~ "continuous")) |> modify_caption("Voting for Trump or Biden in the 2024 US Election: Descriptives Divided by Choice") |>
+  as_kable_extra(booktabs = TRUE, escape = FALSE, linesep = "") |>  footnote(footnote_as_chunk = TRUE,
+           threeparttable = TRUE, 
+           general = "Data from Hainmueller et al., 2014 (collected July 2012)")
 
 
 data$Education <- fct_relevel(data$Education, "No BA")
 data$Profession <- fct_relevel(data$Profession, "Car dealer")
-#make noBA and Car Dealer reference categories
 ```
 
 ```{r}
 m1 <- clogit(Selected ~ `Age (in years)` + strata(ChoiceID), data = data)
-m1
+#m1
 m2 <- clogit(Selected ~ `Age (in years)` + `Age Squared` + strata(ChoiceID), data = data)
-m2
-m3 <- clogit(Selected ~ `Age (in years)` + Education + Profession + strata(ChoiceID), data = data)
-m3
+#m2
+m3 <- clogit(Selected ~ `Age (in years)` + `Age Squared` + Education + Profession + strata(ChoiceID), data = data)
+#m3
 ```
+
+## Results
 
 ```{r}
 t1 <- tbl_regression(m1, exponentiate = TRUE) |> 
@@ -92,59 +99,60 @@ t3 <- tbl_regression(m3, exponentiate = TRUE) |>
                   abbreviation=TRUE)
 
 tbl_merge(tbls = list(t1, t2, t3),
-          tab_spanner = c("**Model 1**", "**Model 2**", "**Model 3**"))
+          tab_spanner = c("**Model 1**", "**Model 2**", "**Model 3**")) |> modify_caption("Voting for Trump or Biden in the 2024 US Election: Conditional Logistic Regression Models") |> 
+  as_kable_extra(booktabs = TRUE, escape = FALSE, linesep = "") |> kable_styling(latex_options = "scale_down") |> footnote(footnote_as_chunk = TRUE,
+           threeparttable = TRUE, 
+           general = "Data from Hainmueller et al., 2014 (collected July 2012). The units for the age term is years. The reference category for Education is No Bachelor's Degree and Car Dealer for Profession.")
 ```
 
 ```{r}
 #| fig-align: center
 
-library(DescTools)
-library(lmtest)
+# (lr_test_squared_or_nah <- lmtest::lrtest(m2, m3))
+# (lr_test_squared_or_nah2 <- lmtest::lrtest(m1, m3))
 
-lr_test <- lrtest(mod_no_Immigration, mod_Immigration)
+lr_12 <- lmtest::lrtest(m1,m2)
+lr_23 <- lmtest::lrtest(m2,m3)
 
-mod1_nagel <- PseudoR2(mod_no_Immigration, which = "Nagelkerke")
-mod2_nagel <- PseudoR2(mod_Immigration, which = "Nagelkerke")
+glance_fits <- broom::glance(m1) |> select(15:17) |>  bind_rows(broom::glance(m2) |> select(15:17)) |> bind_rows(broom::glance(m3) |> select(15:17)) |> t() |> as_tibble()
 
-
-mf1 <- model.frame(party_vote ~ gender + age + tertiary_education,
-                     data = data, na.action = na.omit)
-mf2 <- model.frame(party_vote ~ gender + age + tertiary_education + Immigration,
-                     data = data, na.action = na.omit)
-
-
-mod1_pred <- predict(mod_no_Immigration, type = "class") |> 
-  as_tibble() |> 
-  bind_cols(mf1)
-share_correct_m1 <- mean(mod1_pred$value == mod1_pred$party_vote)
-
-mod2_pred <- predict(mod_Immigration, type = "class") |> 
-  as_tibble() |> 
-  bind_cols(mf2)
-share_correct_m2 <- mean(mod2_pred$value == mod2_pred$party_vote)
+colnames(glance_fits) <- c("Model 1", "Model 2", "Model 3")
 
 data_fit <- as.data.frame(tribble(
-  ~`Model 1`, ~`Model 2`,
-  as.character(round(mod1_nagel,5)), as.character(round(mod2_nagel,5)),
-  as.character(round(share_correct_m1,5)), as.character(round(share_correct_m2,5)),
-  " ", as.character(round(lr_test[2,4],5)),
-  " ", as.character(round(lr_test[2,5],5))))
+  ~`Model 1`, ~`Model 2`, ~`Model 3`,
+  NA_integer_, lr_12[2,4], lr_23[2,4], # lr 
+  NA_integer_, lr_12[2,3], lr_23[2,3], # df
+  NA_integer_, lr_12[2,5], lr_23[2,5] # p
+    )
+  )
 
-rownames(data_fit) <- c("Nagelkerke’s pseudo-R2", "Share of correct predictions", "Likelihood Ratio", "Likelihood Ratio (p-value)")
+data_fit2 <- as.data.frame(bind_rows(glance_fits,data_fit)) %>% round(.,2)
 
-kable(data_fit,
-      caption = "Voting in the 2019 UK general election: Model fit statistics") |> 
+data_fit2[6,2] <- as.character(signif(data_fit[3,2], 3))
+data_fit2[6,3] <- as.character(signif(data_fit[3,3], 3))
+
+rownames(data_fit2) <- c("Log Likelihood", "AIC", "BIC", "Likelihood Ratio", "Likelihood Ratio (Df)", "Likelihood Ratio (p-value)")
+
+data_fit2[is.na(data_fit2)] <- ""
+
+kable(data_fit2,
+      align = "c",
+      caption = "Voting Trump or Biden in the 2024 US Elections: Model Fit Statistics") |> 
   footnote(footnote_as_chunk = TRUE,
            threeparttable = TRUE, 
-           general = "The Likelihood ratio is always calculated with the nested model to the left. Data from ESS (UK, 10th round).")
+           general = "The Likelihood ratio is always calculated with the nested model to the left. Data from Hainmueller et al., 2014 (collected July 2012)")
 ```
 
 
 ```{r}
+#| fig-width: 8
+#| fig-height: 6
+#| fig-align: center
+
 m1tib <- tibble(ChoiceID = 1,
                 `Age (in years)` = c(81, 78))
 
-p1 <- m1tib |> bind_cols(Za = predict(m1, type = "lp", newdata = .)) |>  
+p1 <- m1tib %>% bind_cols(Za = predict(m1, type = "lp", newdata = .)) |>  
   group_by(ChoiceID) |> 
   mutate(Pr = exp(Za) / sum(exp(Za)))
 
@@ -162,6 +170,7 @@ p2 <- m2tib %>% bind_cols(Za = predict(m2, type = "lp", newdata = .)) |>
 
 m3tib <- tibble(ChoiceID = 1,
                 `Age (in years)` = c(81, 78),
+                `Age Squared` = c(6561, 6084),
                 Education = c("State university", "Ivy League university"),
                 Profession = c("Lawyer", "Business owner"))
 
@@ -171,22 +180,27 @@ p3 <- m3tib %>% bind_cols(Za = predict(m3, type = "lp", newdata = .)) |>
 
 pred_df <- tribble(
   ~Name, ~Pred, ~Model,
-  "Biden", p1[1,4], "Model 1",
-  "Trump", p1[2,4], "Model 1",
-  "Biden", p2[1,5], "Model 2",
-  "Trump", p2[2,5], "Model 2",
-  "Biden", p3[1,6], "Model 3",
-  "Trump", p3[2,6], "Model 3"
+  "Biden", p1[1,4], "Model 1 (Age)",
+  "Trump", p1[2,4], "Model 1 (Age)",
+  "Biden", p2[1,5], "Model 2 (+ Age squared)",
+  "Trump", p2[2,5], "Model 2 (+ Age squared)",
+  "Biden", p3[1,7], "Model 3 (+ Profession & Education)",
+  "Trump", p3[2,7], "Model 3 (+ Profession & Education)"
 ) |> unnest(Pred)
+
+
+pred_df |> ggplot(aes(x = Name, y = Pr, fill = Name)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_wrap(~Model, labeller = label_wrap_gen(width = 30)) +
+  labs(x = "Candidate", y = "Predicted Probability", fill = "Candidate",
+       title = "Predicted Probabilities of Voting Biden or Trump in the 2024 US Elections",
+       subtitle = "Estimated from Conditional Logistic Regression",
+       caption = "Data from Hainmueller et al., 2014 (collected July 2012)",
+       tag = "Fig. 1") +
+  theme_light() +
+  scale_fill_manual(values = c("Trump" = "red", "Biden" = "darkblue"))
 ```
 
+## Conclusions
 
-FOR PREDICTION -> USE TWO AGES AS PREDICTIONS TRUMPS AND BIDENS
-
---> in total 6 probabilities! 2 for each model!
-
---> given trumps age and bidens age (+their differences on the variables, i.e., job, edu, religion)
---> bar graph enough
-
-we're doing out of sample prediction, should be in one of the early mentions of lab/lecture 6
---> needs two extra lines of code
+> please tell me this works
