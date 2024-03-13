@@ -1,5 +1,5 @@
 ---
-title: "Assignment 4 DCM - Voting Biden or Trump in the 2024 US Elections"
+title: "Assignment 4 DCM - Voting Biden or Trump in the 2024 US Presidential Elections"
 author: "Marc Sparhuber"
 format: pdf
 editor: source
@@ -26,6 +26,7 @@ data <- read.csv(here::here("DCM","Assignment4", "candidate.csv"))
 
 ## Introduction
 
+> The following analysis aims to answer the question whether, from an electoral/political standpoint (not a leadership or competence standpoint), concerns about Biden’s age are warranted. It is expected that among other variables, age will play a crucial role in predicting the probability of chosing a candidate for the next election in the US in the fall of 2024. The main dependent variable is the choice within a choice set of two fictive candidates with discretely varying attributes. The main independent variable is age measured in years, while other variables included in the analyses are Education and Profession, as these vary between the two likely candidates in the 2024 US election, with Trump having received a degree from an Ivy League university and Biden from a state university, as well as, Biden having been a Lawyer and Trump as Business Owner before their political careers. Other variables such as Religion and income vary between them and would have been interesting to include but were decided against due to Trump's beliefs not clearly fitting into any of the levels of the Religion variable and Income, as I argue it is not feasible to expect that decisions in a voting process would be made based on knowing how much a candidate has earned or, more importantly, being able to find out precisely how much wealth they possess. In the case of Trump's confession, subjectivity of respondents disallows taking it into account as I pose that despite his official, yet vague outing as a "confessionless Christian" will be either disregarded or misconstrued in a confirmatory manner to fit the respondents beliefs about Trump's beliefs. Regardless, it is expected that being a Lawyer may represent greater lawfulness, therefore predicting a higher share of choices and Ivy League education being preferred over other tertiary education, as it may be perceived as a measure of intelligence. Finally, age is expected to predict a greater likelihood of being chosen but decline at some point around 65 (arbitrarily chosen), which would result in Biden being perceived from an electoral standpoint as the less favored candidate, as he will be nearing 82 around the time of the 2024 US presidential election and Trump sporting a sprightly 78 years.
 
 
 ```{r}
@@ -46,10 +47,14 @@ data <- data |> rename(
   Income = Inc,
   ChoiceID = `Cho Id`,
   `Age (in years)` = Age
-) |> mutate(`Age Squared` = I(`Age (in years)`^2))
+) |> mutate(`Age Squared` = I(`Age (in years)`^2)) |> mutate(Selected = Selected-1)
 ```
 
 ## Data and Methods
+
+> The data to predict the results of the 2024 presidential elections, however, are from 2012 and were initially collected for a study by Hainmueller et al., 2014 with the goal of demonstrating a new technique for causal inference from survey experiment data. The data are non-representative and gathered from MTurk, yet it can be assumed that the criteria for what constitutes a desirable presidential candidate might not have changed much. The variables used in this analysis remain mostly unchanged factor variables (Profession and Education), while Age (factor variable with 6 discrete values - units in years) is supplemented by another variable squaring it, aptly named Age Squared. Interestingly, the median age of the chosen alternatives is lower than those of the unchosen ones, showing that lower age seems to be more desirable in a presidential candidate, though the interquartile range is the same for both chosen and unchosen, indicating that too young a candidate, i.e., 36 is perhaps considered not experienced enough. While gender (and race, though not shown) are divided quite equally among chosen and unchosen alternatives, social desirability during response to the survey experiment may have been a biasing factor here. For Education, as can be seen in Table 1, generally speaking the higher the education, the likelier the candidate was picked. The picture is a little less clear with regards to profession but generally speaking it seems that prestige seems to win out, leaving car dealers and farmers lagging behind the other professions in percent chosen.
+
+> Three models are constructed. The first contains age and is meant to test the main hypothesis that older candidates may be deemed less qualified by the voting age public. The second model adds a squared term for age, looking out for non-linear relationships between age and candidate choice. The third model, as can be seen in Table 2, adds the variables which vary among Biden and Trump and they can be clearly identified on (in retrospect - I'm running out of time - I should've added all variables to the model regardless, as although Trump and Biden might not differ in certain variables, adding more variables may have improved the model fit). Model 3 includes the other two previously mentioned factor variables Education and Profession with their values "No BA" and "Car dealer" serving as reference categories, as can be seen in Table 2.
 
 ```{r}
 #| fig-align: center
@@ -58,8 +63,10 @@ data |>
   mutate(selected_table = factor(Selected,
                      labels = c("Unchosen","Chosen"))) |> 
   select(selected_table, `Age (in years)`, Gender, Education, Profession) |> 
-  tbl_summary(by = selected_table, type = list(`Age (in years)` ~ "continuous")) |> modify_caption("Voting for Trump or Biden in the 2024 US Election: Descriptives Divided by Choice") |>
-  as_kable_extra(booktabs = TRUE, escape = FALSE, linesep = "") |>  footnote(footnote_as_chunk = TRUE,
+  tbl_summary(by = selected_table, type = list(`Age (in years)` ~ "continuous")) |> 
+  modify_caption("Voting for Trump or Biden in the 2024 US Election: Descriptives Divided by Choice") |>
+  as_kable_extra(booktabs = TRUE, escape = FALSE, linesep = "") |>
+  footnote(footnote_as_chunk = TRUE,
            threeparttable = TRUE, 
            general = "Data from Hainmueller et al., 2014 (collected July 2012)")
 
@@ -78,6 +85,8 @@ m3 <- clogit(Selected ~ `Age (in years)` + `Age Squared` + Education + Professio
 ```
 
 ## Results
+
+> Table 2 presents the results of the three models. In Model 1, the significant Age coefficient of 0.98 indicates that respondents are 2% less likely to choose a candidate that is one ordinal step of the age variable higher. That this effect is likely non-linear is not only shown by inspecting the descriptive data of the chosen alternatives where 52 was the most chosen age category with the lower bound 36 being second most chosen and 75, the upper bound being the least chosen but also by the inclusion of the squared age term in Model 2. The log odds of the age squared term being at 1 and the one of age at 1.10 indicates that though the probability of choosing someone with a greater age initially increases, it then decreases later on. Model 3 adds Education and Profession, while keeping the squared age term. Relevant to our hypotheses it can be seen that Ivy League and State university education are most desirable, being 3.13 and 2.25 times as likely to be chosen with the same profession and age, compared to someone without a bachelor's degree, respectively. In regards to profession, compared to car dealers, business owners and lawyers were 2.6 and 2.3 times as likely to be chosen, all else equal. All terms were significant.
 
 ```{r}
 t1 <- tbl_regression(m1, exponentiate = TRUE) |> 
@@ -99,11 +108,16 @@ t3 <- tbl_regression(m3, exponentiate = TRUE) |>
                   abbreviation=TRUE)
 
 tbl_merge(tbls = list(t1, t2, t3),
-          tab_spanner = c("**Model 1**", "**Model 2**", "**Model 3**")) |> modify_caption("Voting for Trump or Biden in the 2024 US Election: Conditional Logistic Regression Models") |> 
-  as_kable_extra(booktabs = TRUE, escape = FALSE, linesep = "") |> kable_styling(latex_options = "scale_down") |> footnote(footnote_as_chunk = TRUE,
+          tab_spanner = c("**Model 1**", "**Model 2**", "**Model 3**")) |> 
+  modify_caption("Voting for Trump or Biden in the 2024 US Election: Conditional Logistic Regression Models") |> 
+  as_kable_extra(booktabs = TRUE, escape = FALSE, linesep = "") |> 
+  kable_styling(latex_options = "scale_down") |> 
+  footnote(footnote_as_chunk = TRUE,
            threeparttable = TRUE, 
            general = "Data from Hainmueller et al., 2014 (collected July 2012). The units for the age term is years. The reference category for Education is No Bachelor's Degree and Car Dealer for Profession.")
 ```
+
+> The inclusion of the squared age term in the third model is justified not only by the given rationale but also the log likelihood, AIC and BIC being lower than that of Model 1, as can be seen in Table 3. Likewise, and unsurprisingly Model 3 sports the best model fit of these models. Inspecting the likelihood ratio test it can similarly be seen that there is a greater jump of model fit from Model 2 to 3 than 1 to 2. Crucially, this does not mean that Model 3 is well specified, as there are plenty of interesting variables that should have been included here and the share of correct predictions are not calculated. 
 
 ```{r}
 #| fig-align: center
@@ -137,17 +151,17 @@ data_fit2[is.na(data_fit2)] <- ""
 
 kable(data_fit2,
       align = "c",
-      caption = "Voting Trump or Biden in the 2024 US Elections: Model Fit Statistics") |> 
+      caption = "Voting Trump or Biden in the 2024 US Presidential Elections: Model Fit Statistics") |> 
   footnote(footnote_as_chunk = TRUE,
            threeparttable = TRUE, 
            general = "The Likelihood ratio is always calculated with the nested model to the left. Data from Hainmueller et al., 2014 (collected July 2012)")
 ```
 
+> Figure 1 shows the out of sample predicted probabilities for voting Trump or Biden for each model. Specifying the corresponding values for the two candidates in each model - ages in model 1, adding age squared in model 2 and education and profession in model 3 - and then predicting the probabilities leads to the following results. While Model 1 only captures a linear effect of age this puts Trump slightly ahead of Biden in predicted probability. Adding a non-linear age effect, however, increases his lead in predicted probability by quite a bit. This corresponds to the results from Table 2 and a look at the distribution of the ages of chosen candidates decreasing noticeably with age, making even a relatively small age difference between Biden and Trump of 4 years result in an approximately 10 percent point lead for the latter. Model 3, which adds profession and education increases this lead, as would be expected by the results in Table 2, in which the combination encapsulating characteristics of Trump had higher log odds associated with them than Bidens, compared to the reference categories. This model predicts a 65% predicted probability of voting Trump.
 
 ```{r}
 #| fig-width: 8
 #| fig-height: 6
-#| fig-align: center
 
 m1tib <- tibble(ChoiceID = 1,
                 `Age (in years)` = c(81, 78))
@@ -193,7 +207,7 @@ pred_df |> ggplot(aes(x = Name, y = Pr, fill = Name)) +
   geom_bar(stat = "identity", position = "dodge") +
   facet_wrap(~Model, labeller = label_wrap_gen(width = 30)) +
   labs(x = "Candidate", y = "Predicted Probability", fill = "Candidate",
-       title = "Predicted Probabilities of Voting Biden or Trump in the 2024 US Elections",
+       title = "Predicted Probabilities of Voting Biden or Trump in the 2024 US Presidential Elections",
        subtitle = "Estimated from Conditional Logistic Regression",
        caption = "Data from Hainmueller et al., 2014 (collected July 2012)",
        tag = "Fig. 1") +
@@ -203,4 +217,4 @@ pred_df |> ggplot(aes(x = Name, y = Pr, fill = Name)) +
 
 ## Conclusions
 
-> please tell me this works
+> It was assumed that there would be a drop off around 65 when increasing age would not benefit the candidate anymore. This was not the case and indeed the drop off came after age 52 instead. This is also due to the categorical nature of the age variable which was, however, largely treated as continuous in order to make out of sample predictions. This definitely leads to some imperfections in the predictions but is a constraint of conditional logistical regression models based on survey experiments with categorical choices instead of random continuous age variables (which could and should've easily been implemented were the data made for the context it is used in here). Further, the variables taken into account in Model 3 are far from comprehensive and the choice of included predictors can justly be criticized (as I did above already). All in all, the way the Models were specified here, it is predicted that Trump will be voted into office again in 2024 so I should've really changed my models lol.
