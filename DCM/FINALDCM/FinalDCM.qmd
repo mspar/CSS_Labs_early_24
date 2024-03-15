@@ -1,0 +1,25 @@
+---
+title: "Assignment 4 DCM - Voting Biden or Trump in the 2024 US Presidential Elections"
+author: "Marc Sparhuber"
+format: pdf
+editor: source
+execute:
+  warning: false
+  echo: false
+toc: true
+header-includes:
+      - \usepackage{float}
+      - \floatplacement{table}{H}
+---
+
+\newpage 
+
+```{r}
+library(tidyverse)
+library(tidymodels)
+library(survival)
+library(kableExtra)
+library(gtsummary)
+
+data <- read.csv(here::here("DCM","Assignment4", "candidate.csv"))
+```
