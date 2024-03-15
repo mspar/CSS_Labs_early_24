@@ -20,6 +20,27 @@ library(tidymodels)
 library(survival)
 library(kableExtra)
 library(gtsummary)
+library(haven)
 
-data <- read.csv(here::here("DCM","Assignment4", "candidate.csv"))
+data <- read_dta(here::here("DCM","FINALDCM", "acs_2015.dta"))
 ```
+
+```{r}
+data <- data |> select(serial,sex,age,stateicp,met2013,pernum,famsize,birthyr,bpld:migplac1)
+
+# reduce to people who have done a bachelors at least
+data <- data |> filter(educd > 101 & educd != 999)
+
+# make new variable to get age at migration
+data |> filter(yrimmig != 0) |> mutate()
+
+
+#who do I want to look at:
+# people who immigrated to the US in their childhood.
+# born abroad
+# have citizenship
+# have got a college degree
+# what field did they choose
+
+```
+
