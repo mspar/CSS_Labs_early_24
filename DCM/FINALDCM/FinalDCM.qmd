@@ -22,17 +22,88 @@ library(kableExtra)
 library(gtsummary)
 library(haven)
 
-data <- read_dta(here::here("DCM","FINALDCM", "acs_2015.dta"))
+og_data <- read_dta(here::here("DCM","FINALDCM", "acs_2015.dta"))
+
+og_data$degfield <- labelled::to_factor(og_data$degfield)
+og_data$degfieldd <- labelled::to_factor(og_data$degfieldd)
+og_data$degfield2 <- labelled::to_factor(og_data$degfield2)
+og_data$degfield2d <- labelled::to_factor(og_data$degfield2d)
+og_data$empstat <- labelled::to_factor(og_data$empstat)
+og_data$rachsing <- labelled::to_factor(og_data$rachsing)
+og_data$stateicp <- labelled::to_factor(og_data$stateicp)
+og_data$met2013 <- labelled::to_factor(og_data$met2013)
+og_data$bpld <- labelled::to_factor(og_data$bpld)
 ```
 
 ```{r}
-data <- data |> select(serial,sex,age,stateicp,met2013,pernum,famsize,birthyr,bpld:migplac1)
+data <- og_data |> select(sex,age,stateicp,met2013,birthyr,bpld,citizen,yrimmig,yrsusa1,rachsing,educd,degfield,degfieldd,empstat,occ,uhrswork,inctot,migplac1)
 
-# reduce to people who have done a bachelors at least
+#drop na level in degree so it doesn't get annoying later
+data$degfield <- fct_recode(data$degfield, NULL = "N/A")
+
+# reduce to people who have done a bachelors at least - they will be the observed group
 data <- data |> filter(educd > 101 & educd != 999)
 
-# make new variable to get age at migration
-data |> filter(yrimmig != 0) |> mutate()
+# make new variable to get age at migration and take a look at my group of interest
+data <- data |> mutate(
+   age_at_immigration = if_else(yrimmig != 0, yrimmig - (2015-age), NA_integer_),
+   young_migrant = if_else(!is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 21, "YM", "Not YM"),
+   young_migrant = as_factor(young_migrant)
+   ) |> 
+  filter(birthyr >= 1960)
+  # |> filter(birthyr > 1960 & !is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 21) |> View()
+# cho0sing born earliest 1960 because then the full range of possible degrees would have likely been available: 13,777 YM
+
+
+
+# make a little summarize table
+interesting_data_smile <- data |>
+  group_by(degfield) |> 
+  filter(n()>=500) |> 
+  summarise(
+    n_degree_holders = n(),
+    med_age = median(age),
+    n_women = sum(sex==2),
+    p_women = sum(sex==2)/n(),
+    n_young_migrants = sum(!is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 21),
+    p_young_migrants = sum(!is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 21)/n(),
+    n_employed = sum(empstat == "Employed"),
+    p_employed = sum(empstat == "Employed")/n(),
+    n_ym_employed = sum(empstat == "Employed" & !is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 21),
+    p_ym_employed_within = sum(empstat == "Employed" & !is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 21)/n_young_migrants,
+    p_ym_employed_general = sum(empstat == "Employed" & !is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 21)/n(),
+    mean_weekly_hours = round(mean(uhrswork),2),
+    med_tot_income = median(inctot)
+    )
+
+
+# id part!
+set.seed(1)
+sample_degree_holders <- data |> group_by(young_migrant) |> 
+  slice_sample(n = 10000) |> ungroup() |> mutate(ID = row_number())
+
+
+size <- 20
+alts <- interesting_data_smile$degfield
+
+sample_degree_holders |> 
+  ungroup() |> 
+  select(ID) |>  
+  mutate(alt = replicate(n(), sample(alts, size = size, replace = FALSE), simplify = FALSE)) |> 
+  unnest(alt) |>
+  anti_join(sample_degree_holders, by = join_by(ID, alt == degfield)) |> 
+  group_by(ID) |> slice(1:(size-1)) ->
+  degree_choice
+
+
+sample_degree_holders |> 
+  select(ID, alt = degfield) |>
+  bind_rows(degree_choice) |> 
+  group_by(ID) |> 
+  arrange(ID, alt) |> 
+  left_join(sample_degree_holders, by = join_by(ID)) |> 
+  left_join(interesting_data_smile, by = join_by(alt == degfield)) |> 
+  mutate(choice = degfield == alt) -> degree_choice2
 
 
 #who do I want to look at:
