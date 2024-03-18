@@ -33,16 +33,19 @@ og_data$rachsing <- labelled::to_factor(og_data$rachsing)
 og_data$stateicp <- labelled::to_factor(og_data$stateicp)
 og_data$met2013 <- labelled::to_factor(og_data$met2013)
 og_data$bpld <- labelled::to_factor(og_data$bpld)
+og_data$bpl <- labelled::to_factor(og_data$bpl)
 og_data$occ <- labelled::to_factor(og_data$occ)
+og_data$citizen <- labelled::to_factor(og_data$citizen)
 ```
 
 ```{r}
-data <- og_data |> select(sex,age,stateicp,met2013,birthyr,bpld,citizen,yrimmig,
-                          yrsusa1,rachsing,educd,degfield,degfieldd,empstat,occ,
-                          uhrswork,inctot,migplac1)
+data <- og_data |> select(sex,age,stateicp,met2013,birthyr,bpl,citizen,yrimmig,
+                          yrsusa1,rachsing,educd,degfield,empstat,uhrswork,inctot,incearn,poverty)
 
 #drop na level in degree so it doesn't get annoying later
 data$degfield <- fct_recode(data$degfield, NULL = "N/A")
+data$citizen <- fct_recode(data$citizen, "Citizen" = "N/A")
+data$empstat <- fct_recode(data$empstat, NULL = "N/A")
 
 # reduce to people who have done a bachelors at least - they will be the observed group
 data <- data |> filter(educd > 101 & educd != 999)
@@ -62,7 +65,7 @@ data <- data |> mutate(
 # make a little summarize table
 interesting_data_smile <- data |>
   group_by(degfield) |> 
-  filter(n()>=500) |> 
+  filter(n()>=1000) |> 
   summarise(
     n_degree_holders = n(),
     med_age = median(age),
@@ -76,17 +79,25 @@ interesting_data_smile <- data |>
     p_ym_employed_within = sum(empstat == "Employed" & !is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 21)/n_young_migrants,
     p_ym_employed_general = sum(empstat == "Employed" & !is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 21)/n(),
     mean_weekly_hours = round(mean(uhrswork),2),
-    med_tot_income = median(inctot)
+    med_tot_income = median(inctot),
+    med_earned_income = median(incearn),
+    mean_poverty = round(mean(poverty),2)
     )
 
 
+#so there are no too small categories blah
+interesting_data_smile$degfield <- droplevels(interesting_data_smile$degfield)
+
 # id part!
 set.seed(1)
-sample_degree_holders <- data |> group_by(young_migrant) |> 
+sample_degree_holders <- data |> filter(degfield %in% interesting_data_smile$degfield)
+sample_degree_holders$degfield <- fct_drop(sample_degree_holders$degfield)
+
+sample_degree_holders <- sample_degree_holders |> 
+group_by(young_migrant) |> 
   slice_sample(n = 10000) |> ungroup() |> mutate(ID = row_number())
 
-
-size <- 20
+size <- 10
 alts <- interesting_data_smile$degfield
 
 sample_degree_holders |> 
@@ -99,15 +110,60 @@ sample_degree_holders |>
   degree_choice
 
 
+# reduce variables in degree table for conditional logit
+interesting_data_smile2 <- interesting_data_smile 
+#|> select(-c(starts_with("n_"),starts_with("p_"),med_age))
+
+
 sample_degree_holders |> 
   select(ID, alt = degfield) |>
   bind_rows(degree_choice) |> 
   group_by(ID) |> 
   arrange(ID, alt) |> 
   left_join(sample_degree_holders, by = join_by(ID)) |> 
-  left_join(interesting_data_smile, by = join_by(alt == degfield)) |> 
-  mutate(choice = degfield == alt) -> degree_choice2
+  left_join(interesting_data_smile2, by = join_by(alt == degfield)) |> 
+  mutate(choice = degfield == alt,
+         choice = as.numeric(choice)) |> 
+  select(-c(yrimmig,yrsusa1,met2013,educd,degfield,stateicp,bpl,age_at_immigration)) -> degree_choice2
 
+# Sanity check good
+sum(degree_choice2$choice) == nrow(sample_degree_holders)
+sum(degree_choice2$choice)*size == nrow(degree_choice2)
+
+library(survival)
+
+degree_choice3 <- degree_choice2 |> select(ID, choice, rachsing, alt, young_migrant)
+
+
+# why does one work an the other doesn't?
+# https://stats.stackexchange.com/questions/377997/na-coefficients-produced-by-clogit-model
+this_works <- clogit(choice ~ mean_weekly_hours + alt + strata(ID), data = degree_choice2)
+tidy(this_works) |> View()
+
+this_doesnt_work <- clogit(choice ~ as.numeric(uhrswork) + alt + strata(ID), data = degree_choice2)
+tidy(this_doesnt_work) |> View()
+
+
+
+degree_choice2 %>%
+  group_by(alt) %>%
+  summarize(Num_Unique_Values = n_distinct(uhrswork)) |> View()
+
+
+
+# only person characteristics -> does not work
+person_only <- clogit(choice ~ I(as.numeric(uhrswork)) + strata(ID), data = degree_choice2)
+tidy(person_only) |> View()
+
+
+# filtered stuff
+ym <- clogit(choice ~ alt + log(n_degree_holders) + strata(ID) ,
+       data = filter(degree_choice2, young_migrant == "YM"))
+tidy(ym) |> View()
+
+nym <- clogit(choice ~ alt + log(n_degree_holders) + strata(ID) ,
+       data = filter(degree_choice2, young_migrant == "Not YM"))
+tidy(nym) |> View()
 
 #who do I want to look at:
 # people who immigrated to the US in their childhood.
@@ -115,6 +171,5 @@ sample_degree_holders |>
 # have citizenship
 # have got a college degree
 # what field did they choose
-
 ```
 

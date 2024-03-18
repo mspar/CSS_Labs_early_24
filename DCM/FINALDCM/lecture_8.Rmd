@@ -1,0 +1,582 @@
+---
+title: "Lecture 8: Combining Conditional Logistic & Multinomial Logistic Regression"
+author: Benjamin Jarvis
+institute: | 
+  | Institute for Analytical Sociology
+  | Linköping University
+date: 11-12 March 2024
+fontsize: 11pt
+output:
+  beamer_presentation:
+    includes:
+      in_header: 
+        - header.tex
+        - columns.tex
+    keep_tex: true
+---
+
+```{r setup , include=F}
+knitr::opts_chunk$set(include=T, message=F, warning=F)
+options(digits=3)
+options(knitr.kable.NA = '')
+
+colorize <- function(x, color) {
+  if (knitr::is_latex_output()) {
+    sprintf("\\textcolor{%s}{%s}", color, x)
+  } else if (knitr::is_html_output()) {
+    sprintf("<span style='color: %s;'>%s</span>", color, 
+      x)
+  } else x
+}
+
+library(tidyverse)
+library(tidymodels)
+library(survival)
+library(kableExtra)
+library(RColorBrewer)
+library(nnet)
+library(gtsummary)
+library(modelsummary)
+theme_set(theme_light())
+theme_update(text = element_text(size = 24))
+```
+
+```{r , include=F}
+# This is allows us to control text size for Latex output created by R
+def.chunk.hook  <- knitr::knit_hooks$get("chunk")
+knitr::knit_hooks$set(chunk = function(x, options) {
+  x <- def.chunk.hook(x, options)
+  ifelse(options$size != "normalsize", paste0("\n \\", options$size,"\n\n", x, "\n\n \\normalsize"), x)
+})
+```
+
+## Objectives
+
+- Explain the relationship between multinomial and conditional logistic regression.
+
+- Distinguish between:
+
+  - ASC by decision-maker specific covariate interactions
+  - ASC by alternative-specific covariate interactions
+  - individual-specific by alternative-specific interactions.
+
+- Estimate multinomial logistic regression models using `R`.
+
+- Estimate combined conditional+multinomial logistic regresion models using `R`.
+
+- Interpret coefficients from conditional+multinomiall logistic regression models.
+
+
+## Recalling our logit models
+
+:::: {.cols data-latex=""}
+
+::: {.col data-latex="{0.49\textwidth}"}
+Multinomial logit \
+
+$$Pr(y_{ij}=1) = \frac{e^{X_i\beta_j}}{\sum_{k=1}^{K} e^{X_i\beta_k}}$$
+:::
+
+::: {.col data-latex="{0.02\textwidth}"}
+\vspace{1ex}
+:::
+
+::: {.col data-latex="{0.49\textwidth}"}
+Conditional logit \
+
+$$Pr(y_{ij}=1) = \frac{e^{Z_{ij}\alpha_{ij}}}{\sum_{k=1}^{K_i} e^{Z_{ik}\alpha_{ik}}}$$
+:::
+
+::::
+
+## Our powers combined!^[“Ultimate Fusion” by Chawit Waewsawangwong]
+
+![](fusion.jpg)
+
+## Our powers combined!
+
+$$Pr(y_{ij}=1) = \frac{e^{X_i\beta_j + Z_{ij}\alpha_{ij}}}{\sum_{k=1}^{K_i} e^{X_i\beta_k + Z_{ik}\alpha_{ik}}}$$
+
+**THIS** is what economists refer to as "multinomial logistic regression".
+
+Really the conditional logit and the "old" multinomial logit are the specific cases of this, more general model.
+
+## Equivalent, alternative expression
+
+$$Pr(y_{ij}=1) = \frac{e^{\beta_{j0} + X_i\beta_j + Z_{ij}\alpha_{ij}}}{\sum_{k=1}^{K_i} e^{\beta_{k0} + X_i\beta_k + Z_{ik}\alpha_{ik}}}$$
+
+Here I have broken out $\beta_{j0}$, i.e., the alternative-specific intercepts. 
+
+Choice modelers often refer to these as **A**lternatitive **S**pecifics **C**onstants (ASCs).
+
+Essentially, these are dummy variables that reflect unobserved factors, not captured by $Z_{ij}$, that may make particular alternatives more or less appealing.
+
+Essentially $\beta_{j0}$ are fixed effects for each distinct possible alternative. 
+
+
+## Interpreting $\beta$ coefficients
+
+- Interpreting $\beta_j$ is nearly same as in the "regular" multinomial logistic regression model.
+  - metric coefficients are interpreted in terms of log-odds.
+  - exponentiated coefficients are interpreted in terms of odds ratios.
+  - We just now consider the estimates as controlling for $Z_{ij}$ as well.
+  - We still have to keep in mind what the "omitted" category of the outcome is.
+
+## Interpreting $\alpha$ coefficients
+  
+- Interpreting $\alpha_j$ is as before in the conditional logit, but now more awkward
+  - When exponentiated, we can still interpret as withiin choice set probability ratios.
+  - But this is tenuous because of the inclusion of $\beta_{j0}$
+  - Must interpret in terms of the ratio of two probabilities for alternatives of the same type, i.e., with the same $\beta_{j0}$.
+
+
+## Estimating a multinomial model with `clogit()`
+
+If the conditional logistic regression model and the multinomial logistic regression model are the same, then we can estimate a multinomial logistic regression model using `clogit()`.
+
+Can't estimate a conditional logistic regression model using, e.g., `multinom()`. Why?
+
+## Estimating a multinomial model with `clogit()`
+
+Let's revist our ESS data on voting in Sweden
+
+```{r, echo=F,size="footnotesize"}
+library(haven)
+ess<-read_dta("ESS8e02_1_se.dta") %>% 
+  select(idno,prtvtbse,lrscale,imueclt) %>% 
+  zap_missing() %>% 
+  droplevels() %>% 
+  mutate(party=as_factor(prtvtbse),
+         lrscale=as.integer(lrscale)-5,
+         immcult=as.integer(imueclt)-5) %>% 
+  select(idno,lrscale,immcult,party) %>% 
+  na.omit() %>% 
+  mutate(bloc = fct_recode(party, 
+                           right = "Centern", 
+                           right = "Folkpartiet liberalerna",
+                           right = "Moderata samlingspartiet",
+                           right = "Kristdemokraterna",
+                           left = "Socialdemokraterna",
+                           left = "Vänsterpartiet",
+                           left = "Miljöpartiet de gröna",
+                           popright = "Sverigedemokraterna",
+                           other = "FI (Feministiskt initiativ)",
+                           other = "Piratpartiet",
+                           other = "Annat parti"))
+ess
+```
+
+## Modeling party vote in Sweden with `multinom`
+
+```{r, size="footnotesize", warning=F, message=F}
+m.multinom<-multinom(bloc~lrscale+immcult,data=ess, trace=F)
+tidy(m.multinom)
+```
+
+## Modeling party vote in Sweden with `clogit`
+
+For `clogit`, we need the data in long form.
+
+```{r, size="footnotesize"}
+esslong <- ess %>% 
+  expand_grid(tibble(alt_bloc=unique(ess$bloc))) %>%
+  mutate(choice=bloc==alt_bloc)
+esslong
+```
+
+## Modeling party vote in Sweden with `clogit`
+
+```{r, size="footnotesize"}
+m.clogit<-clogit(choice ~ alt_bloc + alt_bloc*lrscale+alt_bloc*immcult + 
+                   strata(idno), data=esslong)
+tidy(m.clogit)
+```
+
+## Comparing `multinom` and `mlogit` results
+
+:::: {.cols data-latex=""}
+
+::: {.col data-latex="{0.48\textwidth}"}
+**`multinom`** \
+```{r, echo=F, size="footnotesize"}
+t.multinom<-tidy(m.multinom) %>% 
+  select(y.level,term,estimate) %>% 
+  arrange(y.level,term)
+
+t.multinom %>% 
+  kbl() %>% 
+  kable_classic() %>% 
+  column_spec(1:3,
+              background=spec_color(as.integer(factor(t.multinom$y.level))),
+              color=c(rep("white",6),rep("black",3)))
+```
+:::
+
+::: {.col data-latex="{0.04\textwidth}"}
+\vspace{1ex}
+:::
+
+::: {.col data-latex="{0.48\textwidth}"}
+**`clogit`**  \
+```{r, echo=F, size="footnotesize"}
+t.clogit<-tidy(m.clogit) %>% 
+  select(term,estimate) %>% 
+  mutate(term=gsub("alt_bloc","",term),
+    covariate=gsub(":","",str_extract(term,":(.+)")),
+         y.level=gsub("alt_bloc","",str_extract(term,"(left|other|popright)")),
+    covariate=if_else(is.na(covariate),"(Intercept)",covariate)) %>% 
+  drop_na() %>% 
+  arrange(y.level,term) 
+
+t.clogit %>% drop_na() %>% 
+  select(y.level,covariate,estimate) %>% 
+  kbl() %>% 
+  kable_classic() %>% 
+  column_spec(1:3,
+              background=spec_color(as.integer(factor(t.clogit$y.level))),
+              color=c(rep("white",6),rep("black",3)))
+```
+
+:::
+
+::::
+
+
+## Models with ASCs and alternative-specific covariates
+
+To estimate models including both multinomial and conditional logit features, we will use a new data set of travel mode choice from Canada.
+
+- See: Bhat, Chandra R. 1995. “A Heteroscedastic Extreme Value Model of Intercity Travel Mode Choice.” _Transportation Research Part B: Methodological_ 29(6):471–83. doi: 10.1016/0191-2615(95)00015-6.]
+
+The data pertain to travel choices along the Toronto-Montreal transit corridor.
+
+## How the mode choice data were created
+
+- The data are based on a survey of actual travelers on the corridor. 
+- Their origins and destinations were determined.
+- Their observed/reported travel modes were treated as the **chosen** alternative.
+- For their current trip, costs and travel times of potential alternate modes were determined.
+  - Modes included **bus, train, car, and airplane.**
+  - Bus was rarely chosen, so we will ignore for now. 
+  - The analytic **choice set** is **train, car, and airplane.**
+- The survey also collected other information about the travelers (urban vs. rural origin, income, etc.).
+
+## Mode choice as a discrete choice problem
+
+:::: {.cols data-latex=""}
+
+::: {.col data-latex="{0.32\textwidth}"}
+\includegraphics[width=0.9\textwidth]{plane}
+ticket cost  
+waiting time  
+travel time  
+convenience  
+airport accessibility  
+etc.
+:::
+
+::: {.col data-latex="{0.02\textwidth}"}
+\vspace{1ex}
+:::
+
+::: {.col data-latex="{0.32\textwidth}"}
+\includegraphics[width=0.9\textwidth]{train}
+ticket cost  
+waiting time  
+travel time  
+station accessibility  
+comfort  
+etc.
+:::
+
+::: {.col data-latex="{0.02\textwidth}"}
+\vspace{1ex}
+:::
+
+::: {.col data-latex="{0.32\textwidth}"}
+\includegraphics[width=0.9\textwidth]{car}
+fuel cost  
+upkeep cost  
+travel time  
+convenience  
+comfort  
+etc.
+:::
+
+::::
+
+## Loading the data
+
+The data we use are available in the `mlogit` package. 
+
+```{r}
+data("ModeCanada",package="mlogit")
+mc<-as_tibble(ModeCanada)
+```
+
+
+## Inspecting the data
+
+Conveniently, these data are in long form, as evident in these select cases:
+
+```{r, echo=F}
+cases<-mc |> filter(case %in% c(547,1149,2253,3116))
+cases |> 
+  kbl()  |>  kable_classic() |> 
+  kable_styling(font_size=8) |>  
+  column_spec(1:ncol(cases),
+              background=spec_color(cases$case),
+              color=c(rep("white",6),rep("black",6)))
+```
+
+
+<!-- ## Filtering the data -->
+
+<!-- Because the bus mode was rarely chosen, we remove it from all choice sets and drop observations for those who chose the bus alternative or for whom bus was the only other alternative in the choice set. -->
+
+<!-- ```{r} -->
+<!-- data("ModeCanada",package="mlogit") -->
+<!-- mc<-mc |>   -->
+<!--   filter(alt!="bus") |>  -->
+<!--   group_by(case) |>  -->
+<!--   mutate(n_choices=sum(choice),n_alts=n()) |>  -->
+<!--   filter(n_choices!=0 | n_alts!=1) |>  -->
+<!--   as_tibble()  -->
+<!-- ``` -->
+
+## Understanding check
+
+Which of `dist`, `cost`, and `ivt` is an decision-maker specific covariate?
+
+Which of `income`, `urban`, and `freq` is an alternative specific covariate? 
+
+```{r, echo=F}
+cases<-mc |> filter(case %in% c(547,1149,2253,3116))
+cases |> 
+  kbl()  |>  kable_classic() |> 
+  kable_styling(font_size=8) |>  
+  column_spec(1:ncol(cases),
+              background=spec_color(cases$case),
+              color=c(rep("white",6),rep("black",6)))
+```
+
+
+## ModeCanada covariates
+
+- Outcome: 
+  - `choice` - 1 for the chosen alternative, 0 otherwise.
+
+- Alternatives:
+  - `alt` - the "index" for the alternatives--train, air(plane), car--in the choice set
+  - `cost` - the cost in Canadian dollars.
+  - `ivt` - in vehicle time in minutes.
+  - `ovt` - out of vehicle time in minutes.
+  - `frequency` - number of trains/flights each day (?)
+
+- Individual/Decision-maker specific covariates:
+  - `case` - the index identifying decision makers.
+  - `distance` - distance of trip, in miles (?).
+  - `income` - income in thousands (?) of Canadian dollars
+  - `urban` - rural vs. suburban vs. urban
+  
+## ModeCanada descriptives by choice
+
+```{r, echo=F}
+mc |> mutate(choice=factor(choice,labels=c("No","Yes"))) |> 
+  mutate(total=1) |> 
+  tbl_summary(by=choice, 
+              include=c("total","alt","cost","ivt","ovt"),
+              statistic=list(total~"N={n}"),
+              label = list(total~" ")) |> 
+  modify_header(label="**Variable**", all_stat_cols() ~ "**{level}**") |> 
+  as_kable_extra(booktabs=TRUE,sep=" ",linesep="") |> 
+  add_header_above(c(" "=1,"Choice"=2))
+```
+
+## ModeCanada descriptives by alternative
+```{r, echo=F, size="small"}
+mc |> mutate(choice=factor(choice,labels=c("Unchosen","Chosen"))) |> 
+  mutate(total=1) |> 
+  tbl_summary(by=alt, 
+              include=c("total","choice","cost","ivt","ovt"),
+              statistic=list(all_categorical()~"{p}%", 
+                             all_continuous2()~c("{median}","({p25}, {p75})"),
+                             total~"N={n}"),
+              type=list(all_continuous()~"continuous2",
+                        choice~"categorical"),
+              label = list(total~" ")) |> 
+  modify_header(label="**Variable**", all_stat_cols() ~ "**{level}**") |> 
+  modify_footnote(update= everything()~NA) |> 
+  as_kable_extra(booktabs=TRUE,sep=" ",linesep="") |> 
+  add_header_above(c(" "=1,"Mode"=4)) 
+```
+
+
+## First model: ASCs only
+
+We'll first estimate a model that only includes the alternative specific constants as explanatory variables.
+
+Expectations?
+  
+## ASC only results
+
+```{r}
+m1<-clogit(choice ~ alt + strata(case), data = mc)
+tidy(m1)
+```
+
+## Second model: Alternative-level covariates only
+
+We next estimate a model that only uses cost, out-of-vehicle time, and in-vehicle time as covariates.
+
+Expectations?
+
+## Alternative-level covariates only
+
+```{r}
+m2<-clogit(choice ~ cost + ovt + ivt + strata(case), data = mc)
+tidy(m2)
+
+```
+
+## Third model: ASCs and covariates
+
+## ASCs & Alternative-level covariates
+```{r}
+m3<-clogit(choice ~ alt + cost + ovt + ivt + strata(case), data = mc)
+tidy(m3)
+```
+
+## Full model results
+
+```{r,size="small"}
+modelsummary(list(m1,m2,m3), gof_map=c("n","logLik"), stars=TRUE)
+```
+
+
+
+## Comparing the full model vs. the ASC only model
+
+
+```{r, size="small"}
+anova(m1,m3)
+```
+
+## Comparing the full model vs. the covariates only model
+
+```{r,size="small"}
+anova(m2,m3)
+```
+
+## Predictions
+
+- Use `predict` to generate observation specific choice probabilities.
+- Here I create three separate predictions (as columns) for three separate models
+```{r, size="footnotesize"}
+mc<-mc %>% 
+  mutate(p1=predict(m1,type="expected"),
+         p2=predict(m2,type="expected"),
+         p3=predict(m3,type="expected"))
+```
+
+## Predicted Shares
+
+- Notice that **within our sample** the predicted shares are equal to the actual shares.
+
+```{r}
+mc %>% ungroup() %>% 
+  group_by(alt) %>% 
+  summarize(choice=sum(choice), p1=sum(p1), p2=sum(p2) , p3=sum(p3)) 
+```
+
+
+## Mean predicted attribute of chosen alternative
+
+Similarly, we can summarize the mean attribute of the observed and predicted choices:
+
+```{r}
+mc %>% ungroup() |> 
+  select(case,alt,ivt,ovt,cost,choice,p1,p2,p3) |> 
+  pivot_longer(cols=c(p1,p2,p3,choice)) |>
+  group_by(name) |> 
+  summarize(across(c(ivt,ovt,cost), 
+                   ~weighted.mean(.x,value)))
+```
+
+## Why do (aggregate) predictions match?
+
+- This is a property of ML estimators for logistic regression models in general. 
+- For any predictors included in our model, our mean/aggregate predictions will exactly match the **within sample** observed predictions.
+- **NOTE**: perfect prediction of aggregates or averages **does not** mean...
+  - we are making good predictions at the individual level.
+  - we will produce good predictions outside of our original sample.
+  
+## Individual Predictions
+
+- Even if, in the aggregate, the predicted choices are correct, at the individual level, this is not so
+- Here, I compare the actual choice to
+  - `maxp`: the alternative with the maximum predicted probability within each choice set
+  - `p` : the sum of the predicted probabilities for the chosen vs. the non-chosen alternatives
+
+```{r, echo=F}
+mc |> 
+  group_by(case) |> 
+  mutate(maxp1 = p1==max(p1) ,
+         maxp2 = p2==max(p2) ,
+         maxp3 = p3==max(p3)) |> 
+  group_by(choice) |> 
+  summarize(across(ends_with(c("1","2","3")), mean)) |> 
+  pivot_longer(-choice,names_pattern="(.+)([1-3])",names_to = c("pred_type","model")) |> 
+  pivot_wider(id_cols=c(choice,pred_type),values_from="value",names_from="model",names_prefix="model_") |> 
+  arrange(pred_type,choice)
+```
+
+## Comparing two models: LR test
+
+- Let's estimate a model where the effect of in-vehicle time and out-of-vehicle time are constrained to be the same
+
+```{r, size="small"}
+m3<-clogit(formula = choice ~ alt+ cost + I(ovt+ivt) + 
+             strata(case) , data = mc)
+anova(m3,m2)
+```
+
+## Comparing two models: Wald test
+```{r, size="small"}
+car::lht(m2, "ovt=ivt")
+```
+
+
+## Alternative-specific effects of individual-specific covariates.
+```{r, echo=F}
+m4<-clogit(choice~alt + ivt+ ovt + cost + alt*income + strata(case), data=mc)
+gtsummary::tbl_regression(m4) |> as_gt()
+```
+
+## Alternative-specific effects of alternative-specific covariates.
+
+```{r, echo=F}
+m5<-clogit(choice~alt+cost+ovt+alt*ivt +strata(case), data=mc)
+gtsummary::tbl_regression(m5) |> as_gt()
+```
+
+
+
+
+
+## **YOUR TURN**
+
+In small groups:
+
+- Estimate a model where `urban`, treated as a factor variable, has an effect on whether train, car, or air is chosen. Compare this to a model without this interaction.
+- Compare a model that posits that the effect of cost varies across modes to a model where there is a single cost effect.
+- Compare a model where there is an interaction between income and cost to a model with no interaction.
+  - Hint: consider using the `I()` syntax to calculate the interaction.
+- Experiment with interactions and model specifications: try at least one additional model comparison.
+
+## Next up
+
+- Additional DCM considerations
+- Overview and putting things together
+- Tips and tricks
+
