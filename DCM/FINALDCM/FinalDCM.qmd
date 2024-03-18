@@ -33,10 +33,13 @@ og_data$rachsing <- labelled::to_factor(og_data$rachsing)
 og_data$stateicp <- labelled::to_factor(og_data$stateicp)
 og_data$met2013 <- labelled::to_factor(og_data$met2013)
 og_data$bpld <- labelled::to_factor(og_data$bpld)
+og_data$occ <- labelled::to_factor(og_data$occ)
 ```
 
 ```{r}
-data <- og_data |> select(sex,age,stateicp,met2013,birthyr,bpld,citizen,yrimmig,yrsusa1,rachsing,educd,degfield,degfieldd,empstat,occ,uhrswork,inctot,migplac1)
+data <- og_data |> select(sex,age,stateicp,met2013,birthyr,bpld,citizen,yrimmig,
+                          yrsusa1,rachsing,educd,degfield,degfieldd,empstat,occ,
+                          uhrswork,inctot,migplac1)
 
 #drop na level in degree so it doesn't get annoying later
 data$degfield <- fct_recode(data$degfield, NULL = "N/A")
