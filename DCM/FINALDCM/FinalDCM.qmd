@@ -202,15 +202,27 @@ data_mult <- data_mult |> mutate(
     other_level = "Other"
   )
 )
+# here, sex needs to be made into factor
 
-data_mult |> select(sex, age, citizen, rachsing, degfield_collapsed, empstat, uhrswork, inctot, incearn, poverty, young_migrant) |> 
+
+data_mult |> select(sex, age, citizen, rachsing, degfield, degfield_collapsed, empstat, uhrswork, inctot, incearn, poverty, young_migrant) |> 
   filter(empstat == "Employed" & poverty != 0) -> data_mult
 
 library(nnet)
 library(broom)
 library(modelr)
 
+multi <- multinom(degfield ~ sex + age + young_migrant, data = data_mult, trace = F, model = T, na.action = na.exclude)
+tidy(multi) |> View()
 
+library(modelsummary)
+
+modelsummary(multi, shape =  term ~ model + response,
+             fmt = 2,
+             statistic = 'conf.int',
+             title = "title",
+             exponentiate = TRUE,
+             stars = TRUE)
 ```
 
 
