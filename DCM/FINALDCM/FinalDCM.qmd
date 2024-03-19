@@ -137,10 +137,10 @@ degree_choice3 <- degree_choice2 |> select(ID, choice, rachsing, alt, young_migr
 
 # why does one work an the other doesn't?
 # https://stats.stackexchange.com/questions/377997/na-coefficients-produced-by-clogit-model
-this_works <- clogit(choice ~ mean_weekly_hours + alt + strata(ID), data = degree_choice2)
+this_works <- clogit(choice ~ mean_weekly_hours + mean_poverty+ med_earned_income + alt + strata(ID), data = degree_choice2)
 tidy(this_works) |> View()
 
-this_doesnt_work <- clogit(choice ~ as.numeric(uhrswork) + alt + strata(ID), data = degree_choice2)
+this_doesnt_work <- clogit(choice ~ I(alt:young_migrant) + mean_weekly_hours + mean_poverty + med_earned_income + strata(ID), data = degree_choice2)
 tidy(this_doesnt_work) |> View()
 
 
@@ -156,14 +156,34 @@ person_only <- clogit(choice ~ I(as.numeric(uhrswork)) + strata(ID), data = degr
 tidy(person_only) |> View()
 
 
+
 # filtered stuff
-ym <- clogit(choice ~ alt + log(n_degree_holders) + strata(ID) ,
+ym <- clogit(choice ~ mean_weekly_hours + mean_poverty+ med_earned_income + alt + strata(ID) ,
        data = filter(degree_choice2, young_migrant == "YM"))
 tidy(ym) |> View()
 
-nym <- clogit(choice ~ alt + log(n_degree_holders) + strata(ID) ,
+t1 <- tbl_regression(ym, exponentiate = TRUE) |> 
+  modify_header(list(label="**Covariate**",
+                     estimate="**Odds**")) |>
+  modify_footnote(update = list(estimate ~ NA), 
+                  abbreviation=TRUE)
+t1
+
+nym <- clogit(choice ~  mean_weekly_hours + mean_poverty+ med_earned_income + alt + strata(ID) ,
        data = filter(degree_choice2, young_migrant == "Not YM"))
 tidy(nym) |> View()
+
+t2 <- tbl_regression(nym, exponentiate = TRUE) |> 
+  modify_header(list(label="**Covariate**",
+                     estimate="**Odds**")) |>
+  modify_footnote(update = list(estimate ~ NA), 
+                  abbreviation=TRUE)
+t2
+
+# OKAY SO BIG REVEWLATION:
+# dont include alt duh
+# only look at what makes the choice, not the choice itself
+# these models often don't work cause the multicol from including the alts itself
 
 #who do I want to look at:
 # people who immigrated to the US in their childhood.
