@@ -38,7 +38,7 @@ og_data$occ <- labelled::to_factor(og_data$occ)
 og_data$citizen <- labelled::to_factor(og_data$citizen)
 ```
 
-```{r}
+```{r clogit}
 data <- og_data |> select(sex,age,stateicp,met2013,birthyr,bpl,citizen,yrimmig,
                           yrsusa1,rachsing,educd,degfield,empstat,uhrswork,inctot,incearn,poverty)
 
@@ -132,64 +132,136 @@ sum(degree_choice2$choice)*size == nrow(degree_choice2)
 
 library(survival)
 
-degree_choice3 <- degree_choice2 |> select(ID, choice, rachsing, alt, young_migrant)
-
-
-# why does one work an the other doesn't?
-# https://stats.stackexchange.com/questions/377997/na-coefficients-produced-by-clogit-model
-this_works <- clogit(choice ~ mean_weekly_hours + mean_poverty+ med_earned_income + alt + strata(ID), data = degree_choice2)
-tidy(this_works) |> View()
-
-this_doesnt_work <- clogit(choice ~ I(alt:young_migrant) + mean_weekly_hours + mean_poverty + med_earned_income + strata(ID), data = degree_choice2)
-tidy(this_doesnt_work) |> View()
-
-
-
-degree_choice2 %>%
-  group_by(alt) %>%
-  summarize(Num_Unique_Values = n_distinct(uhrswork)) |> View()
-
-
-
-# only person characteristics -> does not work
-person_only <- clogit(choice ~ I(as.numeric(uhrswork)) + strata(ID), data = degree_choice2)
-tidy(person_only) |> View()
-
-
-
-# filtered stuff
-ym <- clogit(choice ~ mean_weekly_hours + mean_poverty+ med_earned_income + alt + strata(ID) ,
-       data = filter(degree_choice2, young_migrant == "YM"))
-tidy(ym) |> View()
-
-t1 <- tbl_regression(ym, exponentiate = TRUE) |> 
-  modify_header(list(label="**Covariate**",
-                     estimate="**Odds**")) |>
-  modify_footnote(update = list(estimate ~ NA), 
-                  abbreviation=TRUE)
-t1
-
-nym <- clogit(choice ~  mean_weekly_hours + mean_poverty+ med_earned_income + alt + strata(ID) ,
-       data = filter(degree_choice2, young_migrant == "Not YM"))
-tidy(nym) |> View()
-
-t2 <- tbl_regression(nym, exponentiate = TRUE) |> 
-  modify_header(list(label="**Covariate**",
-                     estimate="**Odds**")) |>
-  modify_footnote(update = list(estimate ~ NA), 
-                  abbreviation=TRUE)
-t2
-
 # OKAY SO BIG REVEWLATION:
 # dont include alt duh
 # only look at what makes the choice, not the choice itself
 # these models often don't work cause the multicol from including the alts itself
 
-#who do I want to look at:
-# people who immigrated to the US in their childhood.
-# born abroad
-# have citizenship
-# have got a college degree
-# what field did they choose
+not_ym_m <- clogit(choice ~ mean_weekly_hours + mean_poverty + med_earned_income + med_tot_income + med_age + p_employed + strata(ID), data = filter(degree_choice2, young_migrant == "Not YM"))
+tidy(not_ym_m) |> View()
+
+t_nym <- tbl_regression(not_ym_m, exponentiate = TRUE) |>
+  modify_header(list(label="**Covariate**",
+                     estimate="**Odds**")) |>
+  modify_footnote(update = list(estimate ~ NA),
+                  abbreviation=TRUE)
+t_nym
+
+
+ym_m <- clogit(choice ~ mean_weekly_hours + mean_poverty + med_earned_income + med_tot_income + med_age + p_employed + strata(ID), data = filter(degree_choice2, young_migrant == "YM"))
+tidy(not_ym_m) |> View()
+
+t_ym <- tbl_regression(ym_m, exponentiate = TRUE) |>
+  modify_header(list(label="**Covariate**",
+                     estimate="**Odds**")) |>
+  modify_footnote(update = list(estimate ~ NA),
+                  abbreviation=TRUE)
+t_ym
+```
+
+
+
+```{r multinom}
+data_mult <- og_data |> select(sex,age,stateicp,met2013,birthyr,bpl,citizen,yrimmig,
+                          yrsusa1,rachsing,educd,degfield,empstat,uhrswork,inctot,incearn,poverty)
+
+
+#drop na level in degree so it doesn't get annoying later
+data_mult$degfield <- fct_recode(data_mult$degfield, NULL = "N/A")
+data_mult$citizen <- fct_recode(data_mult$citizen, "Citizen" = "N/A")
+data_mult$empstat <- fct_recode(data_mult$empstat, NULL = "N/A")
+
+
+# reduce to people who have done a bachelors at least - they will be the observed group
+data_mult <- data_mult |> filter(educd > 101 & educd != 999)
+
+
+# make new variable to get age at migration and take a look at my group of interest
+data_mult <- data_mult |> mutate(
+   age_at_immigration = if_else(yrimmig != 0, yrimmig - (2015-age), NA_integer_),
+   young_migrant = if_else(!is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 21, "YM", "Not YM"),
+   young_migrant = as_factor(young_migrant)
+   ) |> 
+  filter(birthyr >= 1960)
+
+
+#so there are no too small categories blah
+data_mult$degfield <- droplevels(data_mult$degfield)
+
+
+# make broader categories for degfield
+data_mult <- data_mult |> mutate(
+  degfield_collapsed = fct_collapse(degfield,
+    Engineering = c("Architecture", "Communication Technologies", "Engineering", "Engineering Technologies", "Military Technologies", "Nuclear, Industrial Radiology, and Biological Technologies", "Construction Services", "Electrical and Mechanic Repairs and Technologies", "Transportation Sciences and Technologies"),
+    Sciences = c("Agriculture", "Environment and Natural Resources", "Computer and Information Sciences", "Biology and Life Sciences", "Physical Sciences", "Mathematics and Statistics"),
+    Arts = c("Area, Ethnic, and Civilization Studies", "Cosmetology Services and Culinary Arts", "Linguistics and Foreign Languages", "English Language, Literature, and Composition", "Liberal Arts and Humanities", "Library Science", "Physical Fitness, Parks, Recreation, and Leisure", "Philosophy and Religious Studies", "Fine Arts", "History"),
+    `Social Sciences` = c("Communications", "Family and Consumer Sciences", "Psychology", "Public Affairs, Policy, and Social Work", "Social Sciences"),
+    Medicine = c("Medical and Health Sciences and Services"),
+    Business = c("Business"),
+    Education = c("Education Administration and Teaching"),
+    other_level = "Other"
+  )
+)
+
+data_mult |> select(sex, age, citizen, rachsing, degfield_collapsed, empstat, uhrswork, inctot, incearn, poverty, young_migrant) |> 
+  filter(empstat == "Employed" & poverty != 0) -> data_mult
+
+library(nnet)
+library(broom)
+library(modelr)
+
+
+```
+
+
+
+```{r the bin}
+# degree_choice3 <- degree_choice2 |> select(ID, choice, rachsing, alt, young_migrant)
+# 
+# 
+# # why does one work an the other doesn't?
+# # https://stats.stackexchange.com/questions/377997/na-coefficients-produced-by-clogit-model
+# this_works <- clogit(choice ~ mean_weekly_hours + mean_poverty+ med_earned_income + alt + strata(ID), data = degree_choice2)
+# tidy(this_works) |> View()
+# 
+# this_doesnt_work <- clogit(choice ~ I(alt:young_migrant) + mean_weekly_hours + mean_poverty + med_earned_income + strata(ID), data = degree_choice2)
+# tidy(this_doesnt_work) |> View()
+# 
+# 
+# 
+# degree_choice2 %>%
+#   group_by(alt) %>%
+#   summarize(Num_Unique_Values = n_distinct(uhrswork)) |> View()
+# 
+# 
+# 
+# # only person characteristics -> does not work
+# person_only <- clogit(choice ~ I(as.numeric(uhrswork)) + strata(ID), data = degree_choice2)
+# tidy(person_only) |> View()
+# 
+# 
+# 
+# # filtered stuff
+# ym <- clogit(choice ~ mean_weekly_hours + mean_poverty+ med_earned_income + alt + strata(ID) ,
+#        data = filter(degree_choice2, young_migrant == "YM"))
+# tidy(ym) |> View()
+# 
+# t1 <- tbl_regression(ym, exponentiate = TRUE) |> 
+#   modify_header(list(label="**Covariate**",
+#                      estimate="**Odds**")) |>
+#   modify_footnote(update = list(estimate ~ NA), 
+#                   abbreviation=TRUE)
+# t1
+# 
+# nym <- clogit(choice ~  mean_weekly_hours + mean_poverty+ med_earned_income + alt + strata(ID) ,
+#        data = filter(degree_choice2, young_migrant == "Not YM"))
+# tidy(nym) |> View()
+# 
+# t2 <- tbl_regression(nym, exponentiate = TRUE) |> 
+#   modify_header(list(label="**Covariate**",
+#                      estimate="**Odds**")) |>
+#   modify_footnote(update = list(estimate ~ NA), 
+#                   abbreviation=TRUE)
+# t2
 ```
 
