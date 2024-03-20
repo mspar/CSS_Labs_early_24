@@ -1,5 +1,5 @@
 ---
-title: "Assignment 4 DCM - Voting Biden or Trump in the 2024 US Presidential Elections"
+title: "Final Assignment DCM - Young Migrants and Degree Choice"
 author: "Marc Sparhuber"
 format: pdf
 editor: source
@@ -39,19 +39,21 @@ og_data$citizen <- labelled::to_factor(og_data$citizen)
 ```
 
 ```{r clogit}
-data <- og_data |> select(sex,age,stateicp,met2013,birthyr,bpl,citizen,yrimmig,
+# What are the alternative specific attributes (i.e., the outcomes associated with degree choice) that are considered desirable by choice makers (and their parents)?
+
+data_clog <- og_data |> select(sex,age,stateicp,met2013,birthyr,bpl,citizen,yrimmig,
                           yrsusa1,rachsing,educd,degfield,empstat,uhrswork,inctot,incearn,poverty)
 
 #drop na level in degree so it doesn't get annoying later
-data$degfield <- fct_recode(data$degfield, NULL = "N/A")
-data$citizen <- fct_recode(data$citizen, "Citizen" = "N/A")
-data$empstat <- fct_recode(data$empstat, NULL = "N/A")
+data_clog$degfield <- fct_recode(data_clog$degfield, NULL = "N/A")
+data_clog$citizen <- fct_recode(data_clog$citizen, "Citizen" = "N/A")
+data_clog$empstat <- fct_recode(data_clog$empstat, NULL = "N/A")
 
 # reduce to people who have done a bachelors at least - they will be the observed group
-data <- data |> filter(educd > 101 & educd != 999)
+data_clog <- data_clog |> filter(educd > 101 & educd != 999)
 
 # make new variable to get age at migration and take a look at my group of interest
-data <- data |> mutate(
+data_clog <- data_clog |> mutate(
    age_at_immigration = if_else(yrimmig != 0, yrimmig - (2015-age), NA_integer_),
    young_migrant = if_else(!is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 21, "YM", "Not YM"),
    young_migrant = as_factor(young_migrant)
@@ -63,7 +65,7 @@ data <- data |> mutate(
 
 
 # make a little summarize table
-interesting_data_smile <- data |>
+interesting_data_smile <- data_clog |>
   group_by(degfield) |> 
   filter(n()>=1000) |> 
   summarise(
@@ -90,7 +92,7 @@ interesting_data_smile$degfield <- droplevels(interesting_data_smile$degfield)
 
 # id part!
 set.seed(1)
-sample_degree_holders <- data |> filter(degfield %in% interesting_data_smile$degfield)
+sample_degree_holders <- data_clog |> filter(degfield %in% interesting_data_smile$degfield)
 sample_degree_holders$degfield <- fct_drop(sample_degree_holders$degfield)
 
 sample_degree_holders <- sample_degree_holders |> 
@@ -137,6 +139,10 @@ library(survival)
 # only look at what makes the choice, not the choice itself
 # these models often don't work cause the multicol from including the alts itself
 
+m_clog_inter <- clogit(choice ~ I(mean_weekly_hours:young_migrant) + I(mean_poverty:young_migrant) + I(med_earned_income:young_migrant) + I(med_tot_income:young_migrant) + I(med_age:young_migrant) + I(p_employed:young_migrant) + strata(ID), data = degree_choice2)
+tidy(m_clog_inter) |> View()
+
+
 not_ym_m <- clogit(choice ~ mean_weekly_hours + mean_poverty + med_earned_income + med_tot_income + med_age + p_employed + strata(ID), data = filter(degree_choice2, young_migrant == "Not YM"))
 tidy(not_ym_m) |> View()
 
@@ -162,6 +168,8 @@ t_ym
 
 
 ```{r multinom}
+# which degrees do migrants who enter the country young enter into more and what are their attributes?
+
 data_mult <- og_data |> select(sex,age,stateicp,met2013,birthyr,bpl,citizen,yrimmig,
                           yrsusa1,rachsing,educd,degfield,empstat,uhrswork,inctot,incearn,poverty)
 
@@ -187,7 +195,7 @@ data_mult <- data_mult |> mutate(
 
 #so there are no too small categories blah
 data_mult$degfield <- droplevels(data_mult$degfield)
-
+data_mult$bpl <- droplevels(data_mult$bpl)
 
 # make broader categories for degfield
 data_mult <- data_mult |> mutate(
@@ -200,19 +208,35 @@ data_mult <- data_mult |> mutate(
     Business = c("Business"),
     Education = c("Education Administration and Teaching"),
     other_level = "Other"
+  ),
+  sex = as_factor(sex),
+  bpl_collapsed = fct_collapse(bpl,
+                     other_level = "North America",
+                     LatAm = c("Mexico","Central America","Cuba","Americas, n.s.","West Indies","SOUTH AMERICA"),
+                     `Western Europe & Scandinavia` = c("Denmark", "Finland", "Iceland", "Norway", "Sweden", "England", "Scotland", "United Kingdom, ns", "Ireland", "Belgium", "France", "Netherlands", "Switzerland", "Greece", "Italy","Portugal", "Spain", "Austria", "Germany"),
+                     `Eastern Europe` = c("Albania", "Bulgaria", "Czechoslovakia", "Hungary", "Poland", "Romania", "Yugoslavia", "Latvia", "Lithuania", "Other USSR/Russia", "Europe, ns", "Cyprus"),
+                     `East Asia` = c("China", "Japan", "Korea"),
+                     `South & South-East Asia` = c("India" ,"Cambodia (Kampuchea)", "Indonesia", "Laos", "Malaysia","Philippines","Singapore","Thailand","Vietnam", "Nepal", "Asia, nec/ns"),
+                     `Middle East` = c("Afghanistan", "Iran","Iraq","Israel/Palestine", "Jordan","Kuwait","Lebanon","Saudi Arabia","Syria","Turkey","United Arab Emirates", "Yemen Arab Republic (North)"),
+                     Africa = c("AFRICA"),
+                     Oceania = c("Australia and New Zealand", "Pacific Islands")
+                     
   )
 )
 # here, sex needs to be made into factor
+# country variable needs to be broken down
 
 
-data_mult |> select(sex, age, citizen, rachsing, degfield, degfield_collapsed, empstat, uhrswork, inctot, incearn, poverty, young_migrant) |> 
+data_mult |> select(sex, age, citizen, rachsing, degfield, degfield_collapsed, empstat, uhrswork, inctot, incearn, poverty, young_migrant, bpl_collapsed) |> 
   filter(empstat == "Employed" & poverty != 0) -> data_mult
+
+data_mult <- data_mult |> group_by(young_migrant) |> slice_sample(n = 10000) |> ungroup()
 
 library(nnet)
 library(broom)
 library(modelr)
 
-multi <- multinom(degfield ~ sex + age + young_migrant, data = data_mult, trace = F, model = T, na.action = na.exclude)
+multi <- multinom(degfield_collapsed ~ sex + age + young_migrant + bpl_collapsed, data = data_mult, trace = F, model = T, na.action = na.exclude)
 tidy(multi) |> View()
 
 library(modelsummary)
@@ -224,6 +248,31 @@ modelsummary(multi, shape =  term ~ model + response,
              exponentiate = TRUE,
              stars = TRUE)
 ```
+
+
+```{r binary}
+# 
+
+data_binary <- og_data |> select(sex,age,stateicp,met2013,birthyr,bpl,citizen,yrimmig,
+                          yrsusa1,rachsing,educd,degfield,empstat,uhrswork,inctot,incearn,poverty)
+
+#drop na level in degree so it doesn't get annoying later
+data_binary$degfield <- fct_recode(data_binary$degfield, NULL = "N/A")
+data_binary$citizen <- fct_recode(data_binary$citizen, "Citizen" = "N/A")
+data_binary$empstat <- fct_recode(data_binary$empstat, NULL = "N/A")
+
+# reduce to people who have done a bachelors at least - they will be the observed group
+data_binary <- data_binary |> filter(educd > 101 & educd != 999)
+
+# make new variable to get age at migration and take a look at my group of interest
+data_binary <- data_binary |> mutate(
+   age_at_immigration = if_else(yrimmig != 0, yrimmig - (2015-age), NA_integer_),
+   young_migrant = if_else(!is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 21, "YM", "Not YM"),
+   young_migrant = as_factor(young_migrant)
+   ) |> 
+  filter(birthyr >= 1960)
+```
+
 
 
 
