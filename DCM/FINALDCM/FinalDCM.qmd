@@ -181,16 +181,21 @@ data_mult$empstat <- fct_recode(data_mult$empstat, NULL = "N/A")
 
 
 # reduce to people who have done a bachelors at least - they will be the observed group
-data_mult <- data_mult |> filter(educd > 101 & educd != 999)
+data_mult <- data_mult |> filter(educd >= 101 & educd != 999)
 
 
 # make new variable to get age at migration and take a look at my group of interest
 data_mult <- data_mult |> mutate(
    age_at_immigration = if_else(yrimmig != 0, yrimmig - (2015-age), NA_integer_),
-   young_migrant = if_else(!is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 21, "YM", "Not YM"),
-   young_migrant = as_factor(young_migrant)
+   young_migrant = if_else(!is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 19, "YM", "Not YM"),
+   young_migrant = as_factor(young_migrant),
+   young_migrant_detailled = case_when(young_migrant == "YM" & age_at_immigration < 10 ~ "Migrated as Child (younger than 10 years old)",
+                             young_migrant == "YM" & age_at_immigration >= 10 & age_at_immigration <= 19 ~ "Migrated as Adolescent (between 10 and 19 years old)",
+                             young_migrant == "Not YM" ~ "Not YM"),
+   young_migrant_detailled = fct_relevel(young_migrant_detailled, "Not YM")
    ) |> 
   filter(birthyr >= 1960)
+
 
 
 #so there are no too small categories blah
@@ -209,6 +214,7 @@ data_mult <- data_mult |> mutate(
     Education = c("Education Administration and Teaching"),
     other_level = "Other"
   ),
+  degfield_collapsed = fct_relevel(degfield_collapsed, "Business"),
   sex = as_factor(sex),
   bpl_collapsed = fct_collapse(bpl,
                      other_level = "North America",
@@ -220,28 +226,27 @@ data_mult <- data_mult |> mutate(
                      `Middle East` = c("Afghanistan", "Iran","Iraq","Israel/Palestine", "Jordan","Kuwait","Lebanon","Saudi Arabia","Syria","Turkey","United Arab Emirates", "Yemen Arab Republic (North)"),
                      Africa = c("AFRICA"),
                      Oceania = c("Australia and New Zealand", "Pacific Islands")
-                     
-  )
+  ),
+  bpl_collapsed = fct_relevel(bpl_collapsed, "North America")
 )
-# here, sex needs to be made into factor
-# country variable needs to be broken down
+
+data_mult$sex <- droplevels(data_mult$sex)
 
 
-data_mult |> select(sex, age, citizen, rachsing, degfield, degfield_collapsed, empstat, uhrswork, inctot, incearn, poverty, young_migrant, bpl_collapsed) |> 
+data_mult |> select(sex, age, citizen, rachsing, degfield, degfield_collapsed, empstat, uhrswork, inctot, incearn, poverty, young_migrant, bpl_collapsed,birthyr, young_migrant_detailled) |> 
   filter(empstat == "Employed" & poverty != 0) -> data_mult
 
-data_mult <- data_mult |> group_by(young_migrant) |> slice_sample(n = 10000) |> ungroup()
+data_mult <- data_mult |> group_by(young_migrant) |> slice_sample(n = 20000) |> ungroup()
 
 library(nnet)
 library(broom)
 library(modelr)
 
-multi <- multinom(degfield_collapsed ~ sex + age + young_migrant + bpl_collapsed, data = data_mult, trace = F, model = T, na.action = na.exclude)
-tidy(multi) |> View()
+# YOUNG MIGRANT NEEDS TO BE SPLIT INTO DIFFERENT VALUES DEPENDING ON AGE -> THE YOUNGER THE MORE ADJUSTED?
+multi <- multinom(degfield_collapsed ~ I(sex:young_migrant) + young_migrant_detailled + bpl_collapsed, data = data_mult, trace = F, model = T, na.action = na.exclude)
+#tidy(multi) |> View()
 
-library(modelsummary)
-
-modelsummary(multi, shape =  term ~ model + response,
+modelsummary::modelsummary(multi, shape =  term ~ model + response,
              fmt = 2,
              statistic = 'conf.int',
              title = "title",
@@ -251,7 +256,7 @@ modelsummary(multi, shape =  term ~ model + response,
 
 
 ```{r binary}
-# 
+# here just compare the YM with other people - how are they unique? do they earn more or less? are they more poor?
 
 data_binary <- og_data |> select(sex,age,stateicp,met2013,birthyr,bpl,citizen,yrimmig,
                           yrsusa1,rachsing,educd,degfield,empstat,uhrswork,inctot,incearn,poverty)
