@@ -36,7 +36,66 @@ og_data$bpld <- labelled::to_factor(og_data$bpld)
 og_data$bpl <- labelled::to_factor(og_data$bpl)
 og_data$occ <- labelled::to_factor(og_data$occ)
 og_data$citizen <- labelled::to_factor(og_data$citizen)
+og_data$sex <- labelled::to_factor(og_data$sex)
+og_data$educ <- labelled::to_factor(og_data$educ)
 ```
+
+
+```{r desctable}
+
+data_descriptives <- og_data
+
+# Deal with Nas and empty levels
+data_descriptives$degfield <- fct_recode(data_descriptives$degfield, NULL = "N/A")
+data_descriptives$citizen <- fct_recode(data_descriptives$citizen, "Citizen" = "N/A")
+data_descriptives$empstat <- fct_recode(data_descriptives$empstat, NULL = "N/A")
+
+data_descriptives$citizen <- droplevels(data_descriptives$citizen)
+data_descriptives$empstat <- droplevels(data_descriptives$empstat)
+data_descriptives$educ <- droplevels(data_descriptives$educ)
+data_descriptives$sex <- droplevels(data_descriptives$sex)
+
+ 
+data_descriptives <- data_descriptives |> 
+  select(sex,age,stateicp,met2013,birthyr,bpl,citizen,yrimmig,yrsusa1,rachsing,educd,degfield,empstat,uhrswork,inctot,incearn,poverty,educ) |>
+  mutate(
+   age_at_immigration = if_else(yrimmig != 0, yrimmig - (2015-age), NA_integer_),
+   young_migrant = if_else(!is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 19, "YM", "Not YM"),
+   young_migrant = as_factor(young_migrant),
+   young_migrant_detailled = case_when(young_migrant == "YM" & age_at_immigration < 10 ~ "Migrated as Child (younger than 10 years old)",
+                             young_migrant == "YM" & age_at_immigration >= 10 & age_at_immigration <= 19 ~ "Migrated as Adolescent (between 10 and 19 years old)",
+                             young_migrant == "Not YM" ~ "Not YM"),
+   young_migrant_detailled = fct_relevel(young_migrant_detailled, "Not YM"),
+   `Migration Status` = case_when(
+     !is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 19 ~ "Migrated Young (younger than 20)",
+     !is.na(age_at_immigration) & age_at_immigration > 19 ~ "Migrated as Adult (20 and older)",
+     TRUE ~ "Did not Migrate"
+   ),
+   educ = fct_collapse(educ,
+                       other_level = "Did not Finish High School",
+                       `Finished High School` = c("Grade 12"),
+                       `Some College` = c("1 year of college", "2 years of college"),
+                       `Bachelor's Degree` = c("4 years of college"),
+                       `Master's Degree or Doctorate` = c("5+ years of college")),
+   educ = fct_relevel(educ, "Did not Finish High School")
+   ) |> 
+  rename(`Race` = rachsing) |> 
+  filter(birthyr >= 1960 & age >= 24 & inctot < 9999998)
+
+
+data_descriptives |>
+  select(`Migration Status`,`Age (in years)` = age, `Sex` =  sex, `Age (in years)` = age, `Citizenship Status` = citizen, `Race`, `Educational Attainment` = educ, `Employment Status` = empstat, uhrswork, inctot, incearn, `Poverty Status` = poverty) |> 
+  tbl_summary(by = `Migration Status`, type = list(`Age (in years)` ~ "continuous",
+                                                   uhrswork ~ "continuous",
+                                                   inctot ~ "continuous",
+                                                   `Poverty Status` ~ "continuous")) |>
+  modify_caption("Educational and Economical Indicators: Descriptives Divided by Migration Status") |>
+  as_kable_extra(booktabs = TRUE, escape = FALSE, linesep = "") |>
+  footnote(footnote_as_chunk = TRUE,
+           threeparttable = TRUE, 
+           general = "Shows only those respondents who were born after 1960 and at least 24 years old in 2015. Poverty Status is calculated taking into account household size, household member's age, age of the householder and total family income: Values over 100 indicate being above the poverty threshold. Data from the American Community Survey 2015 (collected 2015).")
+```
+
 
 ```{r clogit}
 # What are the alternative specific attributes (i.e., the outcomes associated with degree choice) that are considered desirable by choice makers (and their parents)?
@@ -50,18 +109,22 @@ data_clog$citizen <- fct_recode(data_clog$citizen, "Citizen" = "N/A")
 data_clog$empstat <- fct_recode(data_clog$empstat, NULL = "N/A")
 
 # reduce to people who have done a bachelors at least - they will be the observed group
-data_clog <- data_clog |> filter(educd > 101 & educd != 999)
+data_clog <- data_clog |> filter(educd >= 101 & educd != 999)
 
 # make new variable to get age at migration and take a look at my group of interest
 data_clog <- data_clog |> mutate(
    age_at_immigration = if_else(yrimmig != 0, yrimmig - (2015-age), NA_integer_),
-   young_migrant = if_else(!is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 21, "YM", "Not YM"),
-   young_migrant = as_factor(young_migrant)
+   young_migrant = if_else(!is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 19, "YM", "Not YM"),
+   young_migrant = as_factor(young_migrant),
+   young_migrant_detailled = case_when(young_migrant == "YM" & age_at_immigration < 10 ~ "Migrated as Child (younger than 10 years old)",
+                             young_migrant == "YM" & age_at_immigration >= 10 & age_at_immigration <= 19 ~ "Migrated as Adolescent (between 10 and 19 years old)",
+                             young_migrant == "Not YM" ~ "Not YM"),
+   young_migrant_detailled = fct_relevel(young_migrant_detailled, "Not YM")
    ) |> 
   filter(birthyr >= 1960)
-  # |> filter(birthyr > 1960 & !is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 21) |> View()
-# cho0sing born earliest 1960 because then the full range of possible degrees would have likely been available: 13,777 YM
 
+
+data_clog$empstat <- droplevels(data_clog$empstat)
 
 
 # make a little summarize table
@@ -71,8 +134,6 @@ interesting_data_smile <- data_clog |>
   summarise(
     n_degree_holders = n(),
     med_age = median(age),
-    n_women = sum(sex==2),
-    p_women = sum(sex==2)/n(),
     n_young_migrants = sum(!is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 21),
     p_young_migrants = sum(!is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 21)/n(),
     n_employed = sum(empstat == "Employed"),
@@ -81,8 +142,8 @@ interesting_data_smile <- data_clog |>
     p_ym_employed_within = sum(empstat == "Employed" & !is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 21)/n_young_migrants,
     p_ym_employed_general = sum(empstat == "Employed" & !is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 21)/n(),
     mean_weekly_hours = round(mean(uhrswork),2),
-    med_tot_income = median(inctot),
-    med_earned_income = median(incearn),
+    mean_tot_income = mean(inctot),
+    mean_earned_income = mean(incearn),
     mean_poverty = round(mean(poverty),2)
     )
 
@@ -97,9 +158,9 @@ sample_degree_holders$degfield <- fct_drop(sample_degree_holders$degfield)
 
 sample_degree_holders <- sample_degree_holders |> 
 group_by(young_migrant) |> 
-  slice_sample(n = 10000) |> ungroup() |> mutate(ID = row_number())
+  slice_sample(n = 5000) |> ungroup() |> mutate(ID = row_number())
 
-size <- 10
+size <- 5
 alts <- interesting_data_smile$degfield
 
 sample_degree_holders |> 
@@ -134,35 +195,19 @@ sum(degree_choice2$choice)*size == nrow(degree_choice2)
 
 library(survival)
 
-# OKAY SO BIG REVEWLATION:
-# dont include alt duh
+# OKAY SO BIG REVELATION:
+# don't include alt duh
 # only look at what makes the choice, not the choice itself
 # these models often don't work cause the multicol from including the alts itself
 
-m_clog_inter <- clogit(choice ~ I(mean_weekly_hours:young_migrant) + I(mean_poverty:young_migrant) + I(med_earned_income:young_migrant) + I(med_tot_income:young_migrant) + I(med_age:young_migrant) + I(p_employed:young_migrant) + strata(ID), data = degree_choice2)
+m_clog_inter <- clogit(choice ~ mean_weekly_hours:young_migrant + mean_poverty:young_migrant + mean_earned_income:young_migrant + mean_tot_income:young_migrant + p_employed:young_migrant + strata(ID), data = degree_choice2)
 tidy(m_clog_inter) |> View()
 
-
-not_ym_m <- clogit(choice ~ mean_weekly_hours + mean_poverty + med_earned_income + med_tot_income + med_age + p_employed + strata(ID), data = filter(degree_choice2, young_migrant == "Not YM"))
-tidy(not_ym_m) |> View()
-
-t_nym <- tbl_regression(not_ym_m, exponentiate = TRUE) |>
-  modify_header(list(label="**Covariate**",
-                     estimate="**Odds**")) |>
+tbl_regression(m_clog_inter, exponentiate = TRUE) |>
+  modify_header(list(label = "**Covariate**",
+                     estimate = "**Odds**")) |>
   modify_footnote(update = list(estimate ~ NA),
-                  abbreviation=TRUE)
-t_nym
-
-
-ym_m <- clogit(choice ~ mean_weekly_hours + mean_poverty + med_earned_income + med_tot_income + med_age + p_employed + strata(ID), data = filter(degree_choice2, young_migrant == "YM"))
-tidy(not_ym_m) |> View()
-
-t_ym <- tbl_regression(ym_m, exponentiate = TRUE) |>
-  modify_header(list(label="**Covariate**",
-                     estimate="**Odds**")) |>
-  modify_footnote(update = list(estimate ~ NA),
-                  abbreviation=TRUE)
-t_ym
+                  abbreviation = TRUE)
 ```
 
 
@@ -252,11 +297,17 @@ modelsummary::modelsummary(multi, shape =  term ~ model + response,
              title = "title",
              exponentiate = TRUE,
              stars = TRUE)
+
+
+# TODO:
+# ADD GOF TABLE HERE
+# ADD PREDICTION GRAPH HERE
 ```
 
 
 ```{r binary}
 # here just compare the YM with other people - how are they unique? do they earn more or less? are they more poor?
+# I.E., regardless of expectation - what does it look like for YM?
 
 data_binary <- og_data |> select(sex,age,stateicp,met2013,birthyr,bpl,citizen,yrimmig,
                           yrsusa1,rachsing,educd,degfield,empstat,uhrswork,inctot,incearn,poverty)
@@ -276,6 +327,10 @@ data_binary <- data_binary |> mutate(
    young_migrant = as_factor(young_migrant)
    ) |> 
   filter(birthyr >= 1960)
+
+#TODO:
+# DO MODEL
+# ADD GOF TO MODELSUMMARY HERE
 ```
 
 
@@ -287,10 +342,10 @@ data_binary <- data_binary |> mutate(
 # 
 # # why does one work an the other doesn't?
 # # https://stats.stackexchange.com/questions/377997/na-coefficients-produced-by-clogit-model
-# this_works <- clogit(choice ~ mean_weekly_hours + mean_poverty+ med_earned_income + alt + strata(ID), data = degree_choice2)
+# this_works <- clogit(choice ~ mean_weekly_hours + mean_poverty+ mean_earned_income + alt + strata(ID), data = degree_choice2)
 # tidy(this_works) |> View()
 # 
-# this_doesnt_work <- clogit(choice ~ I(alt:young_migrant) + mean_weekly_hours + mean_poverty + med_earned_income + strata(ID), data = degree_choice2)
+# this_doesnt_work <- clogit(choice ~ I(alt:young_migrant) + mean_weekly_hours + mean_poverty + mean_earned_income + strata(ID), data = degree_choice2)
 # tidy(this_doesnt_work) |> View()
 # 
 # 
@@ -308,7 +363,7 @@ data_binary <- data_binary |> mutate(
 # 
 # 
 # # filtered stuff
-# ym <- clogit(choice ~ mean_weekly_hours + mean_poverty+ med_earned_income + alt + strata(ID) ,
+# ym <- clogit(choice ~ mean_weekly_hours + mean_poverty+ mean_earned_income + alt + strata(ID) ,
 #        data = filter(degree_choice2, young_migrant == "YM"))
 # tidy(ym) |> View()
 # 
@@ -319,7 +374,7 @@ data_binary <- data_binary |> mutate(
 #                   abbreviation=TRUE)
 # t1
 # 
-# nym <- clogit(choice ~  mean_weekly_hours + mean_poverty+ med_earned_income + alt + strata(ID) ,
+# nym <- clogit(choice ~  mean_weekly_hours + mean_poverty+ mean_earned_income + alt + strata(ID) ,
 #        data = filter(degree_choice2, young_migrant == "Not YM"))
 # tidy(nym) |> View()
 # 
@@ -329,5 +384,27 @@ data_binary <- data_binary |> mutate(
 #   modify_footnote(update = list(estimate ~ NA), 
 #                   abbreviation=TRUE)
 # t2
+
+
+not_ym_m <- clogit(choice ~ mean_weekly_hours + mean_poverty + mean_earned_income + mean_tot_income + p_employed + strata(ID), data = filter(degree_choice2, young_migrant == "Not YM"))
+tidy(not_ym_m) |> View()
+
+t_nym <- tbl_regression(not_ym_m, exponentiate = TRUE) |>
+  modify_header(list(label="**Covariate**",
+                     estimate="**Odds**")) |>
+  modify_footnote(update = list(estimate ~ NA),
+                  abbreviation=TRUE)
+t_nym
+
+
+ym_m <- clogit(choice ~ mean_weekly_hours + mean_poverty + mean_earned_income + mean_tot_income + p_employed + strata(ID), data = filter(degree_choice2, young_migrant == "YM"))
+tidy(not_ym_m) |> View()
+
+t_ym <- tbl_regression(ym_m, exponentiate = TRUE) |>
+  modify_header(list(label="**Covariate**",
+                     estimate="**Odds**")) |>
+  modify_footnote(update = list(estimate ~ NA),
+                  abbreviation=TRUE)
+t_ym
 ```
 
