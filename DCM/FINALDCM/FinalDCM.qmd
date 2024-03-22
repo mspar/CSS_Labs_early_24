@@ -40,6 +40,27 @@ og_data$sex <- labelled::to_factor(og_data$sex)
 og_data$educ <- labelled::to_factor(og_data$educ)
 ```
 
+## Introduction
+
+> With migration expected to rise drastically in the coming decades, issues of integration continously rise in relevance [SOURCE]. One aspect of migration is educational attainment and more specifically choice of degree field in tertiary education, as getting a degree serves as a vehicle for upward social mobility [SOURCE]. Especially for individuals who hae migrated at a young age, who have yet to make their decisions regarding their education, different reasons for degree choice may be paramount compared to non-migrant children of their age cohort. Thus, the central research question of this research paper is whether individuals who have migrated at a young age differ in their choice of tertiary education to non-migrants. Connected to this are the questions of whether their access to education is the same as that of their non-migrant peers and what hopes and attributions are connected to certain degree fields.
+
+> To answer these questions, binary, multinomial and conditional logistic regressions are employed. The analysis is based on data from the American Community Survey 2015, which is a demographic survey conducted yearly by the United States Census Bureau. It contains individual and household-level information about demographic, educational, and financial information, among other fields. Based on some key variables ... [TEASER OF RESULTS HERE].
+
+## Background
+
+> [Find something about
+- educational assimilation
+- degree choice
+- utility as reason for choice
+]
+
+> Something about the specific case: in the US - costs associated with tertiary education high -> might be more utility to get an apprenticeship but there may be greater expectations attached, with people believing in the myth of the american dream? -> I.E., college as the main road to success
+
+> It is expected that though there may be fewer young migrants choosing to pursue tertiary education due to the associated costs compared to their non-migrant counterparts (binary), those who do are driven by strong sense of utility in their choice of studies, therefore choosing fields commonly associated with higher prestige and better financial stability (multi). Additionally, the attributed outcomes associated with degree choice are expected to primarily be related to financial stability and prestige (clog).
+
+> This analysis has a breadth of potential confounders and mediators to take into account, many of which are expected to interact with one another and not all of which are included in the data. Sex is expected to serve as a strong confounder, as several fields of study are strongly gender segregated [IS THAT HOW YOU SAY IT?]. This effect is expected to differ, however, based on the socialization at home, where variables such as religion, country of birth as well as parent related variables may show interactions with sex and have their own confounding effects. Citizenship status may influence whether college is attended at all, as undocumented students may choose to not attend college due either not thinking that they are allowed to do so or because their funding options by the state are reduced [https://counselors.collegeboard.org/financial-aid/undocumented-students]. Additionally, degree choices may, however, be greatly influenced by the age at which an individual has migrated to the US country. Due to this, some of the following models take this into account.
+
+
 
 ```{r desctable}
 
@@ -95,6 +116,25 @@ data_descriptives |>
            threeparttable = TRUE, 
            general = "Shows only those respondents who were born after 1960 and at least 24 years old in 2015. Poverty Status is calculated taking into account household size, household member's age, age of the householder and total family income: Values over 100 indicate being above the poverty threshold. Data from the American Community Survey 2015 (collected 2015).")
 ```
+
+## Data
+
+> The data for the 2015 American Community Survey was gathered over the course of the year 2015, containing more than 3 million individuals and is representative for the inhabitants of the Unites States of America.
+
+Describe how you generated your analytic sample from the data
+> Of these, such and such data are used -> birthyear, age, etc. (slightly varies across analyses due to type of regression, for example looking only at employed individuals for multi).
+
+Explain how you treated missing values.
+> Individuals containing missing values in any of the variables of interest are dropped from the analysis.
+
+Clearly identify the dependent variable(s).
+> Many, list the final ones used here
+> how did I group degrees? (only for multi)
+
+Identify and explain the operationalization of key independent variables.
+> young_migrant, also mention country collapse
+
+Produce and discuss descriptive statistics.
 
 
 ```{r clogit}
@@ -318,7 +358,7 @@ data_binary$citizen <- fct_recode(data_binary$citizen, "Citizen" = "N/A")
 data_binary$empstat <- fct_recode(data_binary$empstat, NULL = "N/A")
 
 # reduce to people who have done a bachelors at least - they will be the observed group
-data_binary <- data_binary |> filter(educd > 101 & educd != 999)
+data_binary <- data_binary |> filter(educd >= 101 & educd != 999)
 
 # make new variable to get age at migration and take a look at my group of interest
 data_binary <- data_binary |> mutate(
