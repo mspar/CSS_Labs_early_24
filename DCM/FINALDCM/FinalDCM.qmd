@@ -58,40 +58,36 @@ og_data$educ <- labelled::to_factor(og_data$educ)
 
 > It is expected that though there may be fewer young migrants choosing to pursue tertiary education due to the associated costs compared to their non-migrant counterparts (binary), those who do are driven by strong sense of utility in their choice of studies, therefore choosing fields commonly associated with higher prestige and better financial stability (multi). Additionally, the attributed outcomes associated with degree choice are expected to primarily be related to financial stability and prestige (clog).
 
-> This analysis has a breadth of potential confounders and mediators to take into account, many of which are expected to interact with one another and not all of which are included in the data. Sex is expected to serve as a strong confounder, as several fields of study are strongly gender segregated [IS THAT HOW YOU SAY IT?]. This effect is expected to differ, however, based on the socialization at home, where variables such as religion, country of birth as well as parent related variables may show interactions with sex and have their own confounding effects. Citizenship status may influence whether college is attended at all, as undocumented students may choose to not attend college due either not thinking that they are allowed to do so or because their funding options by the state are reduced [https://counselors.collegeboard.org/financial-aid/undocumented-students]. Additionally, degree choices may, however, be greatly influenced by the age at which an individual has migrated to the US country. Due to this, some of the following models take this into account.
+> This analysis has a breadth of potential confounders and mediators to take into account, many of which are expected to interact with one another and not all of which are included in the data. Sex is expected to serve as a strong confounder, as several fields of study are strongly gender segregated [IS THAT HOW YOU SAY IT?]. This effect is expected to differ, however, based on the socialization at home, where variables such as religion, country of birth as well as parent related variables may show interactions with sex and have their own confounding effects. Citizenship status may influence whether college is attended at all, as undocumented students may choose to not attend college due to either thinking that they are not allowed to do so or because their funding options by the state are reduced [https://counselors.collegeboard.org/financial-aid/undocumented-students]. Additionally, degree choices may be greatly influenced by the age at which an individual has migrated to the US country. Due to this, some of the following models take this into account.
 
 
 
 ```{r desctable}
 
-data_descriptives <- og_data
+data <- og_data
 
 # Deal with Nas and empty levels
-data_descriptives$degfield <- fct_recode(data_descriptives$degfield, NULL = "N/A")
-data_descriptives$citizen <- fct_recode(data_descriptives$citizen, "Citizen" = "N/A")
-data_descriptives$empstat <- fct_recode(data_descriptives$empstat, NULL = "N/A")
+data$degfield <- fct_recode(data$degfield, NULL = "N/A")
+data$citizen <- fct_recode(data$citizen, "Citizen" = "N/A")
+data$empstat <- fct_recode(data$empstat, NULL = "N/A")
 
-data_descriptives$citizen <- droplevels(data_descriptives$citizen)
-data_descriptives$empstat <- droplevels(data_descriptives$empstat)
-data_descriptives$educ <- droplevels(data_descriptives$educ)
-data_descriptives$sex <- droplevels(data_descriptives$sex)
+data$citizen <- droplevels(data$citizen)
+data$empstat <- droplevels(data$empstat)
+data$educ <- droplevels(data$educ)
+data$sex <- droplevels(data$sex)
 
  
-data_descriptives <- data_descriptives |> 
+data <- data |> 
   select(sex,age,stateicp,met2013,birthyr,bpl,citizen,yrimmig,yrsusa1,rachsing,educd,degfield,empstat,uhrswork,inctot,incearn,poverty,educ) |>
   mutate(
    age_at_immigration = if_else(yrimmig != 0, yrimmig - (2015-age), NA_integer_),
-   young_migrant = if_else(!is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 19, "YM", "Not YM"),
+   young_migrant = if_else(!is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 19 & citizen != "Born abroad of American parents", "YM", "Not YM"),
    young_migrant = as_factor(young_migrant),
-   young_migrant_detailled = case_when(young_migrant == "YM" & age_at_immigration < 10 ~ "Migrated as Child (younger than 10 years old)",
+   `Migration Status` = case_when(young_migrant == "YM" & age_at_immigration < 10 ~ "Migrated as Child (younger than 10 years old)",
                              young_migrant == "YM" & age_at_immigration >= 10 & age_at_immigration <= 19 ~ "Migrated as Adolescent (between 10 and 19 years old)",
-                             young_migrant == "Not YM" ~ "Not YM"),
-   young_migrant_detailled = fct_relevel(young_migrant_detailled, "Not YM"),
-   `Migration Status` = case_when(
-     !is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 19 ~ "Migrated Young (younger than 20)",
-     !is.na(age_at_immigration) & age_at_immigration > 19 ~ "Migrated as Adult (20 and older)",
-     TRUE ~ "Did not Migrate"
-   ),
+                             age_at_immigration >= 20 & citizen != "Born abroad of American parents" ~ "Migrated as Adult (20 and older)",
+                             young_migrant == "Not YM" | citizen == "Born abroad of American parents"  ~ "Did not Migrate"),
+   `Migration Status` = fct_relevel(`Migration Status`, "Migrated as Child (younger than 10 years old)", "Migrated as Adolescent (between 10 and 19 years old)", "Migrated as Adult (20 and older)", "Did not Migrate"),
    educ = fct_collapse(educ,
                        other_level = "Did not Finish High School",
                        `Finished High School` = c("Grade 12"),
@@ -101,194 +97,15 @@ data_descriptives <- data_descriptives |>
    educ = fct_relevel(educ, "Did not Finish High School")
    ) |> 
   rename(`Race` = rachsing) |> 
-  filter(birthyr >= 1960 & age >= 24 & inctot < 9999998)
+  filter(birthyr >= 1960 & age >= 24 & inctot < 9999998 & poverty != 0)
 
+attributes(data$Race)$label <- "Race (simplified)"
 
-data_descriptives |>
-  select(`Migration Status`,`Age (in years)` = age, `Sex` =  sex, `Age (in years)` = age, `Citizenship Status` = citizen, `Race`, `Educational Attainment` = educ, `Employment Status` = empstat, uhrswork, inctot, incearn, `Poverty Status` = poverty) |> 
-  tbl_summary(by = `Migration Status`, type = list(`Age (in years)` ~ "continuous",
-                                                   uhrswork ~ "continuous",
-                                                   inctot ~ "continuous",
-                                                   `Poverty Status` ~ "continuous")) |>
-  modify_caption("Educational and Economical Indicators: Descriptives Divided by Migration Status") |>
-  as_kable_extra(booktabs = TRUE, escape = FALSE, linesep = "") |>
-  footnote(footnote_as_chunk = TRUE,
-           threeparttable = TRUE, 
-           general = "Shows only those respondents who were born after 1960 and at least 24 years old in 2015. Poverty Status is calculated taking into account household size, household member's age, age of the householder and total family income: Values over 100 indicate being above the poverty threshold. Data from the American Community Survey 2015 (collected 2015).")
-```
-
-## Data
-
-> The data for the 2015 American Community Survey was gathered over the course of the year 2015, containing more than 3 million individuals and is representative for the inhabitants of the Unites States of America.
-
-Describe how you generated your analytic sample from the data
-> Of these, such and such data are used -> birthyear, age, etc. (slightly varies across analyses due to type of regression, for example looking only at employed individuals for multi).
-
-Explain how you treated missing values.
-> Individuals containing missing values in any of the variables of interest are dropped from the analysis.
-
-Clearly identify the dependent variable(s).
-> Many, list the final ones used here
-> how did I group degrees? (only for multi)
-
-Identify and explain the operationalization of key independent variables.
-> young_migrant, also mention country collapse
-
-Produce and discuss descriptive statistics.
-
-
-```{r clogit}
-# What are the alternative specific attributes (i.e., the outcomes associated with degree choice) that are considered desirable by choice makers (and their parents)?
-
-data_clog <- og_data |> select(sex,age,stateicp,met2013,birthyr,bpl,citizen,yrimmig,
-                          yrsusa1,rachsing,educd,degfield,empstat,uhrswork,inctot,incearn,poverty)
-
-#drop na level in degree so it doesn't get annoying later
-data_clog$degfield <- fct_recode(data_clog$degfield, NULL = "N/A")
-data_clog$citizen <- fct_recode(data_clog$citizen, "Citizen" = "N/A")
-data_clog$empstat <- fct_recode(data_clog$empstat, NULL = "N/A")
-
-# reduce to people who have done a bachelors at least - they will be the observed group
-data_clog <- data_clog |> filter(educd >= 101 & educd != 999)
-
-# make new variable to get age at migration and take a look at my group of interest
-data_clog <- data_clog |> mutate(
-   age_at_immigration = if_else(yrimmig != 0, yrimmig - (2015-age), NA_integer_),
-   young_migrant = if_else(!is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 19, "YM", "Not YM"),
-   young_migrant = as_factor(young_migrant),
-   young_migrant_detailled = case_when(young_migrant == "YM" & age_at_immigration < 10 ~ "Migrated as Child (younger than 10 years old)",
-                             young_migrant == "YM" & age_at_immigration >= 10 & age_at_immigration <= 19 ~ "Migrated as Adolescent (between 10 and 19 years old)",
-                             young_migrant == "Not YM" ~ "Not YM"),
-   young_migrant_detailled = fct_relevel(young_migrant_detailled, "Not YM")
-   ) |> 
-  filter(birthyr >= 1960)
-
-
-data_clog$empstat <- droplevels(data_clog$empstat)
-
-
-# make a little summarize table
-interesting_data_smile <- data_clog |>
-  group_by(degfield) |> 
-  filter(n()>=1000) |> 
-  summarise(
-    n_degree_holders = n(),
-    med_age = median(age),
-    n_young_migrants = sum(!is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 21),
-    p_young_migrants = sum(!is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 21)/n(),
-    n_employed = sum(empstat == "Employed"),
-    p_employed = sum(empstat == "Employed")/n(),
-    n_ym_employed = sum(empstat == "Employed" & !is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 21),
-    p_ym_employed_within = sum(empstat == "Employed" & !is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 21)/n_young_migrants,
-    p_ym_employed_general = sum(empstat == "Employed" & !is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 21)/n(),
-    mean_weekly_hours = round(mean(uhrswork),2),
-    mean_tot_income = mean(inctot),
-    mean_earned_income = mean(incearn),
-    mean_poverty = round(mean(poverty),2)
-    )
-
-
-#so there are no too small categories blah
-interesting_data_smile$degfield <- droplevels(interesting_data_smile$degfield)
-
-# id part!
-set.seed(1)
-sample_degree_holders <- data_clog |> filter(degfield %in% interesting_data_smile$degfield)
-sample_degree_holders$degfield <- fct_drop(sample_degree_holders$degfield)
-
-sample_degree_holders <- sample_degree_holders |> 
-group_by(young_migrant) |> 
-  slice_sample(n = 5000) |> ungroup() |> mutate(ID = row_number())
-
-size <- 5
-alts <- interesting_data_smile$degfield
-
-sample_degree_holders |> 
-  ungroup() |> 
-  select(ID) |>  
-  mutate(alt = replicate(n(), sample(alts, size = size, replace = FALSE), simplify = FALSE)) |> 
-  unnest(alt) |>
-  anti_join(sample_degree_holders, by = join_by(ID, alt == degfield)) |> 
-  group_by(ID) |> slice(1:(size-1)) ->
-  degree_choice
-
-
-# reduce variables in degree table for conditional logit
-interesting_data_smile2 <- interesting_data_smile 
-#|> select(-c(starts_with("n_"),starts_with("p_"),med_age))
-
-
-sample_degree_holders |> 
-  select(ID, alt = degfield) |>
-  bind_rows(degree_choice) |> 
-  group_by(ID) |> 
-  arrange(ID, alt) |> 
-  left_join(sample_degree_holders, by = join_by(ID)) |> 
-  left_join(interesting_data_smile2, by = join_by(alt == degfield)) |> 
-  mutate(choice = degfield == alt,
-         choice = as.numeric(choice)) |> 
-  select(-c(yrimmig,yrsusa1,met2013,educd,degfield,stateicp,bpl,age_at_immigration)) -> degree_choice2
-
-# Sanity check good
-sum(degree_choice2$choice) == nrow(sample_degree_holders)
-sum(degree_choice2$choice)*size == nrow(degree_choice2)
-
-library(survival)
-
-# OKAY SO BIG REVELATION:
-# don't include alt duh
-# only look at what makes the choice, not the choice itself
-# these models often don't work cause the multicol from including the alts itself
-
-m_clog_inter <- clogit(choice ~ mean_weekly_hours:young_migrant + mean_poverty:young_migrant + mean_earned_income:young_migrant + mean_tot_income:young_migrant + p_employed:young_migrant + strata(ID), data = degree_choice2)
-tidy(m_clog_inter) |> View()
-
-tbl_regression(m_clog_inter, exponentiate = TRUE) |>
-  modify_header(list(label = "**Covariate**",
-                     estimate = "**Odds**")) |>
-  modify_footnote(update = list(estimate ~ NA),
-                  abbreviation = TRUE)
-```
-
-
-
-```{r multinom}
-# which degrees do migrants who enter the country young enter into more and what are their attributes?
-
-data_mult <- og_data |> select(sex,age,stateicp,met2013,birthyr,bpl,citizen,yrimmig,
-                          yrsusa1,rachsing,educd,degfield,empstat,uhrswork,inctot,incearn,poverty)
-
-
-#drop na level in degree so it doesn't get annoying later
-data_mult$degfield <- fct_recode(data_mult$degfield, NULL = "N/A")
-data_mult$citizen <- fct_recode(data_mult$citizen, "Citizen" = "N/A")
-data_mult$empstat <- fct_recode(data_mult$empstat, NULL = "N/A")
-
-
-# reduce to people who have done a bachelors at least - they will be the observed group
-data_mult <- data_mult |> filter(educd >= 101 & educd != 999)
-
-
-# make new variable to get age at migration and take a look at my group of interest
-data_mult <- data_mult |> mutate(
-   age_at_immigration = if_else(yrimmig != 0, yrimmig - (2015-age), NA_integer_),
-   young_migrant = if_else(!is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 19, "YM", "Not YM"),
-   young_migrant = as_factor(young_migrant),
-   young_migrant_detailled = case_when(young_migrant == "YM" & age_at_immigration < 10 ~ "Migrated as Child (younger than 10 years old)",
-                             young_migrant == "YM" & age_at_immigration >= 10 & age_at_immigration <= 19 ~ "Migrated as Adolescent (between 10 and 19 years old)",
-                             young_migrant == "Not YM" ~ "Not YM"),
-   young_migrant_detailled = fct_relevel(young_migrant_detailled, "Not YM")
-   ) |> 
-  filter(birthyr >= 1960)
-
-
-
-#so there are no too small categories blah
-data_mult$degfield <- droplevels(data_mult$degfield)
-data_mult$bpl <- droplevels(data_mult$bpl)
+data$degfield <- droplevels(data$degfield)
+data$bpl <- droplevels(data$bpl)
 
 # make broader categories for degfield
-data_mult <- data_mult |> mutate(
+data <- data |> mutate(
   degfield_collapsed = fct_collapse(degfield,
     Engineering = c("Architecture", "Communication Technologies", "Engineering", "Engineering Technologies", "Military Technologies", "Nuclear, Industrial Radiology, and Biological Technologies", "Construction Services", "Electrical and Mechanic Repairs and Technologies", "Transportation Sciences and Technologies"),
     Sciences = c("Agriculture", "Environment and Natural Resources", "Computer and Information Sciences", "Biology and Life Sciences", "Physical Sciences", "Mathematics and Statistics"),
@@ -315,58 +132,84 @@ data_mult <- data_mult |> mutate(
   bpl_collapsed = fct_relevel(bpl_collapsed, "North America")
 )
 
-data_mult$sex <- droplevels(data_mult$sex)
+data$sex <- droplevels(data$sex)
 
 
-data_mult |> select(sex, age, citizen, rachsing, degfield, degfield_collapsed, empstat, uhrswork, inctot, incearn, poverty, young_migrant, bpl_collapsed,birthyr, young_migrant_detailled) |> 
-  filter(empstat == "Employed" & poverty != 0) -> data_mult
 
-data_mult <- data_mult |> group_by(young_migrant) |> slice_sample(n = 20000) |> ungroup()
-
-library(nnet)
-library(broom)
-library(modelr)
-
-# YOUNG MIGRANT NEEDS TO BE SPLIT INTO DIFFERENT VALUES DEPENDING ON AGE -> THE YOUNGER THE MORE ADJUSTED?
-multi <- multinom(degfield_collapsed ~ I(sex:young_migrant) + young_migrant_detailled + bpl_collapsed, data = data_mult, trace = F, model = T, na.action = na.exclude)
-#tidy(multi) |> View()
-
-modelsummary::modelsummary(multi, shape =  term ~ model + response,
-             fmt = 2,
-             statistic = 'conf.int',
-             title = "title",
-             exponentiate = TRUE,
-             stars = TRUE)
-
-
-# TODO:
-# ADD GOF TABLE HERE
-# ADD PREDICTION GRAPH HERE
+data |>
+  select(`Migration Status`,`Age (in years)` = age, `Sex` =  sex, `Age (in years)` = age, `Citizenship Status` = citizen, `Race`, `Educational Attainment` = educ, `Employment Status` = empstat, uhrswork, inctot, incearn, `Poverty Status` = poverty) |> 
+  tbl_summary(by = `Migration Status`, type = list(`Age (in years)` ~ "continuous",
+                                                   uhrswork ~ "continuous",
+                                                   inctot ~ "continuous",
+                                                   `Poverty Status` ~ "continuous")) |>
+  modify_caption("Educational and Economical Indicators: Descriptives Divided by Migration Status") |>
+  as_kable_extra(booktabs = TRUE, escape = FALSE, linesep = "") |>
+  footnote(footnote_as_chunk = TRUE,
+           threeparttable = TRUE, 
+           general = "Shows only those respondents who were born after 1960 and at least 24 years old in 2015. Poverty Status is calculated taking into account household size, household member's age, age of the householder and total family income: Values over 100 indicate being above the poverty threshold. Data from the American Community Survey 2015 (collected 2015).")
 ```
 
+## Data
+
+> The data for the 2015 American Community Survey was gathered over the course of the year 2015, containing more than 3 million individuals and is representative for the inhabitants of the Unites States of America.
+
+Describe how you generated your analytic sample from the data
+> Of these data, only those individuals are taken into account that were born 1960 or later. This is to ensure that all individuals had the chance to do all types of degrees with especially degrees such as computer science only being widely represented at colleges around the late 70s [SOURCE]. Further, depending on the analysis, only employed individuals are included. 
+
+Explain how you treated missing values.
+> Individuals containing missing values in any of the variables of interest are dropped from the analysis.
+
+Clearly identify the dependent variable(s).
+> The main dependent variable is the choice of degree. For the multinomial regression, the degrees are grouped into broader fields, whereas the conditional logit model takes into account all degrees as alternatives in which at least 1000 individuals received a degree. [Kind of switched around for clogit].
+
+Identify and explain the operationalization of key independent variables.
+> The key independent variable is the "Migration status". It is a categorical variable with the 4 levels "Migrated as Child", "Migrated as Adolescent", "Migrated as Adult" and, "Did not Migrate". The split into these 4 categories is motivated theoretically, as there is expected to be a greater assimilation of migrants, the younger they enter the country. Individuals who are born abroad to American parents and then moved to the U.S are not considered migrants in this analysis, due to the assumption that they may adapt to their new environment much easier than other migrants due to the knowledge and [WORD] of their parents. Other independent variables are collapsed versions of the birthplace and race variables. [MAYBE MORE HERE].
+
+Produce and discuss descriptive statistics.
+
+> Table 1 presents the descriptives divided by migration status. For categorical variables percentages are displayed and for continuous variables, the median and interquartile range are supplied. Across the entire table it becomes apparent that inidividuals who migrate as children quite closely resemble the descriptive statistics of those who never migrated at all, compared to those who migrated as adults. There seems to be a trend to be worse off when having migrated as an adult compared to all other groups, with a lower total personal and total earned income than the other groups. However, the educational attainment variable results for this group show that this might not be due to low education, as this group contains the highest percentage of degree holders, hinting toward distinct differences between highly educated individuals migrating to the US and less qualified migrants. Comparing the child and adolescent migrants, it becomes apparent that the latter performs worse than the prior in all educational and financial variables, being the most at risk group of all four compared. [COULD WRITE MORE HERE].
 
 ```{r binary}
 # here just compare the YM with other people - how are they unique? do they earn more or less? are they more poor?
 # I.E., regardless of expectation - what does it look like for YM?
 
-data_binary <- og_data |> select(sex,age,stateicp,met2013,birthyr,bpl,citizen,yrimmig,
-                          yrsusa1,rachsing,educd,degfield,empstat,uhrswork,inctot,incearn,poverty)
+data_bin <- data |> slice_sample(n = 300000)
 
-#drop na level in degree so it doesn't get annoying later
-data_binary$degfield <- fct_recode(data_binary$degfield, NULL = "N/A")
-data_binary$citizen <- fct_recode(data_binary$citizen, "Citizen" = "N/A")
-data_binary$empstat <- fct_recode(data_binary$empstat, NULL = "N/A")
+mod1 <- glm(young_migrant ~ degfield_collapsed + `Educational Attainment`, data = data_bin, 
+                       family = "binomial"(link = "logit"))
 
-# reduce to people who have done a bachelors at least - they will be the observed group
-data_binary <- data_binary |> filter(educd >= 101 & educd != 999)
+t1 <- tbl_regression(mod1, exponentiate = TRUE) |> 
+  modify_header(list(label="**Covariate**",
+                     estimate="**Odds**")) |>
+  modify_footnote(update = list(estimate ~ NA), 
+                  abbreviation=TRUE)
 
-# make new variable to get age at migration and take a look at my group of interest
-data_binary <- data_binary |> mutate(
-   age_at_immigration = if_else(yrimmig != 0, yrimmig - (2015-age), NA_integer_),
-   young_migrant = if_else(!is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 21, "YM", "Not YM"),
-   young_migrant = as_factor(young_migrant)
-   ) |> 
-  filter(birthyr >= 1960)
+mod2 <- glm(young_migrant ~ degfield_collapsed + `Educational Attainment` + age + sex, data = data_bin, 
+                       family = "binomial"(link = "logit"))
+
+t2 <- tbl_regression(mod2, exponentiate = TRUE) |> 
+  modify_header(list(label="**Covariate**",
+                     estimate="**Odds**")) |>
+  modify_footnote(update = list(estimate ~ NA), 
+                  abbreviation=TRUE)
+
+mod3 <- glm(young_migrant ~ degfield_collapsed + age + sex + uhrswork + inctot + incearned + `Poverty Status`, data = data_bin, 
+                       family = "binomial"(link = "logit"))
+
+t3 <- tbl_regression(mod3, exponentiate = TRUE) |> 
+  modify_header(list(label="**Covariate**",
+                     estimate="**Odds**")) |>
+  modify_footnote(update = list(estimate ~ NA), 
+                  abbreviation=TRUE)
+
+tbl_merge(tbls = list(t1, t2, t3),
+          tab_spanner = c("**Model 1**", "**Model 2**", "**Model 3**")) |> 
+  modify_caption("Young Migrant Status with associated variables: Binary Logistic Regression Models") |> 
+  as_kable_extra(booktabs = TRUE, escape = FALSE, linesep = "") |> 
+  kable_styling(latex_options = "scale_down") |> 
+  footnote(footnote_as_chunk = TRUE,
+           threeparttable = TRUE, 
+           general = "Data from the American Community Survey 2015 (collected 2015). The units for the age term is years.")
 
 #TODO:
 # DO MODEL
@@ -374,7 +217,129 @@ data_binary <- data_binary |> mutate(
 ```
 
 
+```{r multinom}
+# which degrees do migrants who enter the country young enter into more and what are their attributes?
 
+data |> select(`Age (in years)` = age, `Sex` =  sex, citizen, degfield, degfield_collapsed, young_migrant,  `Birthplace (simplified)` = bpl_collapsed ,birthyr, `Migration Status`, `Citizenship Status` = citizen, `Race`, `Educational Attainment` = educ, `Employment Status` = empstat, uhrswork, inctot, incearn, `Poverty Status` = poverty) |> 
+  mutate(`Migration Status` = fct_relevel(`Migration Status`, "Did not Migrate")) |> 
+  filter(`Employment Status` == "Employed") -> data_mult
+
+set.seed(1)
+data_mult <- data_mult |> group_by(`Migration Status`) |> slice_sample(n = 5000) |> ungroup()
+
+library(nnet)
+library(broom)
+library(modelr)
+
+multi <- multinom(degfield_collapsed ~ `Sex` + `Migration Status` + `Birthplace (simplified)`, data = data_mult, trace = F, model = T, na.action = na.exclude)
+
+#I(`Sex`:`Migration Status`)
+
+cm <- c("SexFemale" = "Female",
+        "Migration StatusMigrated as Child (younger than 10 years old)" = "Migrated as Child (younger than 10 years old - ref. Did not Migrate)",
+        "Migration StatusMigrated as Adolescent (between 10 and 19 years old)" = "Migrated as Adolescent (between 10 and 19 years old)",
+        "Migration StatusMigrated as Adult (20 and older)" = "Migrated as Adult (20 and older)",
+        "Birthplace (simplified)LatAm" = "Birthplace: LatAm (ref. United States)",
+        "Birthplace (simplified)Western Europe & Scandinavia" = "Birthplace: Western Europe & Scandinavia",
+        "Birthplace (simplified)Eastern Europe" = "Birthplace: Eastern Europe",
+        "Birthplace (simplified)East Asia" = "Birthplace: East Asia",
+        "Birthplace (simplified)South & South-East Asia" = "Birthplace: South & South-East Asia",
+        "Birthplace (simplified)Middle East" = "Birthplace: Middle East",
+        "Birthplace (simplified)Africa" = "Birthplace: Africa",
+        "Birthplace (simplified)Oceania" = "Birthplace: Oceania")
+
+
+modelsummary::modelsummary(multi, shape =  term ~ model + response,
+                           title = "Degree Choice: Multinomial logistic regression",
+             fmt = 2,
+             statistic = 'conf.int',
+             exponentiate = TRUE,
+             stars = TRUE,
+             coef_omit = "Intercept",
+             coef_map = cm,
+            notes = list("Source: Data from the American Community Survey 2015.")
+             ) |> kable_styling(latex_options = "scale_down")
+
+
+# TODO:
+# ADD PREDICTION GRAPH HERE
+```
+
+```{r clogit}
+# What are the alternative specific attributes (i.e., the outcomes associated with degree choice) that are considered desirable by choice makers (and their parents)?
+
+# make a little summarize table
+alt_attributes <- data |>
+  group_by(degfield) |> 
+  filter(n()>=1000) |> 
+  summarise(
+    n_degree_holders = n(),
+    med_age = median(age),
+    n_young_migrants = sum(!is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 21),
+    p_young_migrants = sum(!is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 21)/n(),
+    n_employed = sum(empstat == "Employed"),
+    p_employed = sum(empstat == "Employed")/n(),
+    n_ym_employed = sum(empstat == "Employed" & !is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 21),
+    p_ym_employed_within = sum(empstat == "Employed" & !is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 21)/n_young_migrants,
+    p_ym_employed_general = sum(empstat == "Employed" & !is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 21)/n(),
+    mean_weekly_hours = round(mean(uhrswork),2),
+    mean_tot_income = mean(inctot),
+    mean_earned_income = mean(incearn),
+    mean_poverty = round(mean(poverty),2)
+    )
+
+
+#so there are no too small categories blah
+alt_attributes$degfield <- droplevels(alt_attributes$degfield)
+
+# id part!
+set.seed(1)
+sample_degree_holders <- data |> filter(degfield %in% alt_attributes$degfield)
+sample_degree_holders$degfield <- fct_drop(sample_degree_holders$degfield)
+
+sample_degree_holders <- sample_degree_holders |> 
+group_by(young_migrant) |> 
+  slice_sample(n = 5000) |> ungroup() |> mutate(ID = row_number())
+
+size <- 5
+alts <- alt_attributes$degfield
+
+sample_degree_holders |> 
+  ungroup() |> 
+  select(ID) |>  
+  mutate(alt = replicate(n(), sample(alts, size = size, replace = FALSE), simplify = FALSE)) |> 
+  unnest(alt) |>
+  anti_join(sample_degree_holders, by = join_by(ID, alt == degfield)) |> 
+  group_by(ID) |> slice(1:(size-1)) ->
+  degree_choice
+
+
+sample_degree_holders |> 
+  select(ID, alt = degfield) |>
+  bind_rows(degree_choice) |> 
+  group_by(ID) |> 
+  arrange(ID, alt) |> 
+  left_join(sample_degree_holders, by = join_by(ID)) |> 
+  left_join(alt_attributes, by = join_by(alt == degfield)) |> 
+  mutate(choice = degfield == alt,
+         choice = as.numeric(choice)) |> 
+  select(-c(yrimmig,yrsusa1,met2013,educd,degfield,stateicp,bpl,age_at_immigration)) -> degree_choice2
+
+# Sanity check good
+sum(degree_choice2$choice) == nrow(sample_degree_holders)
+sum(degree_choice2$choice)*size == nrow(degree_choice2)
+
+library(survival)
+
+m_clog_inter <- clogit(choice ~ mean_weekly_hours:`Migration Status` + mean_poverty:`Migration Status` + mean_earned_income:`Migration Status` + mean_tot_income:`Migration Status` + p_employed:`Migration Status` + strata(ID), data = degree_choice2)
+tidy(m_clog_inter) |> View()
+
+tbl_regression(m_clog_inter, exponentiate = TRUE) |>
+  modify_header(list(label = "**Covariate**",
+                     estimate = "**Odds**")) |>
+  modify_footnote(update = list(estimate ~ NA),
+                  abbreviation = TRUE)
+```
 
 ```{r the bin}
 # degree_choice3 <- degree_choice2 |> select(ID, choice, rachsing, alt, young_migrant)
@@ -426,25 +391,90 @@ data_binary <- data_binary |> mutate(
 # t2
 
 
-not_ym_m <- clogit(choice ~ mean_weekly_hours + mean_poverty + mean_earned_income + mean_tot_income + p_employed + strata(ID), data = filter(degree_choice2, young_migrant == "Not YM"))
-tidy(not_ym_m) |> View()
+# not_ym_m <- clogit(choice ~ mean_weekly_hours + mean_poverty + mean_earned_income + mean_tot_income + p_employed + strata(ID), data = filter(degree_choice2, young_migrant == "Not YM"))
+# tidy(not_ym_m) |> View()
+# 
+# t_nym <- tbl_regression(not_ym_m, exponentiate = TRUE) |>
+#   modify_header(list(label="**Covariate**",
+#                      estimate="**Odds**")) |>
+#   modify_footnote(update = list(estimate ~ NA),
+#                   abbreviation=TRUE)
+# t_nym
+# 
+# 
+# ym_m <- clogit(choice ~ mean_weekly_hours + mean_poverty + mean_earned_income + mean_tot_income + p_employed + strata(ID), data = filter(degree_choice2, young_migrant == "YM"))
+# tidy(not_ym_m) |> View()
+# 
+# t_ym <- tbl_regression(ym_m, exponentiate = TRUE) |>
+#   modify_header(list(label="**Covariate**",
+#                      estimate="**Odds**")) |>
+#   modify_footnote(update = list(estimate ~ NA),
+#                   abbreviation=TRUE)
+# t_ym
 
-t_nym <- tbl_regression(not_ym_m, exponentiate = TRUE) |>
-  modify_header(list(label="**Covariate**",
-                     estimate="**Odds**")) |>
-  modify_footnote(update = list(estimate ~ NA),
-                  abbreviation=TRUE)
-t_nym
+
+# data_mult <- og_data |> select(sex,age,stateicp,met2013,birthyr,bpl,citizen,yrimmig,
+#                           yrsusa1,rachsing,educd,degfield,empstat,uhrswork,inctot,incearn,poverty)
+# 
+# 
+# #drop na level in degree so it doesn't get annoying later
+# data_mult$degfield <- fct_recode(data_mult$degfield, NULL = "N/A")
+# data_mult$citizen <- fct_recode(data_mult$citizen, "Citizen" = "N/A")
+# data_mult$empstat <- fct_recode(data_mult$empstat, NULL = "N/A")
+# 
+# 
+# # reduce to people who have done a bachelors at least - they will be the observed group
+# data_mult <- data_mult |> filter(educd >= 101 & educd != 999)
+# 
+# 
+# # make new variable to get age at migration and take a look at my group of interest
+# data_mult <- data_mult |> mutate(
+#    age_at_immigration = if_else(yrimmig != 0, yrimmig - (2015-age), NA_integer_),
+#    young_migrant = if_else(!is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 19, "YM", "Not YM"),
+#    young_migrant = as_factor(young_migrant),
+#    `Migration Status` = case_when(young_migrant == "YM" & age_at_immigration < 10 ~ "Migrated as Child (younger than 10 years old)",
+#                              young_migrant == "YM" & age_at_immigration >= 10 & age_at_immigration <= 19 ~ "Migrated as Adolescent (between 10 and 19 years old)",
+#                              young_migrant == "Not YM" ~ "Not YM"),
+#    `Migration Status` = fct_relevel(`Migration Status`, "Not YM")
+#    ) |> 
+#   filter(birthyr >= 1960)
+# 
+# 
+# 
+# #so there are no too small categories blah
+# data_mult$degfield <- droplevels(data_mult$degfield)
+# data_mult$bpl <- droplevels(data_mult$bpl)
+# 
+# # make broader categories for degfield
+# data_mult <- data_mult |> mutate(
+#   degfield_collapsed = fct_collapse(degfield,
+#     Engineering = c("Architecture", "Communication Technologies", "Engineering", "Engineering Technologies", "Military Technologies", "Nuclear, Industrial Radiology, and Biological Technologies", "Construction Services", "Electrical and Mechanic Repairs and Technologies", "Transportation Sciences and Technologies"),
+#     Sciences = c("Agriculture", "Environment and Natural Resources", "Computer and Information Sciences", "Biology and Life Sciences", "Physical Sciences", "Mathematics and Statistics"),
+#     Arts = c("Area, Ethnic, and Civilization Studies", "Cosmetology Services and Culinary Arts", "Linguistics and Foreign Languages", "English Language, Literature, and Composition", "Liberal Arts and Humanities", "Library Science", "Physical Fitness, Parks, Recreation, and Leisure", "Philosophy and Religious Studies", "Fine Arts", "History"),
+#     `Social Sciences` = c("Communications", "Family and Consumer Sciences", "Psychology", "Public Affairs, Policy, and Social Work", "Social Sciences"),
+#     Medicine = c("Medical and Health Sciences and Services"),
+#     Business = c("Business"),
+#     Education = c("Education Administration and Teaching"),
+#     other_level = "Other"
+#   ),
+#   degfield_collapsed = fct_relevel(degfield_collapsed, "Business"),
+#   sex = as_factor(sex),
+#   bpl_collapsed = fct_collapse(bpl,
+#                      other_level = "North America",
+#                      LatAm = c("Mexico","Central America","Cuba","Americas, n.s.","West Indies","SOUTH AMERICA"),
+#                      `Western Europe & Scandinavia` = c("Denmark", "Finland", "Iceland", "Norway", "Sweden", "England", "Scotland", "United Kingdom, ns", "Ireland", "Belgium", "France", "Netherlands", "Switzerland", "Greece", "Italy","Portugal", "Spain", "Austria", "Germany"),
+#                      `Eastern Europe` = c("Albania", "Bulgaria", "Czechoslovakia", "Hungary", "Poland", "Romania", "Yugoslavia", "Latvia", "Lithuania", "Other USSR/Russia", "Europe, ns", "Cyprus"),
+#                      `East Asia` = c("China", "Japan", "Korea"),
+#                      `South & South-East Asia` = c("India" ,"Cambodia (Kampuchea)", "Indonesia", "Laos", "Malaysia","Philippines","Singapore","Thailand","Vietnam", "Nepal", "Asia, nec/ns"),
+#                      `Middle East` = c("Afghanistan", "Iran","Iraq","Israel/Palestine", "Jordan","Kuwait","Lebanon","Saudi Arabia","Syria","Turkey","United Arab Emirates", "Yemen Arab Republic (North)"),
+#                      Africa = c("AFRICA"),
+#                      Oceania = c("Australia and New Zealand", "Pacific Islands")
+#   ),
+#   bpl_collapsed = fct_relevel(bpl_collapsed, "North America")
+# )
+# 
+# data_mult$sex <- droplevels(data_mult$sex)
 
 
-ym_m <- clogit(choice ~ mean_weekly_hours + mean_poverty + mean_earned_income + mean_tot_income + p_employed + strata(ID), data = filter(degree_choice2, young_migrant == "YM"))
-tidy(not_ym_m) |> View()
-
-t_ym <- tbl_regression(ym_m, exponentiate = TRUE) |>
-  modify_header(list(label="**Covariate**",
-                     estimate="**Odds**")) |>
-  modify_footnote(update = list(estimate ~ NA),
-                  abbreviation=TRUE)
-t_ym
 ```
 
