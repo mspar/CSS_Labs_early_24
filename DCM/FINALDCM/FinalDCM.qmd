@@ -36,25 +36,26 @@ og_data$bpld <- labelled::to_factor(og_data$bpld)
 og_data$bpl <- labelled::to_factor(og_data$bpl)
 og_data$occ <- labelled::to_factor(og_data$occ)
 og_data$citizen <- labelled::to_factor(og_data$citizen)
-og_data$sex <- labelled::to_factor(og_data$sex)
-og_data$educ <- labelled::to_factor(og_data$educ)
+og_data$Sex <- labelled::to_factor(og_data$sex)
+og_data$`Educational Attainment` <- labelled::to_factor(og_data$educ)
 ```
 
 ## Introduction
 
-> With migration expected to rise drastically in the coming decades, issues of integration continously rise in relevance [SOURCE]. One aspect of migration is educational attainment and more specifically choice of degree field in tertiary education, as getting a degree serves as a vehicle for upward social mobility [SOURCE]. Especially for individuals who hae migrated at a young age, who have yet to make their decisions regarding their education, different reasons for degree choice may be paramount compared to non-migrant children of their age cohort. Thus, the central research question of this research paper is whether individuals who have migrated at a young age differ in their choice of tertiary education to non-migrants. Connected to this are the questions of whether their access to education is the same as that of their non-migrant peers and what hopes and attributions are connected to certain degree fields.
+> With migration expected to rise drastically in the coming decades, issues of integration continuously rise in relevance [SOURCE]. One aspect of migration is educational attainment and more specifically choice of degree field in tertiary education, as getting a degree serves as a vehicle for upward social mobility [SOURCE]. Especially for individuals who hae migrated at a young age, who have yet to make their decisions regarding their education, different reasons for degree choice may be paramount compared to non-migrant children of their age cohort. Thus, the central research question of this research paper is whether individuals who have migrated at a young age differ in their choice of tertiary education to non-migrants. Connected to this are the questions of whether their access to education is the same as that of their non-migrant peers and what hopes and attributions are connected to certain degree fields.
 
 > To answer these questions, binary, multinomial and conditional logistic regressions are employed. The analysis is based on data from the American Community Survey 2015, which is a demographic survey conducted yearly by the United States Census Bureau. It contains individual and household-level information about demographic, educational, and financial information, among other fields. Based on some key variables ... [TEASER OF RESULTS HERE].
 
 ## Background
 
-> [Find something about
-- educational assimilation
-- degree choice
-- utility as reason for choice
-]
+> There is a body of work which has already answered the questions above. Many studies have highlighted the lower the age of migration, the better the educational attainment overall, some even found a causal effect (e.g., Ansala et al., 2019, Glick & Yabucki, 2016; Söhn, 2011, Lemmermann & Riphahn, 2018). Other variables typically associated with educational attainment also play a role here: parental education and income, school quality, social capital, neighbourhood quality, among others (Baum & Flores, 2011, Portes & MacLeod, 1999, Söhn, 2011). Another important variable is being able to speak the target country's language (Baum & Flores, 2011, Lemmermann & Riphahn, 2018). A theory suggesting an explanation for this is child development theory, which posits that the younger an individual is, the easier it is for it to change and adapt to a new environment and the "cost" of adopting a new identity is lower than for older individuals (Beck et al., 2012).
 
-> Something about the specific case: in the US - costs associated with tertiary education high -> might be more utility to get an apprenticeship but there may be greater expectations attached, with people believing in the myth of the american dream? -> I.E., college as the main road to success
+> Interestingly, the first two generations of migrants tend to achieve higher levels of tertiary education than natives, which was termed the "immigration advantage" and is hypothesized to be due to either positive selection (immigrants show higher levels of motivation and human capital than the average person from their country) or immigrant optimism, which ascribes immigrants higher expectations and motivations in the form of psychological ressources to overcome socioeconomic hardships in their target country (Portes & Rivas, 2011). While information on degree choice among migrants seems sparse, ethnicity seems to predict it somewhat, with first- and second generation Asians being significantly more likely to attend university and college than natives (Hagy & Staniec, 2002). This is in line with findings that Asian Americans are tend to purse education leading to higher earnings and requiring higher education and enter into degrees that tend to be more financially rewarding (Xie & Goyette, 2003). This seems to be in part due to the fact that individuals in degree related occupations tend to encourage youths from their own demographic groups to pursue degrees related to their occupations (Ma, 2011). 
+
+
+> Something about the specific case: in the US - costs associated with tertiary education high -> might be more utility to get an apprenticeship but there may be greater expectations attached, with people believing in the myth of the american dream? -> I.E., college as the main road to success##
+>> But this must be seen in the context of the educational system (griga, hadjar, 2014)
+
 
 > It is expected that though there may be fewer young migrants choosing to pursue tertiary education due to the associated costs compared to their non-migrant counterparts (binary), those who do are driven by strong sense of utility in their choice of studies, therefore choosing fields commonly associated with higher prestige and better financial stability (multi). Additionally, the attributed outcomes associated with degree choice are expected to primarily be related to financial stability and prestige (clog).
 
@@ -73,12 +74,12 @@ data$empstat <- fct_recode(data$empstat, NULL = "N/A")
 
 data$citizen <- droplevels(data$citizen)
 data$empstat <- droplevels(data$empstat)
-data$educ <- droplevels(data$educ)
-data$sex <- droplevels(data$sex)
+data$`Educational Attainment` <- droplevels(data$`Educational Attainment`)
+data$Sex <- droplevels(data$Sex)
 
  
 data <- data |> 
-  select(sex,age,stateicp,met2013,birthyr,bpl,citizen,yrimmig,yrsusa1,rachsing,educd,degfield,empstat,uhrswork,inctot,incearn,poverty,educ) |>
+  select(Sex,age,stateicp,met2013,birthyr,bpl,citizen,yrimmig,yrsusa1,rachsing,educd,degfield,empstat,uhrswork,inctot,incearn,poverty,`Educational Attainment`) |>
   mutate(
    age_at_immigration = if_else(yrimmig != 0, yrimmig - (2015-age), NA_integer_),
    young_migrant = if_else(!is.na(age_at_immigration) & age_at_immigration >= 0 & age_at_immigration <= 19 & citizen != "Born abroad of American parents", "YM", "Not YM"),
@@ -88,13 +89,13 @@ data <- data |>
                              age_at_immigration >= 20 & citizen != "Born abroad of American parents" ~ "Migrated as Adult (20 and older)",
                              young_migrant == "Not YM" | citizen == "Born abroad of American parents"  ~ "Did not Migrate"),
    `Migration Status` = fct_relevel(`Migration Status`, "Migrated as Child (younger than 10 years old)", "Migrated as Adolescent (between 10 and 19 years old)", "Migrated as Adult (20 and older)", "Did not Migrate"),
-   educ = fct_collapse(educ,
+   `Educational Attainment` = fct_collapse(`Educational Attainment`,
                        other_level = "Did not Finish High School",
                        `Finished High School` = c("Grade 12"),
                        `Some College` = c("1 year of college", "2 years of college"),
                        `Bachelor's Degree` = c("4 years of college"),
                        `Master's Degree or Doctorate` = c("5+ years of college")),
-   educ = fct_relevel(educ, "Did not Finish High School")
+   `Educational Attainment` = fct_relevel(`Educational Attainment`, "Did not Finish High School")
    ) |> 
   rename(`Race` = rachsing) |> 
   filter(birthyr >= 1960 & age >= 24 & inctot < 9999998 & poverty != 0)
@@ -106,7 +107,7 @@ data$bpl <- droplevels(data$bpl)
 
 # make broader categories for degfield
 data <- data |> mutate(
-  degfield_collapsed = fct_collapse(degfield,
+  `Field of Degree` = fct_collapse(degfield,
     Engineering = c("Architecture", "Communication Technologies", "Engineering", "Engineering Technologies", "Military Technologies", "Nuclear, Industrial Radiology, and Biological Technologies", "Construction Services", "Electrical and Mechanic Repairs and Technologies", "Transportation Sciences and Technologies"),
     Sciences = c("Agriculture", "Environment and Natural Resources", "Computer and Information Sciences", "Biology and Life Sciences", "Physical Sciences", "Mathematics and Statistics"),
     Arts = c("Area, Ethnic, and Civilization Studies", "Cosmetology Services and Culinary Arts", "Linguistics and Foreign Languages", "English Language, Literature, and Composition", "Liberal Arts and Humanities", "Library Science", "Physical Fitness, Parks, Recreation, and Leisure", "Philosophy and Religious Studies", "Fine Arts", "History"),
@@ -116,8 +117,8 @@ data <- data |> mutate(
     Education = c("Education Administration and Teaching"),
     other_level = "Other"
   ),
-  degfield_collapsed = fct_relevel(degfield_collapsed, "Business"),
-  sex = as_factor(sex),
+  `Field of Degree` = fct_relevel(`Field of Degree`, "Business"),
+  Sex = as_factor(Sex),
   bpl_collapsed = fct_collapse(bpl,
                      other_level = "North America",
                      LatAm = c("Mexico","Central America","Cuba","Americas, n.s.","West Indies","SOUTH AMERICA"),
@@ -132,18 +133,19 @@ data <- data |> mutate(
   bpl_collapsed = fct_relevel(bpl_collapsed, "North America")
 )
 
-data$sex <- droplevels(data$sex)
+data$Sex <- droplevels(data$Sex)
 
 
 
 data |>
-  select(`Migration Status`,`Age (in years)` = age, `Sex` =  sex, `Age (in years)` = age, `Citizenship Status` = citizen, `Race`, `Educational Attainment` = educ, `Employment Status` = empstat, uhrswork, inctot, incearn, `Poverty Status` = poverty) |> 
+  select(`Migration Status`,`Age (in years)` = age, `Sex` =  Sex, `Age (in years)` = age, `Citizenship Status` = citizen, `Race`, `Educational Attainment` = `Educational Attainment`, `Employment Status` = empstat, uhrswork, inctot, incearn, `Poverty Status` = poverty) |> 
   tbl_summary(by = `Migration Status`, type = list(`Age (in years)` ~ "continuous",
                                                    uhrswork ~ "continuous",
                                                    inctot ~ "continuous",
                                                    `Poverty Status` ~ "continuous")) |>
   modify_caption("Educational and Economical Indicators: Descriptives Divided by Migration Status") |>
   as_kable_extra(booktabs = TRUE, escape = FALSE, linesep = "") |>
+  kable_styling(latex_options = "scale_down") |> 
   footnote(footnote_as_chunk = TRUE,
            threeparttable = TRUE, 
            general = "Shows only those respondents who were born after 1960 and at least 24 years old in 2015. Poverty Status is calculated taking into account household size, household member's age, age of the householder and total family income: Values over 100 indicate being above the poverty threshold. Data from the American Community Survey 2015 (collected 2015).")
@@ -162,6 +164,9 @@ Explain how you treated missing values.
 Clearly identify the dependent variable(s).
 > The main dependent variable is the choice of degree. For the multinomial regression, the degrees are grouped into broader fields, whereas the conditional logit model takes into account all degrees as alternatives in which at least 1000 individuals received a degree. [Kind of switched around for clogit].
 
+>(Portes, MacLeod, 1999)
+>> Studies who compare ethnicities have a big problem of lumping together and snapshots -> unavoidable here.
+
 Identify and explain the operationalization of key independent variables.
 > The key independent variable is the "Migration status". It is a categorical variable with the 4 levels "Migrated as Child", "Migrated as Adolescent", "Migrated as Adult" and, "Did not Migrate". The split into these 4 categories is motivated theoretically, as there is expected to be a greater assimilation of migrants, the younger they enter the country. Individuals who are born abroad to American parents and then moved to the U.S are not considered migrants in this analysis, due to the assumption that they may adapt to their new environment much easier than other migrants due to the knowledge and [WORD] of their parents. Other independent variables are collapsed versions of the birthplace and race variables. [MAYBE MORE HERE].
 
@@ -169,13 +174,44 @@ Produce and discuss descriptive statistics.
 
 > Table 1 presents the descriptives divided by migration status. For categorical variables percentages are displayed and for continuous variables, the median and interquartile range are supplied. Across the entire table it becomes apparent that inidividuals who migrate as children quite closely resemble the descriptive statistics of those who never migrated at all, compared to those who migrated as adults. There seems to be a trend to be worse off when having migrated as an adult compared to all other groups, with a lower total personal and total earned income than the other groups. However, the educational attainment variable results for this group show that this might not be due to low education, as this group contains the highest percentage of degree holders, hinting toward distinct differences between highly educated individuals migrating to the US and less qualified migrants. Comparing the child and adolescent migrants, it becomes apparent that the latter performs worse than the prior in all educational and financial variables, being the most at risk group of all four compared. [COULD WRITE MORE HERE].
 
+## Methods
+– Present your modeling strategy.
+
+– Indicate what statistical models you used and for which dependent variables.
+
+– Explain your model specification, including any (non-linear) variable transformations and/or interactions.
+
+## Results
+– Present your findings w/ reference to appropriate tables and figures.
+
+– Discuss fit statistics.
+
+– Interpret key coefficients in terms of odds, odds ratios, etc.
+
+– Cite key statistical hypothesis tests and related p-values.
+
+– Illustrate and discuss relevant predicted probabilities and/or marginal effects
+
+
+## Discussion/Conclusion
+– Recapitulate your research questions and hypotheses.
+
+– Compare the relevant empirical results to your expectations.
+
+– Reflect on any theoretical implications of your findings.
+
+– Discuss potential limitations of your study and suggestions for future analyses.
+
+
 ```{r binary}
 # here just compare the YM with other people - how are they unique? do they earn more or less? are they more poor?
 # I.E., regardless of expectation - what does it look like for YM?
 
 data_bin <- data |> slice_sample(n = 300000)
 
-mod1 <- glm(young_migrant ~ degfield_collapsed + `Educational Attainment`, data = data_bin, 
+data_bin |> mutate(`Educational Attainment` = fct_relevel(`Educational Attainment`, "Finished High School"))
+
+mod1 <- glm(young_migrant ~ `Educational Attainment`, data = data_bin, 
                        family = "binomial"(link = "logit"))
 
 t1 <- tbl_regression(mod1, exponentiate = TRUE) |> 
@@ -184,7 +220,7 @@ t1 <- tbl_regression(mod1, exponentiate = TRUE) |>
   modify_footnote(update = list(estimate ~ NA), 
                   abbreviation=TRUE)
 
-mod2 <- glm(young_migrant ~ degfield_collapsed + `Educational Attainment` + age + sex, data = data_bin, 
+mod2 <- glm(young_migrant ~ `Educational Attainment` + age + Sex, data = data_bin, 
                        family = "binomial"(link = "logit"))
 
 t2 <- tbl_regression(mod2, exponentiate = TRUE) |> 
@@ -193,7 +229,7 @@ t2 <- tbl_regression(mod2, exponentiate = TRUE) |>
   modify_footnote(update = list(estimate ~ NA), 
                   abbreviation=TRUE)
 
-mod3 <- glm(young_migrant ~ degfield_collapsed + age + sex + uhrswork + inctot + incearned + `Poverty Status`, data = data_bin, 
+mod3 <- glm(young_migrant ~ `Educational Attainment` + age + Sex + uhrswork + inctot + incearn + poverty, data = data_bin, 
                        family = "binomial"(link = "logit"))
 
 t3 <- tbl_regression(mod3, exponentiate = TRUE) |> 
@@ -210,17 +246,48 @@ tbl_merge(tbls = list(t1, t2, t3),
   footnote(footnote_as_chunk = TRUE,
            threeparttable = TRUE, 
            general = "Data from the American Community Survey 2015 (collected 2015). The units for the age term is years.")
+```
 
-#TODO:
-# DO MODEL
-# ADD GOF TO MODELSUMMARY HERE
+```{r gof bin}
+#| fig-align: center
+
+lr_12 <- lmtest::lrtest(mod1,mod2)
+lr_23 <- lmtest::lrtest(mod2,mod3)
+
+glance_fits <- broom::glance(mod1) |> select(3:5) |>  bind_rows(broom::glance(mod2) |> select(3:5)) |> bind_rows(broom::glance(mod3) |> select(3:5)) |> t() |> as_tibble()
+
+colnames(glance_fits) <- c("Model 1", "Model 2", "Model 3")
+
+data_fit <- as.data.frame(tribble(
+  ~`Model 1`, ~`Model 2`, ~`Model 3`,
+  NA_integer_, lr_12[2,4], lr_23[2,4], # lr 
+  NA_integer_, lr_12[2,3], lr_23[2,3], # df
+  NA_integer_, lr_12[2,5], lr_23[2,5] # p
+    )
+  )
+
+data_fit2 <- as.data.frame(bind_rows(glance_fits,data_fit)) %>% round(.,2)
+
+data_fit2[6,2] <- as.character(signif(data_fit[3,2], 3))
+data_fit2[6,3] <- as.character(signif(data_fit[3,3], 3))
+
+rownames(data_fit2) <- c("Log Likelihood", "AIC", "BIC", "Likelihood Ratio", "Likelihood Ratio (Df)", "Likelihood Ratio (p-value)")
+
+data_fit2[is.na(data_fit2)] <- ""
+
+kable(data_fit2,
+      align = "c",
+      caption = "Young Migrant Status and [SOMETHING]: Model Fit Statistics") |> 
+  footnote(footnote_as_chunk = TRUE,
+           threeparttable = TRUE, 
+           general = "The Likelihood ratio is always calculated with the nested model to the left. Data from the American Community Survey 2015 (collected 2015)")
 ```
 
 
 ```{r multinom}
 # which degrees do migrants who enter the country young enter into more and what are their attributes?
 
-data |> select(`Age (in years)` = age, `Sex` =  sex, citizen, degfield, degfield_collapsed, young_migrant,  `Birthplace (simplified)` = bpl_collapsed ,birthyr, `Migration Status`, `Citizenship Status` = citizen, `Race`, `Educational Attainment` = educ, `Employment Status` = empstat, uhrswork, inctot, incearn, `Poverty Status` = poverty) |> 
+data |> select(`Age (in years)` = age, `Sex` =  Sex, citizen, degfield, `Field of Degree`, young_migrant,  `Birthplace (simplified)` = bpl_collapsed ,birthyr, `Migration Status`, `Citizenship Status` = citizen, `Race`, `Educational Attainment` = `Educational Attainment`, `Employment Status` = empstat, uhrswork, inctot, incearn, `Poverty Status` = poverty) |> 
   mutate(`Migration Status` = fct_relevel(`Migration Status`, "Did not Migrate")) |> 
   filter(`Employment Status` == "Employed") -> data_mult
 
@@ -231,11 +298,9 @@ library(nnet)
 library(broom)
 library(modelr)
 
-multi <- multinom(degfield_collapsed ~ `Sex` + `Migration Status` + `Birthplace (simplified)`, data = data_mult, trace = F, model = T, na.action = na.exclude)
+multi <- multinom(`Field of Degree` ~ `Sex` + `Migration Status` + `Birthplace (simplified)`, data = data_mult, trace = F, model = T, na.action = na.exclude)
 
-#I(`Sex`:`Migration Status`)
-
-cm <- c("SexFemale" = "Female",
+cm <- c("SexFemale" = "Female (ref. Male)",
         "Migration StatusMigrated as Child (younger than 10 years old)" = "Migrated as Child (younger than 10 years old - ref. Did not Migrate)",
         "Migration StatusMigrated as Adolescent (between 10 and 19 years old)" = "Migrated as Adolescent (between 10 and 19 years old)",
         "Migration StatusMigrated as Adult (20 and older)" = "Migrated as Adult (20 and older)",
@@ -256,6 +321,7 @@ modelsummary::modelsummary(multi, shape =  term ~ model + response,
              exponentiate = TRUE,
              stars = TRUE,
              coef_omit = "Intercept",
+             gof_omit ="RMSE|R2|R2 Adj.",
              coef_map = cm,
             notes = list("Source: Data from the American Community Survey 2015.")
              ) |> kable_styling(latex_options = "scale_down")
@@ -267,6 +333,8 @@ modelsummary::modelsummary(multi, shape =  term ~ model + response,
 
 ```{r clogit}
 # What are the alternative specific attributes (i.e., the outcomes associated with degree choice) that are considered desirable by choice makers (and their parents)?
+
+data |> drop_na(degfield) -> data
 
 # make a little summarize table
 alt_attributes <- data |>
@@ -288,10 +356,6 @@ alt_attributes <- data |>
     mean_poverty = round(mean(poverty),2)
     )
 
-
-#so there are no too small categories blah
-alt_attributes$degfield <- droplevels(alt_attributes$degfield)
-
 # id part!
 set.seed(1)
 sample_degree_holders <- data |> filter(degfield %in% alt_attributes$degfield)
@@ -302,7 +366,8 @@ group_by(young_migrant) |>
   slice_sample(n = 5000) |> ungroup() |> mutate(ID = row_number())
 
 size <- 5
-alts <- alt_attributes$degfield
+alt_attributes$degfield <- fct_drop(alt_attributes$degfield)
+alt_attributes |> filter(degfield %in% alt_attributes$degfield) |> pull(degfield) -> alts
 
 sample_degree_holders |> 
   ungroup() |> 
@@ -326,20 +391,30 @@ sample_degree_holders |>
   select(-c(yrimmig,yrsusa1,met2013,educd,degfield,stateicp,bpl,age_at_immigration)) -> degree_choice2
 
 # Sanity check good
-sum(degree_choice2$choice) == nrow(sample_degree_holders)
-sum(degree_choice2$choice)*size == nrow(degree_choice2)
+# sum(degree_choice2$choice) == nrow(sample_degree_holders)
+# sum(degree_choice2$choice)*size == nrow(degree_choice2)
 
 library(survival)
 
-m_clog_inter <- clogit(choice ~ mean_weekly_hours:`Migration Status` + mean_poverty:`Migration Status` + mean_earned_income:`Migration Status` + mean_tot_income:`Migration Status` + p_employed:`Migration Status` + strata(ID), data = degree_choice2)
+degree_choice2 |> rename(`Mean hours worked (week)` = mean_weekly_hours, `Migration Status (dichotomized)` = young_migrant, `Mean Poverty` = mean_poverty, `Mean earned income (year)` = mean_earned_income) -> degree_choice2
+
+m_clog_inter <- clogit(choice ~ `Mean hours worked (week)`:`Migration Status (dichotomized)` + `Mean Poverty`:`Migration Status (dichotomized)` + `Mean earned income (year)`:`Migration Status (dichotomized)` + strata(ID), data = degree_choice2)
 tidy(m_clog_inter) |> View()
 
 tbl_regression(m_clog_inter, exponentiate = TRUE) |>
   modify_header(list(label = "**Covariate**",
                      estimate = "**Odds**")) |>
   modify_footnote(update = list(estimate ~ NA),
-                  abbreviation = TRUE)
+                  abbreviation = TRUE) |> 
+  modify_caption("Associations with Degree Choice: Conditional Logistic Regression") |>
+  as_kable_extra(booktabs = TRUE, escape = FALSE, linesep = "") |> 
+  kable_styling(latex_options = "scale_down") |> 
+  footnote(footnote_as_chunk = TRUE,
+           threeparttable = TRUE, 
+           general = "Data from the American Community Survey 2015 (collected 2015).")
 ```
+
+
 
 ```{r the bin}
 # degree_choice3 <- degree_choice2 |> select(ID, choice, rachsing, alt, young_migrant)
