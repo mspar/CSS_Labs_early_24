@@ -149,10 +149,11 @@ data |>
   footnote(footnote_as_chunk = TRUE,
            threeparttable = TRUE, 
            general = "Shows only those respondents who were born after 1960 and at least 24 years old in 2015. Poverty Status is calculated taking into account household size, household member's age, age of the householder and total family income: Values over 100 indicate being above the poverty threshold. Data from the American Community Survey 2015 (collected 2015).")
+
+## Another desc table for multi varaibles
 ```
 
 ## Data
-
 > The data for the 2015 American Community Survey was gathered over the course of the year 2015, containing more than 3 million individuals and is representative for the inhabitants of the Unites States of America.
 
 Describe how you generated your analytic sample from the data
@@ -176,6 +177,10 @@ Produce and discuss descriptive statistics.
 
 ## Methods
 – Present your modeling strategy.
+> "For this outcome I choose this model cause x"
+> Explain why you made the models the way you did
+> For Choice model say what strata varaible is -> what are the choices -> who makes the choices
+
 
 – Indicate what statistical models you used and for which dependent variables.
 
@@ -201,7 +206,9 @@ Produce and discuss descriptive statistics.
 – Reflect on any theoretical implications of your findings.
 
 – Discuss potential limitations of your study and suggestions for future analyses.
-
+> Data not longitudinal
+> Many missing variables
+> Better models?
 
 ```{r binary}
 # here just compare the YM with other people - how are they unique? do they earn more or less? are they more poor?
@@ -246,6 +253,9 @@ tbl_merge(tbls = list(t1, t2, t3),
   footnote(footnote_as_chunk = TRUE,
            threeparttable = TRUE, 
            general = "Data from the American Community Survey 2015 (collected 2015). The units for the age term is years.")
+
+#SEE TEXT IN FOOTNOTE FOR DEFINITION OF 0 and 1
+
 ```
 
 ```{r gof bin}
@@ -328,16 +338,22 @@ modelsummary::modelsummary(multi, shape =  term ~ model + response,
 
 
 # TODO:
+# If I have the time to do more models then include only the "best fitting" and include a fit table
+# Include the shares of people in each category
 # ADD PREDICTION GRAPH HERE
 ```
 
 ```{r clogit}
 # What are the alternative specific attributes (i.e., the outcomes associated with degree choice) that are considered desirable by choice makers (and their parents)?
 
-data |> drop_na(degfield) -> data
+
+# MAKE SURE TO ONLY INCLUDE EMPLOYED PPPL
+
+data |> drop_na(degfield) |> filter(empstat == "Employed") -> data_clog
+
 
 # make a little summarize table
-alt_attributes <- data |>
+alt_attributes <- data_clog |>
   group_by(degfield) |> 
   filter(n()>=1000) |> 
   summarise(
@@ -358,7 +374,7 @@ alt_attributes <- data |>
 
 # id part!
 set.seed(1)
-sample_degree_holders <- data |> filter(degfield %in% alt_attributes$degfield)
+sample_degree_holders <- data_clog |> filter(degfield %in% alt_attributes$degfield)
 sample_degree_holders$degfield <- fct_drop(sample_degree_holders$degfield)
 
 sample_degree_holders <- sample_degree_holders |> 
@@ -553,3 +569,18 @@ tbl_regression(m_clog_inter, exponentiate = TRUE) |>
 
 ```
 
+binary -> exp -> odds ratio
+
+multi -> exp -> odds ratio
+
+clogit -> exp -> odds (because it's a within choice set comparison)
+
+-> looking for right terms
+-> interpret in terms of odds ratio -> "one unit change in x leads to this times higher odds"
+-> what is a one unit change??
+--> bin: eg being one year older is associated with [odds] times higher odds of ..."
+--> multi: same but just add "relative to the reference category" -> mention it once per paragraph
+
+don't bother interpreting CI
+
+wald test between hours worked ym not ym
