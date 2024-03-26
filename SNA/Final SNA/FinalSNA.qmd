@@ -1,0 +1,206 @@
+---
+title: "Final Assignment SNA"
+author: "Marc Sparhuber"
+format: pdf
+editor: source
+execute:
+  warning: false
+  echo: false
+toc: true
+header-includes:
+      - \usepackage{float}
+      - \floatplacement{table}{H}
+---
+
+```{r load packages and attr data}
+library(tidyverse)
+library(network)		# network data storage
+library(sna)			# network analysis routines
+library(latticeExtra)	# for nicer convergence & gof plots
+library(ergm)			# fitting & evaluating ERGMs
+library(RSiena)
+library(knitr)
+library(kableExtra)
+
+attributes <- read_csv(here::here("SNA", "Final SNA", "CodebooksAttributeData", "RECENS_students_dataset_w1234.csv"))
+
+#finding the class without any leavers or joiners in waves 1-3
+attributes_6200 <-  attributes |> select(-ends_with("4")) |> 
+  group_by(class_1) |> 
+  filter(all(is.na(left12)) & all(is.na(left23)) & 
+         all(c_across(starts_with("newstudent")) == 0)) |> ungroup()
+```
+
+```{r get matrices ready}
+#selecting variables of interest
+
+attributes_6200 |> select(idcode, gender = gender_3, starts_with("nbrcom"), starts_with("impstd"), starts_with("stdnts"), starts_with("parent"), starts_with("ethnic"), starts_with("tryalc"), starts_with("trycig")) -> attributes_6200
+
+ask_help1 <- read.csv(here::here("SNA", "Final SNA", "Networks_by_Type", "I_can_ask_for_help", "6200_24_12.csv"), row.names = 1) |> 
+  rename_with(~substring(., 2)) |> 
+  as.matrix()
+ask_help2 <- read.csv(here::here("SNA", "Final SNA", "Networks_by_Type", "I_can_ask_for_help", "6200_22_12_2h.csv"), row.names = 1) |> 
+  rename_with(~substring(., 2)) |> 
+  as.matrix()
+ask_help3 <- read.csv(here::here("SNA", "Final SNA", "Networks_by_Type", "I_can_ask_for_help", "6200_21_10_3h.csv"), row.names = 1)  |> 
+  rename_with(~substring(., 2)) |> 
+  as.matrix()
+ask_help3 <- ask_help3[-35:-36, -35:-36]
+
+# look_up1 <- read.csv("SNA/Final SNA/Networks_by_Type/I_look_up/6200_24_1.csv", row.names = 1)  |> 
+#   rename_with(~substring(., 2)) |> 
+#   as.matrix()
+# look_up2 <- read.csv("SNA/Final SNA/Networks_by_Type/I_look_up/6200_22_1_2h.csv", row.names = 1) |> 
+#   rename_with(~substring(., 2)) |> 
+#   as.matrix()
+# look_up3 <- read.csv("SNA/Final SNA/Networks_by_Type/I_look_up/6200_21_1_3h.csv", row.names = 1)  |> 
+#   rename_with(~substring(., 2)) |> 
+#   as.matrix()
+# look_up3 <- look_up3[-35:-36, -35:-36]
+```
+
+```{r descriptives}
+#| layout-ncol: 2
+
+Hamming <- function(net1,net2) {
+	tbl <- table(c(0,0,1,1,net1),c(0,1,0,1,net2))-1
+	return(tbl[1,2]+tbl[2,1])
+}
+Ham12 <- Hamming(ask_help1,ask_help2)
+Ham23 <- Hamming(ask_help2,ask_help3)
+
+Jaccard <- function(net1,net2) {
+	tbl <- table(c(0,0,1,1,net1),c(0,1,0,1,net2))-1
+	return(tbl[2,2]/(tbl[1,2]+tbl[2,1]+tbl[2,2]))
+}
+Jac12 <- Jaccard(ask_help1,ask_help2)
+Jac23 <- Jaccard(ask_help2,ask_help3)
+# both above the threshold
+
+# Degrees
+# mean(degree(ask_help1))
+# sd(degree(ask_help1))
+# mean(degree(ask_help1,cmode="indegree"))
+# sd(degree(ask_help1,cmode="indegree"))
+# mean(degree(ask_help1,cmode="outdegree"))
+# sd(degree(ask_help1,cmode="outdegree"))
+# 
+# mean(degree(ask_help2))
+# sd(degree(ask_help2))
+# mean(degree(ask_help2,cmode="indegree"))
+# sd(degree(ask_help2,cmode="indegree"))
+# mean(degree(ask_help2,cmode="outdegree"))
+# sd(degree(ask_help2,cmode="outdegree"))
+# 
+# mean(degree(ask_help3))
+# sd(degree(ask_help3))
+# mean(degree(ask_help3,cmode="indegree"))
+# sd(degree(ask_help3,cmode="indegree"))
+# mean(degree(ask_help3,cmode="outdegree"))
+# sd(degree(ask_help3,cmode="outdegree"))
+# 
+# # Density
+# gden(ask_help1)
+# gden(ask_help2)
+# gden(ask_help3)
+# 
+# # Reciprocity
+# grecip(ask_help1)
+# grecip(ask_help2)
+# grecip(ask_help3)
+# 
+# # Transitivity
+# gtrans(ask_help1)
+# gtrans(ask_help2)
+# gtrans(ask_help3)
+
+descs <- data.frame(
+  `Measure/Variable` = c("Degrees","Indegrees","Outdegrees", "Density","Reciprocity","Transitivity"),
+  `Mean/Value` = c(mean(degree(ask_help1)), mean(degree(ask_help1,cmode="indegree")), mean(degree(ask_help1,cmode="outdegree")), gden(ask_help1), grecip(ask_help1), gtrans(ask_help1)),
+  `Standard Deviation` = c(sd(degree(ask_help1)), sd(degree(ask_help1,cmode="indegree")), sd(degree(ask_help1,cmode="outdegree")), " ", " ", " ")
+  ) |> 
+  bind_rows(data.frame(
+  `Measure/Variable` = c("Degrees","Indegrees","Outdegrees", "Density","Reciprocity","Transitivity"),
+  `Mean/Value` = c(mean(degree(ask_help2)), mean(degree(ask_help2,cmode="indegree")), mean(degree(ask_help2,cmode="outdegree")), gden(ask_help2), grecip(ask_help2), gtrans(ask_help2)),
+  `Standard Deviation` = c(sd(degree(ask_help2)), sd(degree(ask_help2,cmode="indegree")), sd(degree(ask_help2,cmode="outdegree")), " ", " ", " ")
+  )) |> 
+  bind_rows(data.frame(
+  `Measure/Variable` = c("Degrees","Indegrees","Outdegrees", "Density","Reciprocity","Transitivity"),
+  `Mean/Value` = c(mean(degree(ask_help3)), mean(degree(ask_help3,cmode="indegree")), mean(degree(ask_help3,cmode="outdegree")), gden(ask_help3), grecip(ask_help3), gtrans(ask_help3)),
+  `Standard Deviation` = c(sd(degree(ask_help3)), sd(degree(ask_help3,cmode="indegree")), sd(degree(ask_help3,cmode="outdegree")), " ", " ", " ")
+  )) |>
+  mutate(
+    Wave = rep(1:3, each = 6),
+    Wave = case_when(
+     Wave == 1 ~ "Wave 1",
+     Wave == 2 ~ "Wave 2",
+     Wave == 3 ~ "Wave 3"
+    )
+  )
+
+colnames(descs) <- c("Measure", "Mean/Value", "SD", "Wave")
+
+descs |> mutate(
+  SD = as.numeric(SD),
+  across(where(is.numeric), round, digits = 2),
+  SD = as.character(SD)) -> descs
+
+descs[is.na(descs)] <- ""
+
+table1 <- kable(descs[, -4],
+    booktabs = TRUE,
+    caption = "By Wave"
+  ) |> 
+  pack_rows(tab_kable,
+    index = table(fct_inorder(descs$Wave), useNA = "no"))
+
+change <- data.frame(
+  `Waves` = c("1 to 2", "2 to 3"),
+  `Jaccard Index` = c(Jac12, Jac23),
+  `Hamming Distance` = c(Ham12, Ham23)
+) |> mutate(
+  across(where(is.numeric), round, digits = 2))
+
+colnames(change) <- c("Waves", "Jaccard Index", "Hamming Distance")
+
+table2 <- kable(change, caption = "Across Waves", booktabs = TRUE)
+
+table1
+table2
+```
+
+> Prelim. hypotheses.
+1. People request more help from their own gender
+2. People who consider grades more important get requested more help of
+3. TRIADIC STUFFS
+
+```{r network objects & attributes}
+gendercol <- as.numeric(attributes_6200[[2]])
+
+ask_help1 <- as.network(ask_help1)
+ask_help1 %v% "gender" <- attributes_6200[,2]
+ask_help1 %v% "gender_col" <- c("darkblue","darkred")[gendercol]
+
+ask_help2 <- as.network(ask_help2)
+ask_help2 %v% "gender" <- attributes_6200[,2]
+ask_help2 %v% "gender_col" <- c("darkblue","darkred")[gendercol]
+
+ask_help3 <- as.network(ask_help3)
+ask_help3 %v% "gender" <- attributes_6200[,2]
+ask_help3 %v% "gender_col" <- c("darkblue","darkred")[gendercol]
+
+```
+
+
+```{r plottinggggg}
+comemb <- clique.census(ask_help1, clique.comembership="sum")$clique.comemb # Co-membership matrix
+
+coords <- cmdscale(1/(1+comemb))        # Perform an MDS  (multidimensional scaling) 
+                                        # the more overlap, 
+                                        # the "closer" the vertices
+                                        
+
+gplot(ask_help1, coord = coords)
+gplot(ask_help2, coord = coords)
+gplot(ask_help3, coord = coords)
+```

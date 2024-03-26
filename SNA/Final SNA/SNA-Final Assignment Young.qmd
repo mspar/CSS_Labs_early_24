@@ -1,0 +1,393 @@
+---
+title: "SNA-Final-Assignment"
+author: "Jie Yang"
+date: "28 March 2024"
+format: pdf
+editor: visual
+---
+
+### Introduction
+
+This research paper aims to investigate the dynamics of the "ask for help" network in a school classroom in Hungary, the data is a 4-wave panel study, and the study is conducted by the Research Center for Educational and Network Studies (RECENS) at the Centre for Social Sciences, Budapest, led by Károly, the project was conducted between 2010-2013. My paper will use selected classrooms, focus on one classroom, and explore the factors that influence the formation of ties and ask for help behavior among its students. Specifically, this study will examine the potential influence of gender, age, and ethnicity, as well as the impact of plans of an individual's(ambitious) dynamics on the formation of ask-for-help ties. The panel is concentrated in the disadvantaged Northern and Central regions of Hungary. It includes full classroom-based networks (students who lacked parental consent are also excluded from the matrixes). The longitudinal nature of the dataset provides us with an exploration of how these dynamics change over time as students move from grade to grade. To analyze the social network, my paper will use stochastic actor-oriented models (SAOMs). Overall, maybe the findings of this study will contribute to a better understanding of which factors do shape social network dynamics in primary school classrooms, particularly in the context of Hungary. My purpose for this study to offer valuable insights into how schools networks which can give eductors a way to take for it comes to teaching and managing school students. Our goal is to assist these students in developing a help system which the students' social dynamics within the classroom environment.
+
+### Research Background and Hypotheses
+
+First of all,there 3 hypothesis in my study: H1.You seek help from your same gender classmates β gender\> 0 . H2.The more mature your physical look are ,the more you will be asked for help from other classmates. H3.Individuals from high ambitious level will be more likely to seeking help.
+
+The analysis of this study is inspired by theoretical underpinnings of network dynamics. In sociology, homophily is always been disccussed when it comes to network analysis context.Therefore, the main arguments in my investigation are homophily, the impact of physical maturity, and the influence of ambitious level on network structure. Homophily, within the context of social networks, refers to the phenomenon where individuals tend to form connections with others who possess similar attributes, interests, or characteristics.In the context of this study, i hypothesize that (H1) gender homophily will be a significant predictor of help seeking network structure.The mechanisim is individuals are more likely to form ties with others of the same gender. This hypothesis is supported by previous research that has shown that gender homophily is a common feature of social networks (Wang, Y. S. (2023)）. I will use SAOMs to model the probability of forming ties based on the similarity of gender between individuals to verify my H1. The physical mature level of an individual affects network structure is my second theoretical argument that guides our investigation. I hypothesize that (H2) The more mature your physical look are ,the more you will be asked for help from other classmates. This hypothesis is supported by previous research that has shown that physically mature kids are more popular in school environments ,which may have a significant impact on network structure (Zakin, D. (1983). Physical Attractiveness, Sociability, Athletic Ability, and Children's Preference for Their Peers. Journal of Genetic Psychology, 143(1), 95-96). To test this hypothesis, we will use SAOMs to model the probability between individuals. Finally, the influence of ambitious on future (if the kid want to go further higher education),may have influence on network structure is a theoretical argument that guides our investigation. We hypothesize that (H3) individuals from high ambitious level will be more likely to form help seeking ties with others . The mechanism behind this can be student who has more ambitious trend to ask for help to plan his future. This hypothesis is supported by previous research when it come to college student content.(Yuan Zhou,2023) To test this hypothesis, we will use SAOMs to model the probability of forming help seeking ties based on the ambitious attribute.
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+library(igraph)
+library(sna)
+library(dplyr)
+library(latticeExtra)
+library(network)
+library(knitr)
+library(kableExtra)
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+
+
+#load data of class room 1500 ,wave3 is data_1,wave4 is data_2
+# prepare the  matrix data
+data_1 <- read.csv("/Users/yangjie/r practise 2024/SN Lab/1500_21_10_3h.csv",row.names = 1)#wave3
+data_2 <- read.csv("/Users/yangjie/r practise 2024/SN Lab/1500_27_10_4h.csv",row.names = 1)#wave4
+
+
+
+
+
+#change data to matrix data
+help_1 <- as.matrix(data_1)
+help_2 <- as.matrix(data_2)
+
+#creat network
+helpnet_1 <- network(help_1)
+helpnet_2 <- network(help_2)
+
+#create attributes
+#load attribute data and specify id
+#find common rows in data_1 and data_2
+#select variable yrbrth means year of birth,plhigh is :I would like to pursue a degree  in higher  education
+all_ids <- unique(c(rownames(data_1), rownames(data_2, rownames(data_3), rownames(data_4))))
+attributes<- read.csv("/Users/yangjie/r practise 2024/SN Lab/RECENS_students_dataset_w1234.csv")|>
+    select(idcode, gender_3, yrbrth_3, mature_3, plhigh_3)|>
+    filter(idcode %in% all_ids)|>
+    rename(gender = gender_3, maturity=mature_3, age = yrbrth_3, ambitious =  plhigh_3)
+
+#head(attributes)
+#gender:male=2,female=1
+#maturity:do you consider yourself look mature than same age
+#age:age homo
+#ambitious=any plans for pursing higher education
+
+#----Make Hypothesis--------
+#H1.You seek help from your same gender classmates
+#---gender tie between two actors increases the 
+#----likelihood that an advice tie is present between the same actors
+#H2.The more mature you are, the more you will be skaed for help
+#H3 Students who have high ambitious trend to have more seek help ties
+
+
+#check the stabililty of my network
+# define function for quantifying change:
+Hamming <- function(helpnet_1,helpnet_2) {
+	tbl <- table(c(0,0,1,1,helpnet_1),c(0,1,0,1,helpnet_2))-1
+	return(tbl[1,2]+tbl[2,1])
+}
+
+
+
+# function expects two binary networks and
+# returns their Hamming distance
+# check hamming distance,printout shows 106
+#Hamming(help_1,help_2)
+#table(help_1,help_2)
+
+
+# define function for quantifying stability:
+Jaccard <- function(helpnet_1,helpnet_2) {
+	tbl <- table(c(0,0,1,1,helpnet_1),c(0,1,0,1,helpnet_2))-1
+	return(tbl[2,2]/(tbl[1,2]+tbl[2,1]+tbl[2,2]))
+}
+
+
+
+# Check  stability is there between observation moments:0.38 which is good
+#Jaccard(help_1,help_2) 
+# Both above the manual's rule-of-thumb ">=0.3" criterion;
+# results show enough stability for assessing also the structural network
+
+
+
+#calculate statics numbers of these 2 networks
+
+#grecip(helpnet_1,measure='edgewise') # reciprrocity for wave3 is 0.496
+#grecip(helpnet_2,measure='edgewise') #reciprrocity for wave4 is 0.630
+
+#gtrans(helpnet_1,measure='weak') # Transitivity 0.35
+#gtrans(helpnet_2,measure='weak') # Transitivity0.34
+
+
+# create a statics table
+# Create the data frame
+table_1 <- data.frame(
+  Measurements = c("Edges", "Vertices", "Density", "Reciprocity", "Transitivity","hamming distance","Jaccard"),
+  Wave3 = c(125, 30, 0.14, 0.496, 0.35,106,0.38),
+  Wave4 = c(111, 30, 0.13, 0.630, 0.34,106,0.38)
+)
+
+# Print the table with desired formatting
+kable(table_1, caption = "Descriptive statistics of the network over time", align = "l",
+      col.names = c("", "Wave3", "Wave4"), digits = 2) %>%
+  kable_styling(position = "center",full_width = FALSE)
+
+
+```
+
+### Research Design and Data
+
+This study used a longitudinal panel design, which means they observed the same classroom multiple times. This way, they could see how the network changed over time.
+
+The data i choose is classroom 1500 wave3 and wave4 both of them have a 100% response rate the hamming distance, 30 students enrolled in an MBA program; Network variables help-seeking, communication, friendship Behaviour variable future education plan; Actor covariates gender, age, ethnicity, work experience, nationality; 3 waves in yearly intervals. I chose classroom 1500, which has 4 recorded waves, we chose the class and consecutive waves that contained the fewest structural zeros (N/A due to no answer). The classroom 1500 has a 100% response rate. In addition, I checked the Jaccard Index in the preselection, a metric that indicates how similar two samples are. The reason for this is methodological: the method we want to use to find explanations for the structural change of the help seeking network requires a certain degree of stability, which we sought to satisfy. The result shows the Jaccard in my 2 classroom network is \>0.3
+
+The SAOM is estimated through maximum likelihood estimation, a method that seeks parameter values maximizing the likelihood of the observed network data given the specified model.The model is fitted separately for each time period, allowing for the examination of changes in network structures over time. We can see from the descriptive statistics of the classroom help seeking network in table1.The table including the number of edges and vertices, density, reciprocity, transitivity, from the data we can see the the structure of the classroom help seeking network at each time point and will be used to compare changes in network structure over time. This study uses a long-term approach to look at how things change over time in the classroom. We're using SAOMs to test ideas about how individual traits affect how people connect in the classroom. We're particularly interested in how students ask for help from others. By collecting data at different times, we can see how these connections evolve. This way, we can understand if certain characteristics, like gender or maturity, play a role in how students interact and help each other. It's like watching a story unfold over time to see what factors influence how students build relationships in the classroom.
+
+### Results
+
+In this study ,I used detailed date to investigate how students seek help from each other in the classroom over time. We start by showing the basic facts about the network at each stage, such as its size, how connected it is, and the patterns of interaction between students. Additionally, we provide visualizations of how the network looks at different points to help illustrate its layout. Following that, i discuss the findings from our statistical analysis, particularly the outcomes from the SAOMs we employed to investigate our research questions. This helps us understand the underlying factors influencing the dynamics of the help-seeking network.
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+library(RSiena)
+library(dplyr)
+
+#Prepare data in "RSiena" format:
+#head(attributes)
+#gender::gender homophily
+#age::same age
+#maturity::from same  social background
+#ambitious::,student who has higher attitude towards future life
+#gender  homophily in graph
+
+
+#Prepare for graph
+helpnet_1 <- igraph::graph_from_adjacency_matrix(help_1, mode = "directed")
+helpnet_2 <- igraph::graph_from_adjacency_matrix(help_2, mode = "directed")
+
+
+#view gender homophily in graph
+V(helpnet_1)$maturity <- attributes$`maturity`
+V(helpnet_2)$maturity <- attributes$`maturity`
+
+V(helpnet_1)$gender <- attributes$`gender`
+V(helpnet_2)$gender <- attributes$`gender`
+
+par(mfrow = c(1, 2))
+
+plot(helpnet_1, 
+     vertex.color = ifelse(V(helpnet_1)$gender == 1, "blue", "red"),
+     main = "wave3 help network status",
+     arrow.size = 0.1,cex.main=0.1)  
+legend("topright", 
+       legend = c("blue: male", "red: female"),
+       fill = c("blue", "red"), cex = 0.4)
+
+plot(helpnet_2,
+     vertex.color = ifelse(V(helpnet_2)$gender == 1, "blue", "red"),
+     main = "wave4 help network status",
+     arrow.size = 0.1,cex.main=0.1) 
+legend("topright",
+       legend = c("blue: male", "red: female"),
+       fill = c("blue", "red"), cex = 0.4)
+
+
+
+```
+
+These analyses examine the relationship between various network attributes and the likelihood of forming help seeking ties.From the results we can investigate the mechanisms that shape the structure of the classroom help seeking network and provide insights into the social dynamics at play in this setting. The selected classroom 1500 foucous on help seeking network is a dynamic social network that has been measured at two time points (wave 1, wave 2). From Table 1 we can see , there are changes happened to the structure of the classroom help seeking network : with the number of edges decreasing from 125 in wave 2 to 111 in waves 4 . The number of edges in the network remained same ,both 30 in wave3 and wave 4.The density of the help seeking network, which measures the proportion of possible ties that are present, shows a decreased trend over time, from 0.14in wave 3 to 0.13 in wave 4 . When it comes to reciprocity,the change of the help seeking network is singaficant over time, with reciprocity coefficients of 0.49,0.63, for waves 3 and 4, Transitivity, in the context of networks, transitivity refers to the tendency for individuals who share a connection with a common third party to also be connected to each other. There is slightly decrease from wave3 to wave4,which are :0.35 and 0.34. For H1.You seek help from your same gender classmates Regarding hypothesis H1, we can intuitively see from Figure 1 that regardless of wave3 or wave4, individuals of the same gender will indeed establish more help seek ties. In order to verify H2, we can view the data information in tabel2. H2.The more mature your physical look are ,the more you will be asked for help from other classmates.β own-maturity \> 0 From table2 we can see: 0.1982 /0.2070, the result is 0.95.
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| include: false
+library(RSiena)
+library(dplyr)
+
+#prepare data for SAOM Test
+# Creat DEPENDENT NETWORK:"help"
+help <- sienaDependent(array(c(help_1,help_2),
+	dim=c(30,30,2)))
+
+
+# CONSTANT ACTOR ATTRIBUTES:
+gender <- coCovar(attributes$gender)
+age <- coCovar(attributes$age)
+
+# TIME-VARYING ACTOR ATTRIBUTE:
+ambitious <- coCovar(attributes$ambitious)
+maturity <- coCovar(attributes$maturity)
+
+# JOIN THEM ALL INTO DATA OBJECT FOR SAOM:
+thedata <- sienaDataCreate(help,gender, age,maturity, ambitious)
+
+
+# Specify model for the dynamics of advice seeking:
+(themodel <- getEffects(thedata)) # default: rate, outdegree, reciprocity
+
+# ADD EFFECTS TO OBJECTIVE FUNCTION:
+themodel <- includeEffects(themodel,
+	transTrip, transRecTrip) # clustering
+
+themodel <- includeEffects(themodel,
+	egoX,altX, # sender, receiver, and ..
+	sameX,interaction1='gender') # .. homophily effects on gender
+
+themodel <- includeEffects(themodel,
+	sameX, interaction1='age') # educational background homophily
+
+themodel <- includeEffects(themodel,
+	sameX, interaction1='maturity') # self judgement  homophily
+
+themodel <- includeEffects(themodel,
+	egoX, altX, # sender, receiver, and ..
+	simX, interaction1='ambitious') # .. ambitious level effect
+# INSPECT MODEL SPECIFICATION:
+
+
+# Estimate it and inspect results:
+controls <- sienaAlgorithmCreate(seed=12345)
+# seed=12345 : safeguards we all get same randon numbers & hence results
+(theresults <- siena07(controls, data=thedata, effects=themodel))
+
+
+
+```
+
+```{r}
+#| echo: false
+#| message: false
+#| warning: false
+#| include: false
+
+# goodness-of-fit inspection...
+
+# specify the options for the simulation algorithm:
+simcontrols <- sienaAlgorithmCreate(n3=250,nsub=0,seed=12345)
+# nsub=0 : phase 2 (parameter estimation) will be skipped
+# n3=250 : in phase 3, sample 250 independent network evolution processes
+
+# add simulated networks to model results:
+thesims <- siena07(simcontrols, data=thedata, effects=themodel,
+	returnDeps=TRUE, # simulated networks at ends of observation period made available
+	prevAns=theresults) # use estimates from "theresults" for simulations
+
+
+
+# goodness of fit for indegree distribution:
+(gofIndegrees <- sienaGOF(thesims, varName="help",
+	IndegreeDistribution, # the fit function to be evaluated
+	cumulative=FALSE, # (same meaning as in probability distributions)
+	levls=0:15)) # evaluate indegrees on these 16 fit dimensions
+plot(gofIndegrees) # looks a bit bad at indegrees zero and five
+# But p-value is in non-significant region -> fit acceptable
+
+# goodness of fit for outdegree distribution:
+(gofOutdegrees <- sienaGOF(thesims, varName="help",
+	OutdegreeDistribution, cumulative=FALSE, levls=0:15)) 
+plot(gofOutdegrees) # looks good, and p is really non-significant.
+
+# goodness of fit for triad census:
+(gofTriads <- sienaGOF(thesims, varName="help", TriadCensus, verbose=TRUE))
+plot(gofTriads,center=TRUE,scale=TRUE) # looks bad, and p=0
+# (exactly zero, this is a Monte-Carlo p-value for 250 simulated data sets)
+#creat SAOM Model
+
+
+
+# Enrich model as suggested by triad census misfit:
+	model3 <- includeEffects(themodel,name='help',inPop,reciAct)
+	(results3 <- siena07(controls, data=thedata, effects=model3))
+
+	
+	latex_code <- siena.table(results3, type = "tex", tstat = TRUE, sig = TRUE, d = 2)
+	print(latex_code)
+
+
+	# again make HTML table:
+	#siena.table(results3, type="html", tstat=TRUE, sig=TRUE, d=2)
+	#make tex
+  
+
+	#browseURL("results3.html")
+
+	#simulate models
+	sims3 <- siena07(simcontrols, data=thedata, effects=model3,
+		returnDeps=TRUE, prevAns=results3)
+
+	# goodness of fit for indegree distribution:
+	(gofIndegrees3 <- sienaGOF(sims3, varName="help",
+		IndegreeDistribution, cumulative=FALSE, levls=0:15))
+	plot(gofIndegrees3) # was okayish fit, is good now
+
+	# goodness of fit for outdegree distribution:
+	(gofOutdegrees3 <- sienaGOF(sims3, varName="help",
+		OutdegreeDistribution, cumulative=FALSE, levls=0:15)) 
+	plot(gofOutdegrees3) # was good fit, now even better
+
+	# goodness of fit for triad census:
+	(gofTriads3 <- sienaGOF(sims3, varName="help", TriadCensus, verbose=TRUE))
+	plot(gofTriads3,center=TRUE,scale=TRUE) 
+
+```
+
+```{=tex}
+% Table based on sienaFit object results3 , Tue Mar 26 11:47:05 2024
+%Estimation date Tue Mar 26 11:46:46 2024
+\begin{tabular}{l | r@{.}l r@{.}l r@{.}l | }
+\hline
+\rule{0pt}{2ex}\relax
+Effect &\multicolumn{2}{c}{par.}&\multicolumn{2}{c }{ (s.e.) } &\multicolumn{2}{c | }{$t$ stat.} \\[0.5ex]
+\hline
+\rule{0pt}{2ex}\relax
+Rate 1 & 7 & 47 & (1 & 13) & \omit & -\\
+\hline
+\rule{0pt}{2ex}\relax
+outdegree (density)          & --1 & 45$^\ast$           & (0 & 62) & --2 & 33\\
+reciprocity                  &   2 & 58$^{\ast\ast\ast}$ & (0 & 47) &   5 & 52\\
+transitive triplets          &   0 & 42$^{\ast\ast}$     & (0 & 13) &   3 & 25\\
+transitive recipr. triplets  & --0 & 06                  & (0 & 20) & --0 & 31\\
+indegree - popularity        & --0 & 30$^{\ast\ast}$     & (0 & 10) & --3 & 01\\
+rec.degree - activity        & --0 & 09                  & (0 & 07) & --1 & 31\\
+gender alter                 &   1 & 19$^{\ast\ast}$     & (0 & 43) &   2 & 81\\
+gender ego                   & --1 & 07$^{\ast\ast}$     & (0 & 37) & --2 & 85\\
+same gender                  &   1 & 02$^{\ast\ast}$     & (0 & 34) &   3 & 00\\
+same age                     & --0 & 74$^{\ast\ast}$     & (0 & 23) & --3 & 22\\
+same maturity                &   0 & 20                  & (0 & 22) &   0 & 90\\
+ambitious alter              & --0 & 02                  & (6 & 00) & --0 & 00\\
+ambitious ego                &   2 & 57                  & (6 & 03) &   0 & 43\\
+ambitious similarity         & --0 & 87                  & (5 & 99) & --0 & 15\\
+\hline
+\multicolumn{5}{l}{\footnotesize{$^\dagger$ $p$ $<$ 0.1;
+                $^\ast$ $p$ $<$ 0.05; $^{\ast\ast}$ $p$ $<$ 0.01;
+                $^{\ast\ast\ast}$ $p$ $<$ 0.001;}}\\
+\multicolumn{5}{l}
+   {\footnotesize{convergence $t$ ratios all $<$ 0.08.}}\\
+\multicolumn{5}{l}{\footnotesize{Overall maximum convergence ratio 0.18.}}
+\end{tabular}
+```
+For H3.Individuals from high ambitious level will be more likely to seeking help. the β own-ambitious \< 0 The SAOM findings presented in Table 2 shed light on the factors influencing the development of the classroom help-seeking network over time, providing insights aligned with our three hypotheses. Our analysis supports H1, revealing a statistically significant effect for same-gender ties (p \< 0.01), implying a tendency for individuals to connect with peers of the same gender. However, the effects of "gender alter" and "gender ego" are not statistically significant, suggesting that gender homophily may not strongly shape the structure of the help seeking network.
+
+The maturrity factor is 0.9 The p\>0.1 for maturity is not significant in this table, so the hypothesis of H2 is not supported by the SAOM model. For hypothesis 3, the value of P is greater than 0.1 but like hypothesis 2, this value is not significant in the table.
+
+also we can see from my model:for rate parameter, the total rate parameter in the network, indicating the average rate of events in the network (such as forming a connection or dissolving). At this time in the model, the rate parameter is 7.2397, which means that a higher number of events occur in a given period.
+
+Other parameters: These parameters are the impact of various effects in the model on network dynamics. Each parameter is accompanied by some statistical measures for evaluating the effect, such as estimate and standard deviation. The parameters evaluate the structural characteristics of the network, such as out-degree (density), reciprocity (reciprocity), transitive triples (transitive triples), etc.; other factors consider the response between individual attributes. , such as homophily (homogeneity) effects between gender, age, maturity and ambition levels.
+
+The interpretation of specific values depends on the meaning and context of the individual parameters. For example, the value of "Evaluate out-degree (density)" is -2.8077, indicating the impact of network density on out-degree, with a standard deviation of 0.3723 and a t-statistic of -0.0844. This value indicates how changes in network density affect changes in out-degree. Negative values indicate that increasing density leads to decreasing out-degree, but since the statistic is close to zero, this relationship may be less obvious.
+
+### Conclusion
+
+My study aimed to investigate the factors can influence the formation of classroom help seeking networks,and also checked the network dynamics change over time. Based on previous discussion on network terms ,I summarized the some theoretical papers which can support my investigation .First of all homophily is been always discussed in social network analysis context, here I used "gender" homopholy to check if there gender really matters when students seeking for help.The impact of natural level was in my hypothesis 2,I assumed students trend to seeking for help from whom physically stronger,which was the case when it comes to school bully terms ,but the results through SAOM did not support my H2
+
+My third hypothesis is that if a student has a high level of ambition then he will be more inclined to seek help from others, because a student with greater ambition will be more active in expanding and building his or her social network. But unfortunately, the results of the SAOM experiment do not support my conclusion. Perhaps this theory is more effective in studying other groups, such as college students and office workers. The results of my research are not complete, but I hope that through this research I can help school administrators better understand the social relationships between students so that they can take some measures accordingly.
+
+### Reference
+
+Wang, Y. S. (2023). Gender-based homophily in collaborations across a heterogeneous scholarly landscape. PLoS One, 18(4), e0283106. https://doi.org/10.1371/journal.pone.0283106
+
+Zakin, D. (1983). Physical Attractiveness, Sociability, Athletic Ability, and Children's Preference for Their Peers. Journal of Genetic Psychology, 143(1), 95-96. doi:10.1080/00223980.1983.9923606
+
+Yuan Zhou.(2023)Daily Peer Relationships and Academic Achievement among College Students: A Social Network Analysis Based on Behavioral Big Data. (November 2023). Sustainabilit
+
+Brouwer, J., Flache, A., Jansen, E., Hofman, A., & Steglich, C. (2018). Emergent achievement segregation in freshmen learning community networks. Higher Education, 76(3), 483-500. Retrieved from https://www.jstor.org/stable/45116710
