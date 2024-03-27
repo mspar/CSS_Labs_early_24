@@ -200,7 +200,7 @@ coords <- cmdscale(1/(1+comemb))        # Perform an MDS  (multidimensional scal
                                         # the "closer" the vertices
                                         
 
-gplot(ask_help1, coord = coords)
-gplot(ask_help2, coord = coords)
-gplot(ask_help3, coord = coords)
+gplot(ask_help1, coord = coords, vertex.sides = 3+(attributes_6200$gender == 1)+(attributes_6200$gender == 2)*50)
+gplot(ask_help2, coord = coords, vertex.sides = 3+(attributes_6200$gender == 1)+(attributes_6200$gender == 2)*50)
+gplot(ask_help3, coord = coords, vertex.sides = 3+(attributes_6200$gender == 1)+(attributes_6200$gender == 2)*50)
 ```
