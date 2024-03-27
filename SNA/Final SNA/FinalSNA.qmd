@@ -175,32 +175,88 @@ table2
 3. TRIADIC STUFFS
 
 ```{r network objects & attributes}
-gendercol <- as.numeric(attributes_6200[[2]])
+grades_imp1 <- as.numeric(attributes_6200[[6]])
+grades_imp2 <- as.numeric(attributes_6200[[7]])
+grades_imp3 <- as.numeric(attributes_6200[[8]])
 
 ask_help1 <- as.network(ask_help1)
 ask_help1 %v% "gender" <- attributes_6200[,2]
-ask_help1 %v% "gender_col" <- c("darkblue","darkred")[gendercol]
+ask_help1 %v% "grades_imp" <- c("darkred","yellow","darkgreen", "black")[grades_imp1]
 
 ask_help2 <- as.network(ask_help2)
 ask_help2 %v% "gender" <- attributes_6200[,2]
-ask_help2 %v% "gender_col" <- c("darkblue","darkred")[gendercol]
+ask_help2 %v% "grades_imp" <- c("darkred","yellow","darkgreen")[grades_imp2]
 
 ask_help3 <- as.network(ask_help3)
 ask_help3 %v% "gender" <- attributes_6200[,2]
-ask_help3 %v% "gender_col" <- c("darkblue","darkred")[gendercol]
+ask_help3 %v% "grades_imp" <- c("darkred","yellow","darkgreen")[grades_imp3]
 
 ```
 
 
 ```{r plottinggggg}
+#| fig-width: 15
+#| fig-height: 15
+
 comemb <- clique.census(ask_help1, clique.comembership="sum")$clique.comemb # Co-membership matrix
 
 coords <- cmdscale(1/(1+comemb))        # Perform an MDS  (multidimensional scaling) 
                                         # the more overlap, 
                                         # the "closer" the vertices
-                                        
 
-gplot(ask_help1, coord = coords, vertex.sides = 3+(attributes_6200$gender == 1)+(attributes_6200$gender == 2)*50)
-gplot(ask_help2, coord = coords, vertex.sides = 3+(attributes_6200$gender == 1)+(attributes_6200$gender == 2)*50)
-gplot(ask_help3, coord = coords, vertex.sides = 3+(attributes_6200$gender == 1)+(attributes_6200$gender == 2)*50)
+grades_imp1<-(attributes_6200$impstd_1)
+grades_imp1A<-(round(3*(grades_imp1)/max((grades_imp1))))
+colfunc <- colorRampPalette(c("yellow", "red"))
+COLWB<-colfunc(3)
+grades_imp2A<-grades_imp1A
+grades_imp2A[grades_imp1A==1]<-COLWB[1]
+grades_imp2A[grades_imp1A==2]<-COLWB[2]
+grades_imp2A[grades_imp1A==3]<-COLWB[3]
+
+grades_imp2<-(attributes_6200$impstd_2)
+grades_imp3A<-(round(3*(grades_imp2)/max((grades_imp2))))
+colfunc <- colorRampPalette(c("yellow", "red"))
+COLWB<-colfunc(3)
+grades_imp4A<-grades_imp3A
+grades_imp4A[grades_imp3A==1]<-COLWB[1]
+grades_imp4A[grades_imp3A==2]<-COLWB[2]
+grades_imp4A[grades_imp3A==3]<-COLWB[3]
+
+grades_imp3<-(!is.na(attributes_6200$impstd_3))
+grades_imp6A<-(round(3*(grades_imp3)/max((grades_imp3))))
+grades_imp6A[grades_imp6A == "3"] <- "#FFFF00"
+grades_imp6A[grades_imp6A == "0"] <- "#FFFFFF"
+grades_imp6A[c(15,16,32)] <- c("#FF0000","#FF0000","#FF0000")
+
+
+gplot(ask_help1, 
+      coord = coords, 
+      vertex.sides = 3+(attributes_6200$gender == 1)+(attributes_6200$gender == 2)*50,
+      vertex.col = grades_imp2A,
+      main = "Class 6200 at Wave 1",
+      sub = "Squares indicate boys, circles girls. 
+      Red are those who are not influenced by whether they get good grades or not. 
+      Yellow are those who are only satisfied with themselves if they get good grades.")
+
+gplot(ask_help2, 
+      coord = coords, 
+      vertex.sides = 3+(attributes_6200$gender == 1)+(attributes_6200$gender == 2)*50, 
+      vertex.col = grades_imp4A,
+      main = "Class 6200 at Wave 2",
+      sub = "Squares indicate boys, circles girls. 
+      Red are those who are not influenced by whether they get good grades or not. 
+      Yellow are those who are only satisfied with themselves if they get good grades.")
+
+gplot(ask_help3, 
+      coord = coords, 
+      vertex.sides = 3+(attributes_6200$gender == 1)+(attributes_6200$gender == 2)*50, 
+      vertex.col = grades_imp6A,
+      main = "Class 6200 at Wave 3",
+      sub = "Squares indicate boys, circles girls. 
+      Red are those who are not influenced by whether they get good grades or not. 
+      Yellow are those who are only satisfied with themselves if they get good grades. 
+      White are NAs.")
+
 ```
+
+
