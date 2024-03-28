@@ -12,6 +12,8 @@ header-includes:
       - \floatplacement{table}{H}
 ---
 
+\newpage 
+
 ```{r load packages and attr data}
 library(tidyverse)
 library(network)		# network data storage
@@ -31,6 +33,10 @@ attributes_6200 <-  attributes |> select(-ends_with("4")) |>
          all(c_across(starts_with("newstudent")) == 0)) |> ungroup()
 ```
 
+## Research questions and theoretical background
+
+## Hypotheses
+
 ```{r get matrices ready}
 #selecting variables of interest
 
@@ -47,20 +53,21 @@ ask_help3 <- read.csv(here::here("SNA", "Final SNA", "Networks_by_Type", "I_can_
   as.matrix()
 ask_help3 <- ask_help3[-35:-36, -35:-36]
 
-# look_up1 <- read.csv("SNA/Final SNA/Networks_by_Type/I_look_up/6200_24_1.csv", row.names = 1)  |> 
-#   rename_with(~substring(., 2)) |> 
-#   as.matrix()
-# look_up2 <- read.csv("SNA/Final SNA/Networks_by_Type/I_look_up/6200_22_1_2h.csv", row.names = 1) |> 
-#   rename_with(~substring(., 2)) |> 
-#   as.matrix()
-# look_up3 <- read.csv("SNA/Final SNA/Networks_by_Type/I_look_up/6200_21_1_3h.csv", row.names = 1)  |> 
-#   rename_with(~substring(., 2)) |> 
-#   as.matrix()
-# look_up3 <- look_up3[-35:-36, -35:-36]
+look_up1 <- read.csv("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/SNA/Final SNA/Networks_by_Type/I_look_up/6200_24_1.csv", row.names = 1)  |>
+  rename_with(~substring(., 2)) |>
+  as.matrix()
+look_up2 <- read.csv("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/SNA/Final SNA/Networks_by_Type/I_look_up/6200_22_1_2h.csv", row.names = 1) |>
+  rename_with(~substring(., 2)) |>
+  as.matrix()
+look_up3 <- read.csv("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/SNA/Final SNA/Networks_by_Type/I_look_up/6200_21_1_3h.csv", row.names = 1)  |>
+  rename_with(~substring(., 2)) |>
+  as.matrix()
+look_up3 <- look_up3[-35:-36, -35:-36]
 ```
 
+## Data description (descriptive statistics, visualization)
+
 ```{r descriptives}
-#| layout-ncol: 2
 
 Hamming <- function(net1,net2) {
 	tbl <- table(c(0,0,1,1,net1),c(0,1,0,1,net2))-1
@@ -149,7 +156,7 @@ descs[is.na(descs)] <- ""
 
 table1 <- kable(descs[, -4],
     booktabs = TRUE,
-    caption = "By Wave"
+    caption = "Network Descriptives By Wave"
   ) |> 
   pack_rows(tab_kable,
     index = table(fct_inorder(descs$Wave), useNA = "no"))
@@ -163,15 +170,17 @@ change <- data.frame(
 
 colnames(change) <- c("Waves", "Jaccard Index", "Hamming Distance")
 
-table2 <- kable(change, caption = "Across Waves", booktabs = TRUE)
+table2 <- kable(change, caption = "Network Descriptives Across Waves", booktabs = TRUE)
 
 table1
 table2
 ```
 
+## Operationalization of hypotheses
+
 > Prelim. hypotheses.
-1. People request more help from their own gender
-2. People who consider grades more important get requested more help of
+1. People request more help from their own gender -> same gender
+2. People who consider grades more important get requested more help of -> alter grades important
 3. TRIADIC STUFFS
 
 ```{r network objects & attributes}
@@ -192,7 +201,6 @@ ask_help3 %v% "gender" <- attributes_6200[,2]
 ask_help3 %v% "grades_imp" <- c("darkred","yellow","darkgreen")[grades_imp3]
 
 ```
-
 
 ```{r plottinggggg}
 #| fig-width: 15
@@ -236,7 +244,9 @@ gplot(ask_help1,
       main = "Class 6200 at Wave 1",
       sub = "Squares indicate boys, circles girls. 
       Red are those who are not influenced by whether they get good grades or not. 
-      Yellow are those who are only satisfied with themselves if they get good grades.")
+      Yellow are those who are only satisfied with themselves if they get good grades.",
+      cex.main = 2, 
+      cex.sub = 2)
 
 gplot(ask_help2, 
       coord = coords, 
@@ -245,7 +255,9 @@ gplot(ask_help2,
       main = "Class 6200 at Wave 2",
       sub = "Squares indicate boys, circles girls. 
       Red are those who are not influenced by whether they get good grades or not. 
-      Yellow are those who are only satisfied with themselves if they get good grades.")
+      Yellow are those who are only satisfied with themselves if they get good grades.",
+      cex.main = 2, 
+      cex.sub = 2)
 
 gplot(ask_help3, 
       coord = coords, 
@@ -255,8 +267,232 @@ gplot(ask_help3,
       sub = "Squares indicate boys, circles girls. 
       Red are those who are not influenced by whether they get good grades or not. 
       Yellow are those who are only satisfied with themselves if they get good grades. 
-      White are NAs.")
-
+      White are NAs.",
+      cex.main = 2, 
+      cex.sub = 2)
 ```
 
+```{r modellingg}
+#| output: false
+
+ask_help1 <- read.csv(here::here("SNA", "Final SNA", "Networks_by_Type", "I_can_ask_for_help", "6200_24_12.csv"), row.names = 1) |> 
+  rename_with(~substring(., 2)) |> 
+  as.matrix()
+ask_help2 <- read.csv(here::here("SNA", "Final SNA", "Networks_by_Type", "I_can_ask_for_help", "6200_22_12_2h.csv"), row.names = 1) |> 
+  rename_with(~substring(., 2)) |> 
+  as.matrix()
+ask_help3 <- read.csv(here::here("SNA", "Final SNA", "Networks_by_Type", "I_can_ask_for_help", "6200_21_10_3h.csv"), row.names = 1)  |> 
+  rename_with(~substring(., 2)) |> 
+  as.matrix()
+ask_help3 <- ask_help3[-35:-36, -35:-36]
+
+helpnet <- sienaDependent(array(c(ask_help1, ask_help2, ask_help3),
+	dim=c(34,34,3)))
+gender <- coCovar(attributes_6200$gender)
+grades_important <- varCovar(as.matrix(attributes_6200[,6:8]))
+data_siena <- sienaDataCreate(helpnet, gender, grades_important)
+
+model_siena <- getEffects(data_siena)
+
+# ADD EFFECTS TO OBJECTIVE FUNCTION:
+model_siena <- includeEffects(model_siena,
+	transTrip, transRecTrip, outTrunc, outPop, denseTriads) # clustering & other fit-improving effects
+model_siena <- includeEffects(model_siena,
+	egoX, altX, # sender, receiver
+	sameX, interaction1 = "gender") # homophily effects on gender
+model_siena <- includeEffects(model_siena,
+	egoX, altX, # sender, receiver
+	simX, interaction1 = "grades_important") # homophily effects on how important grades are
+
+# Estimate it and inspect results:
+controls <- sienaAlgorithmCreate(n3 = 1000, nsub = 5, seed = 2)
+results_siena <- siena07(controls, data = data_siena, effects = model_siena)
+
+test <- siena.table(results_siena, type = "tex", tstat = TRUE, sig = TRUE, d = 2)
+#convergence ratio is good :3, as below 0.25
+```
+
+## Results (see literature seminar readings on how SAOM results are presented)
+
+```{=latex}
+\begin{table}[h]
+    \caption{Summary of Results}
+    \centering
+    \begin{center}
+    \begin{tabular}{|l | r@{.}l r@{.}l r@{.}l |}
+        \hline
+        \rule{0pt}{2ex}\relax
+        Effect &\multicolumn{2}{c}{par.}&\multicolumn{2}{c }{ (s.e.) } &\multicolumn{2}{c | }{$t$ stat.} \\[0.5ex]
+        \hline
+        \rule{0pt}{2ex}\relax
+        Rate 1 & 17 & 51 & (2 & 37) & \omit & -\\
+        Rate 2 & 16 & 26 & (2 & 43) & \omit & -\\
+        \hline
+        \rule{0pt}{2ex}\relax
+        outdegree (density)          & --1 & 38$^{\ast\ast\ast}$ & (0 & 13) & --10 & 71\\
+        reciprocity                  &   1 & 76$^{\ast\ast\ast}$ & (0 & 20) &    8 & 71\\
+        transitive triplets          &   0 & 27$^{\ast\ast\ast}$ & (0 & 03) &    9 & 04\\
+        transitive recipr. triplets  & --0 & 16$^\ast$           & (0 & 07) &  --2 & 20\\
+        outdegree - popularity       & --0 & 11$^{\ast\ast\ast}$ & (0 & 02) &  --6 & 74\\
+        outdegree-trunc(1)           & --2 & 64$^{\ast\ast\ast}$ & (0 & 48) &  --5 & 52\\
+        gender alter                 &   0 & 24$^\ast$           & (0 & 11) &    2 & 15\\
+        gender ego                   & --0 & 15                  & (0 & 10) &  --1 & 51\\
+        same gender                  &   0 & 32$^{\ast\ast\ast}$ & (0 & 09) &    3 & 43\\
+        grades-important alter       & --0 & 01                  & (0 & 07) &  --0 & 08\\
+        grades-important ego         &   0 & 02                  & (0 & 07) &    0 & 24\\
+        grades-important similarity  &   0 & 24$^\dagger$        & (0 & 14) &    1 & 66\\
+        \hline
+    \end{tabular}
+    \end{center}
+    \footnotesize{$^\dagger$ $p$ $<$ 0.1;
+				$^\ast$ $p$ $<$ 0.05; $^{\ast\ast}$ $p$ $<$ 0.01;
+				$^{\ast\ast\ast}$ $p$ $<$ 0.001;} \\
+    \footnotesize{convergence $t$ ratios all $<$ 0.12.} \\
+    \footnotesize{Overall maximum convergence ratio 0.23.}
+    \label{tab:sample}
+\end{table}
+```
+
+```{r gof 1}
+#| output: false
+
+# specify the options for the simulation algorithm:
+SimCont <- sienaAlgorithmCreate(n3 = 1000, nsub = 4, seed = 2)
+
+# add simulated networks to model results:
+TheSims1 <- siena07(SimCont, data = data_siena, effects = model_siena,
+	returnDeps = TRUE,
+	prevAns = results_siena)
+```
+
+```{r gof 2}
+#| fig-width: 10
+#| fig-height: 7
+
+# goodness of fit for indegree distribution:
+gofIndegrees <- sienaGOF(TheSims1, 
+                          varName = "helpnet",
+                          IndegreeDistribution, # the fit function to be evaluated
+                          cumulative = FALSE, # (same meaning as in probability distributions)
+                          levls = 0:15) # evaluate indegrees on these 16 fit dimensions
+plot(gofIndegrees)
+
+# goodness of fit for outdegree distribution:
+gofOutdegrees <- sienaGOF(TheSims1, 
+                           varName = "helpnet",
+                           OutdegreeDistribution,
+                           cumulative = FALSE, 
+                           levls = 0:15) 
+plot(gofOutdegrees)
+
+# goodness of fit for triad census:
+gofTriads <- sienaGOF(TheSims1, 
+                       varName = "helpnet", 
+                       TriadCensus, 
+                       verbose = FALSE)
+plot(gofTriads, 
+     center = TRUE, 
+     scale = TRUE)
+```
+
+```{r}
+#| output: false
+
+# helpnet <- sienaDependent(array(c(ask_help1, ask_help2, ask_help3),
+# 	dim=c(34,34,3)))
+# gender <- coCovar(attributes_6200$gender)
+# #grades_important <- varCovar(as.matrix(attributes_6200[,6:8]))
+# look_upnet <- varDyadCovar(array(c(look_up1, look_up2),
+# 	dim=c(34,34,2)))
+# grades_important <- sienaDependent(as.matrix(attributes_6200[,6:8]), type = "behavior")
+# 
+# data_siena <- sienaDataCreate(helpnet, gender, grades_important, look_upnet)
+# 
+# model_siena <- getEffects(data_siena)
+# 
+# 
+# # ADD EFFECTS TO NETWORK OBJECTIVE FUNCTION:
+# model_siena <- includeEffects(model_siena, name='helpnet',
+# 	transTrip, transRecTrip, outTrunc, outPop, denseTriads) # clustering
+# model_siena <- includeEffects(model_siena, name='helpnet',
+# 	X, interaction1='look_upnet') # friendship effect
+# model_siena <- includeEffects(model_siena, name='helpnet',
+# 	egoX, altX, sameX, interaction1='gender') # three gender effects
+# # model_siena <- includeEffects(model_siena, name='helpnet',
+# # 	sameX,interaction1='bachelor') # educational background homophily
+# model_siena <- includeEffects(model_siena, name='helpnet',
+# 	egoX,altX,simX,interaction1='grades_important') # three performance effects
+# 
+# # ADD EFFECTS TO BEHAVIOUR OBJECTIVE FUNCTION:
+# model_siena <- includeEffects(model_siena, name='grades_important',
+# 	indeg, outdeg, avSim, interaction1='helpnet') # three effects conjugate to the above
+# model_siena <- includeEffects(model_siena, name='grades_important',
+# 	effFrom, interaction1='gender') # effect of gender on performance
+# # INSPECT MODEL SPECIFICATION:
+# model_siena
+# 
+# controls <- sienaAlgorithmCreate(n3 = 1000, nsub = 5, seed = 2)
+# coevresults <- siena07(controls, dat = data_siena, effects = model_siena)
+# 
+# # make table:
+# siena.table(coevresults, type = "html", tstat = TRUE, sig = TRUE, d = 2)
+```
+
+```{=latex}
+<!-- \begin{table}[h] -->
+<!--     \caption{Summary of Results} -->
+<!--     \centering -->
+<!--     \begin{center} -->
+<!--     \begin{tabular}{|l | r@{.}l r@{.}l r@{.}l |} -->
+<!--         \hline -->
+<!--         \multicolumn{7}{|l|}{\emph{Network Dynamics}} \\ -->
+<!--         \hline -->
+<!--         \rule{0pt}{2ex}\relax -->
+<!--         Effect &\multicolumn{2}{c}{par.}&\multicolumn{2}{c }{ (s.e.) } &\multicolumn{2}{c | }{$t$ stat.} \\[0.5ex] -->
+<!--         \hline -->
+<!--         constant helpnet rate (period 1)      &    15 & 35 & (    11 & 66) & \omit & -\\ -->
+<!--         constant helpnet rate (period 2)      &    17 & 28 & (    34 & 37) & \omit & -\\ -->
+<!--         \hline -->
+<!--         \rule{0pt}{2ex}\relax -->
+<!--         outdegree (density)                   &   --1 & 54                  & (     0 & 94) & --1 & 63\\ -->
+<!--         reciprocity                           &     1 & 84                  & (     4 & 03) &   0 & 46\\ -->
+<!--         transitive triplets                   &     0 & 28                  & (     0 & 30) &   0 & 93\\ -->
+<!--         transitive recipr. triplets           &   --0 & 03                  & (     0 & 39) & --0 & 07\\ -->
+<!--         dense triads                          &   --0 & 13                  & (     0 & 76) & --0 & 17\\ -->
+<!--         outdegree - popularity                &   --0 & 10                  & (     0 & 17) & --0 & 57\\ -->
+<!--         outdegree-trunc(1)                    &   --2 & 29                  & (    18 & 54) & --0 & 12\\ -->
+<!--         look-upnet                            &     0 & 45                  & (     1 & 61) &   0 & 28\\ -->
+<!--         gender alter                          &     0 & 09                  & (     0 & 92) &   0 & 10\\ -->
+<!--         gender ego                            &   --0 & 01                  & (     0 & 41) & --0 & 02\\ -->
+<!--         same gender                           &     0 & 25                  & (     0 & 25) &   1 & 01\\ -->
+<!--         grades-important alter                &     0 & 35                  & (     3 & 30) &   0 & 11\\ -->
+<!--         grades-important ego                  &     0 & 09                  & (     1 & 13) &   0 & 08\\ -->
+<!--         grades-important similarity           &     0 & 96                  & (     3 & 46) &   0 & 28\\ -->
+<!--         \hline -->
+<!--         \multicolumn{7}{|l|}{\emph{Behaviour Dynamics}} \\ -->
+<!--         \hline -->
+<!--         \rule{0pt}{2ex}\relax -->
+<!--         rate grades-important (period 1)      &     2 & 92 & (    16 & 36) & \omit & -\\ -->
+<!--         rate grades-important (period 2)      &     2 & 61 & (    22 & 64) & \omit & -\\ -->
+<!--         \hline -->
+<!--         \rule{0pt}{2ex}\relax -->
+<!--         grades-important linear shape         & --362 & 18                  & (125151 & 56) & --0 & 00\\ -->
+<!--         grades-important quadratic shape      &   168 & 56                  & ( 58602 & 73) &   0 & 00\\ -->
+<!--         grades-important average similarity   & --757 & 22                  & (264561 & 12) & --0 & 00\\ -->
+<!--         grades-important indegree             &   --2 & 82                  & (  1110 & 51) & --0 & 00\\ -->
+<!--         grades-important outdegree            &  --27 & 85                  & (  9685 & 34) & --0 & 00\\ -->
+<!--         grades-important: effect from gender  &     4 & 35                  & (  1130 & 52) &   0 & 00\\ -->
+<!--         \hline -->
+<!--     \end{tabular} -->
+<!--     \end{center} -->
+<!--     \footnotesize{$^\dagger$ $p$ $<$ 0.1; -->
+<!-- 				$^\ast$ $p$ $<$ 0.05; $^{\ast\ast}$ $p$ $<$ 0.01; -->
+<!-- 				$^{\ast\ast\ast}$ $p$ $<$ 0.001;} \\ -->
+<!--     \footnotesize{convergence $t$ ratios all $<$ 3.32.} \\ -->
+<!--     \footnotesize{Overall maximum convergence ratio 5.66.} -->
+<!--     \label{tab:sample} -->
+<!-- \end{table} -->
+```
+
+## Conclusions and Discussion
 
