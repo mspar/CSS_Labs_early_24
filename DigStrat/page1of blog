@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+    <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="content-language" content="en-GB">
+<meta name="description" content="My personal research blog">
+
+<link rel="apple-touch-icon" sizes="180x180" href="https://www.hendrik-erz.de/themes/main/assets/images/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="https://www.hendrik-erz.de/themes/main/assets/images/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="https://www.hendrik-erz.de/themes/main/assets/images/favicon-16x16.png">
+
+<!-- Twitter Cards -->
+<meta name="twitter:title" content="Blog">
+<meta name="twitter:description" content="My personal research blog">
+
+<meta name="twitter:site" content="@sahiralsahid">
+<meta name="twitter:creator" content="@sahiralsaid">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://www.hendrik-erz.de/storage/app/media/hendrikerzde_socialmedia.png">
+
+<!-- Open Graph -->
+<meta property="og:locale" content="en-GB">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Blog">
+<meta property="og:description" content="My personal research blog">
+<meta property="og:url" content="https://www.hendrik-erz.de/blog/1">
+<meta property="og:site_name" content="Hendrik Erz">
+<meta property="og:image" content="https://www.hendrik-erz.de/storage/app/media/hendrikerzde_socialmedia.png">
+
+
+
+<script type="application/ld+json">
+{
+"@context": "http://www.schema.org",
+"@type": "Person",
+"@id": "https://www.hendrik-erz.de/",
+"name": "Hendrik Erz",
+"alternateName": "Hendrik Erz",
+"nationality": "German",
+"award": [],
+"affiliation": [
+	{
+		"@type": "CollegeOrUniversity",
+		"name": "Institute for Analytical Sociology, Linköping University, Sweden",
+		"sameAs": [
+			"https://liu.se/en/organisation/liu/iei/ias",
+			"https://twitter.com/IAS_LiU"
+		]
+  	}
+],
+"alumniOf": [
+	{
+	 "@type": "CollegeOrUniversity",
+	 "name": "University of Bonn",
+	 "sameAs": "https://en.wikipedia.org/wiki/University_of_Bonn"
+	}
+],
+"gender": "Male",
+"Description": "Researcher",
+"disambiguatingDescription": "PhD-Candidate in Analytical Sociology/Computational Social Science",
+"jobTitle": "PhD-Student",
+"worksFor": [
+	{
+		"@type": "CollegeOrUniversity",
+		"name": "Institute for Analytical Sociology, Linköping University, Sweden",
+		"sameAs": [
+			"https://liu.se/en/organisation/liu/iei/ias",
+			"https://twitter.com/IAS_LiU"
+		]
+  	}
+],
+"url": "https://www.hendrik-erz.de/",
+"image": "",
+"sameAs": [
+	"https://twitter.com/sahiralsaid",
+	"https://instagram.com/nathan_lesage",
+	"https://www.linkedin.com/in/hendrik-erz/",
+	"https://github.com/nathanlesage",
+	"https://liu.se/en/employee/hener68",
+	"https://scholar.google.com/citations?user=L8y-sWQAAAAJ",
+	"https://bsky.app/profile/hendrikerz.bsky.social"
+	]
+}
+</script>
+<!-- Feather icons for general support -->
+<script src="https://unpkg.com/feather-icons"></script>
+      
+<!-- Include highlight.js for the codeblocks. We are using the "dark" theme because it's not too dark, and will work in both light and dark mode. -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/highlight.min.js"></script>
+<!-- Load the necessary languages. More are here: https://cdnjs.com/libraries/highlight.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/languages/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/languages/typescript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/languages/r.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/languages/json.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/languages/xml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/languages/markdown.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/languages/python.min.js"></script>
+<!-- MathJax rendering engine for any formulae that I might add to the blog posts -->
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.0.1/es5/tex-mml-chtml.js"></script>
+
+<script>
+  // Configure MathJax. We need to enable dollar-signs for inline-
+  // equations, since we're not using Dollars as a currency all too
+  // often.
+  // Reference: https://docs.mathjax.org/en/latest/input/tex/delimiters.html#tex-delimiters
+  window.MathJax = {
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']]
+    }
+    // More config options: https://docs.mathjax.org/en/latest/options/input/tex.html#tex-options
+  }
+</script>
+<!-- Matomo -->
+<script type="text/javascript">
+  var _paq = window._paq = window._paq || [];
+  /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
+  _paq.push(["setCookieDomain", "*.hendrik-erz.de"]);
+  _paq.push(["setDomains", ["*.hendrik-erz.de"]]);
+  _paq.push(["setDoNotTrack", true]);
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  
+  // Enable the consent form, if applicable
+  _paq.push([function () {
+    // If we haven't remembered consent, but the user has also not said they don't want to be tracked
+    if (!this.hasRememberedConsent() && navigator.doNotTrack != '1') {
+      // The user has not given consent -> ask him/her
+      // TODO
+      // var consentInfo = this.isUserOptedOut() ? 'You are currently opted out of tracking.' : 'You are currently opted in.';
+      // var infotext = 'I would like to know which parts of this website are very important to you, hence I use Matomo to collect that info.'
+      // var optinButton = '<a class="uk-button uk-button-success" onclick="optIn()">That\'s fine!</a>'
+      // var optoutButton = '<a class="uk-button uk-button-error" onclick="optOut()">No, please opt me out.</a>'
+      
+      // var notification = document.createElement('div')
+      // var title = document.createElement('h2')
+      // title.textContent = 'Tracking'
+      // var content = document.createElement('p')
+      // content.innerHTML = consentInfo + '<br>' + infotext + '<br>' + optinButton + '<br>' + optoutButton
+      
+      // notification.appendChild(title)
+      // notification.appendChild(content)
+      
+      // document.body.appendChild(notification)
+      
+      // UIkit.notification(composed, { pos: 'bottom-right', status: 'primary' })
+    } else if (navigator.doNotTrack != '1') {
+      console.log('Your browser reports that you don\'t want to be tracked. No info about you will be collected.')
+    }
+  }]);
+  
+  (function() {
+    var u="https://matomo.zettlr.com/";
+    _paq.push(['setTrackerUrl', u+'matomo.php']);
+    _paq.push(['setSiteId', '9']);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.type='text/javascript'; g.async=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+<noscript><p><img src="https://matomo.zettlr.com/matomo.php?idsite=9&amp;rec=1" style="border:0;" alt="" /></p></noscript>
+<!-- End Matomo Code -->
+
+<!-- Consent code -->
+<script type="text/javascript">
+function optIn() {
+    _paq.push([function () {
+        // Opt the user in
+        console.log('Opting you in to tracking ...');
+        try {
+            console.log('Forgetting UserOptOut:', this.forgetUserOptOut());
+            console.log('Remembering consent: ', this.rememberConsentGiven());
+        } catch (err) {
+            console.error('Could not opt you in: ' + err.message);
+        }
+    }]);
+}
+
+function optOut() {
+    _paq.push([function () {
+        console.log('Opting you out of tracking ...');
+        try {
+            console.log('Opting you out: ', this.optUserOut());
+            console.log('Forgetting your consent: ', this.forgetConsentGiven());
+        } catch (err) {
+            console.error('Could not opt you out: ' + err.message);
+        }
+    }]);
+}
+</script>
+<!-- End consent code -->
+<!-- Tippy.js -->
+<script src="https://unpkg.com/@popperjs/core@2"></script>
+<script src="https://unpkg.com/tippy.js@6"></script>
+
+<!-- Import our styles -->
+<link rel="stylesheet" type="text/css" href="https://www.hendrik-erz.de/combine/aa1589fc7b772f06c76d5b60ff1ee60a-1708720197">
+
+<!-- Include our JavaScript assets -->
+<script src="https://www.hendrik-erz.de/combine/1af66c397f37f1f5c9adcb931d409707-1712070965"></script>
+
+<!-- Link to the RSS feed -->
+<link href="https://www.hendrik-erz.de/feed.xml" type="application/atom+xml" rel="alternate" title="Hendrik Erz Feed">
+
+<!-- Include the framework styles -->
+
+<title>Blog | Hendrik Erz</title>    </head>
+    <body>
+        <div id="general-container">
+                        <!-- This is the mobile navigation, it'll show precisely there. -->
+<nav id="mobile-navigation">
+  <label id="menu-open" for="mobile-menu-toggle" aria-label="Open menu">
+    <i data-feather="menu"></i>
+  </label>
+
+  <!-- The actual toggle; based on this we're showing and hiding the menu -->
+  <input type="checkbox" id="mobile-menu-toggle">
+
+  <div id="mobile-container">
+    <label id="menu-close" for="mobile-menu-toggle" aria-label="Close menu">
+      <i data-feather="x"></i>
+    </label>
+
+    <h2>Menu</h2>
+    <ul role="presentation">
+            <li>
+        <!-- To check for child items, use item.items -->
+        <a
+            href="https://www.hendrik-erz.de"
+            class=""
+        >
+            Home
+        </a>
+    </li>
+        <li>
+        <!-- To check for child items, use item.items -->
+        <a
+            href="https://www.hendrik-erz.de/blog"
+            class=""
+        >
+            Blog
+        </a>
+    </li>
+        <li>
+        <!-- To check for child items, use item.items -->
+        <a
+            href="https://www.hendrik-erz.de/cv"
+            class=""
+        >
+            CV
+        </a>
+    </li>
+        <li>
+        <!-- To check for child items, use item.items -->
+        <a
+            href="https://www.hendrik-erz.de/resources"
+            class=""
+        >
+            Resources
+        </a>
+    </li>
+        <!-- END: Static pages. Here follow only additional links (Twitter etc.) -->
+    <li>
+        <!-- We use a nested list for items that should not be broken up (aka a group) -->
+        <ul role="presentation">
+            <li>
+                <a href="https://bsky.app/profile/hendrikerz.bsky.social" target="_blank" rel="nofollow" title="Follow me on Bluesky">
+                    <i data-feather="at-sign"></i>
+                </a>
+            </li>
+            <li style="display: none;">
+                <a href="https://www.twitter.com/sahiralsaid/" target="_blank" rel="nofollow" title="Follow me on Twitter">
+                    <i data-feather="twitter"></i>
+                </a>
+            </li>
+            <li>
+                <a rel="me" href="https://scholar.social/@hendrikerz" target="_blank" title="Follow me on Mastodon">
+                    <!-- Unfortunately, feather icons does not have a Mastodon SVG -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 216.4144 232.00976" fill="none" stroke="currentColor" stroke-width="15" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M211.80734 139.0875c-3.18125 16.36625-28.4925 34.2775-57.5625 37.74875-15.15875 1.80875-30.08375 3.47125-45.99875 2.74125-26.0275-1.1925-46.565-6.2125-46.565-6.2125 0 2.53375.15625 4.94625.46875 7.2025 3.38375 25.68625 25.47 27.225 46.39125 27.9425 21.11625.7225 39.91875-5.20625 39.91875-5.20625l.8675 19.09s-14.77 7.93125-41.08125 9.39c-14.50875.7975-32.52375-.365-53.50625-5.91875C9.23234 213.82 1.40609 165.31125.20859 116.09125c-.365-14.61375-.14-28.39375-.14-39.91875 0-50.33 32.97625-65.0825 32.97625-65.0825C49.67234 3.45375 78.20359.2425 107.86484 0h.72875c29.66125.2425 58.21125 3.45375 74.8375 11.09 0 0 32.975 14.7525 32.975 65.0825 0 0 .41375 37.13375-4.59875 62.915"/>
+                      <path d="M177.50984 80.077v60.94125h-24.14375v-59.15c0-12.46875-5.24625-18.7975-15.74-18.7975-11.6025 0-17.4175 7.5075-17.4175 22.3525v32.37625H96.20734V85.42325c0-14.845-5.81625-22.3525-17.41875-22.3525-10.49375 0-15.74 6.32875-15.74 18.7975v59.15H38.90484V80.077c0-12.455 3.17125-22.3525 9.54125-29.675 6.56875-7.3225 15.17125-11.07625 25.85-11.07625 12.355 0 21.71125 4.74875 27.8975 14.2475l6.01375 10.08125 6.015-10.08125c6.185-9.49875 15.54125-14.2475 27.8975-14.2475 10.6775 0 19.28 3.75375 25.85 11.07625 6.36875 7.3225 9.54 17.22 9.54 29.675"/>
+                    </svg>
+                </a>
+            </li>
+            <li>
+                <a href="https://github.com/nathanlesage/" target="_blank" rel="nofollow" title="Hendrik Erz on GitHub">
+                    <i data-feather="github"></i>
+                </a>
+            </li>
+            <li>
+                <a href="https://www.linkedin.com/in/hendrik-erz/" target="_blank" rel="nofollow" title="Hendrik Erz on LinkedIn">
+                    <i data-feather="linkedin"></i>
+                </a>
+            </li>
+            <li>
+                <a href="https://www.instagram.com/political.sociologist/" target="_blank" rel="nofollow" title="Follow me on Instagram">
+                    <i data-feather="instagram"></i>
+                </a>
+            </li>
+            <li>
+                <a href="https://www.hendrik-erz.de/feed.xml" target="_blank" title="Subscribe to my blog">
+                    <i data-feather="rss"></i>
+                </a>
+            </li>   
+        </ul>
+    </li>
+</ul>    
+    <p style="text-align: center;">
+        &copy; 2020 &ndash; 2024 Hendrik Erz |
+        Inspired by <a href="https://edwardtufte.github.io/tufte-css/" target="_blank" rel="nofollow">Tufte CSS</a> |
+        Built on <a href="https://www.wintercms.com/" target="_blank" rel="nofollow">Winter CMS</a>
+    </p>
+    
+    <!-- Display a toggle so that users can choose which mode they want -->
+<div class="theme-switcher">
+  <span><i data-feather="sun"></i></span>
+  <div class="three-way-radio horizontal">
+    <!-- Add the three radios -->
+    <label for="mobile-ui-mode-left"></label>
+    <input type="radio" name="ui-mode" id="mobile-ui-mode-left" class="left" value="left" data-action="ui-mode-light">
+    <label for="mobile-ui-mode-center"></label>
+    <input type="radio" name="ui-mode" id="mobile-ui-mode-center" class="center" value="center" data-action="ui-mode-system">
+    <label for="mobile-ui-mode-right"></label>
+    <input type="radio" name="ui-mode" id="mobile-ui-mode-right" class="right" value="right"  data-action="ui-mode-dark">
+    
+    <!-- This is the actual indicator -->
+    <div class="indicator"></div>
+  </div>
+  <span><i data-feather="moon"></i></span>
+</div>  </div>
+</nav>            <header id="page-header">
+                <h1 id="page-heading"><a name="top"></a>Blog</h1>
+                <!-- This is the main navigation; it'll show up on all screens >= 768px -->
+<nav id="main-navigation">
+  <!-- A fun little animation -->
+  <div id="animation" role="presentation">
+    <div class="sound-bar" style="background-color: rgb(20, 68, 175)"></div>
+    <div class="sound-bar" style="background-color: rgb(20, 68, 175)"></div>
+    <div class="sound-bar" style="background-color: rgb(20, 68, 175)"></div>
+    <div class="sound-bar" style="background-color: rgb(20, 68, 175)"></div>
+    <div class="sound-bar" style="background-color: rgb(20, 68, 175)"></div>
+    <div class="sound-bar" style="background-color: rgb(251, 207, 10)"></div>
+    <div class="sound-bar" style="background-color: rgb(251, 207, 10)"></div>
+    <div class="sound-bar" style="background-color: rgb(251, 207, 10)"></div>
+    <div class="sound-bar" style="background-color: rgb(251, 207, 10)"></div>
+    <div class="sound-bar" style="background-color: rgb(251, 207, 10)"></div>
+  </div>
+
+  <ul role="presentation">
+            <li>
+        <!-- To check for child items, use item.items -->
+        <a
+            href="https://www.hendrik-erz.de"
+            class=""
+        >
+            Home
+        </a>
+    </li>
+        <li>
+        <!-- To check for child items, use item.items -->
+        <a
+            href="https://www.hendrik-erz.de/blog"
+            class=""
+        >
+            Blog
+        </a>
+    </li>
+        <li>
+        <!-- To check for child items, use item.items -->
+        <a
+            href="https://www.hendrik-erz.de/cv"
+            class=""
+        >
+            CV
+        </a>
+    </li>
+        <li>
+        <!-- To check for child items, use item.items -->
+        <a
+            href="https://www.hendrik-erz.de/resources"
+            class=""
+        >
+            Resources
+        </a>
+    </li>
+        <!-- END: Static pages. Here follow only additional links (Twitter etc.) -->
+    <li>
+        <!-- We use a nested list for items that should not be broken up (aka a group) -->
+        <ul role="presentation">
+            <li>
+                <a href="https://bsky.app/profile/hendrikerz.bsky.social" target="_blank" rel="nofollow" title="Follow me on Bluesky">
+                    <i data-feather="at-sign"></i>
+                </a>
+            </li>
+            <li style="display: none;">
+                <a href="https://www.twitter.com/sahiralsaid/" target="_blank" rel="nofollow" title="Follow me on Twitter">
+                    <i data-feather="twitter"></i>
+                </a>
+            </li>
+            <li>
+                <a rel="me" href="https://scholar.social/@hendrikerz" target="_blank" title="Follow me on Mastodon">
+                    <!-- Unfortunately, feather icons does not have a Mastodon SVG -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 216.4144 232.00976" fill="none" stroke="currentColor" stroke-width="15" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M211.80734 139.0875c-3.18125 16.36625-28.4925 34.2775-57.5625 37.74875-15.15875 1.80875-30.08375 3.47125-45.99875 2.74125-26.0275-1.1925-46.565-6.2125-46.565-6.2125 0 2.53375.15625 4.94625.46875 7.2025 3.38375 25.68625 25.47 27.225 46.39125 27.9425 21.11625.7225 39.91875-5.20625 39.91875-5.20625l.8675 19.09s-14.77 7.93125-41.08125 9.39c-14.50875.7975-32.52375-.365-53.50625-5.91875C9.23234 213.82 1.40609 165.31125.20859 116.09125c-.365-14.61375-.14-28.39375-.14-39.91875 0-50.33 32.97625-65.0825 32.97625-65.0825C49.67234 3.45375 78.20359.2425 107.86484 0h.72875c29.66125.2425 58.21125 3.45375 74.8375 11.09 0 0 32.975 14.7525 32.975 65.0825 0 0 .41375 37.13375-4.59875 62.915"/>
+                      <path d="M177.50984 80.077v60.94125h-24.14375v-59.15c0-12.46875-5.24625-18.7975-15.74-18.7975-11.6025 0-17.4175 7.5075-17.4175 22.3525v32.37625H96.20734V85.42325c0-14.845-5.81625-22.3525-17.41875-22.3525-10.49375 0-15.74 6.32875-15.74 18.7975v59.15H38.90484V80.077c0-12.455 3.17125-22.3525 9.54125-29.675 6.56875-7.3225 15.17125-11.07625 25.85-11.07625 12.355 0 21.71125 4.74875 27.8975 14.2475l6.01375 10.08125 6.015-10.08125c6.185-9.49875 15.54125-14.2475 27.8975-14.2475 10.6775 0 19.28 3.75375 25.85 11.07625 6.36875 7.3225 9.54 17.22 9.54 29.675"/>
+                    </svg>
+                </a>
+            </li>
+            <li>
+                <a href="https://github.com/nathanlesage/" target="_blank" rel="nofollow" title="Hendrik Erz on GitHub">
+                    <i data-feather="github"></i>
+                </a>
+            </li>
+            <li>
+                <a href="https://www.linkedin.com/in/hendrik-erz/" target="_blank" rel="nofollow" title="Hendrik Erz on LinkedIn">
+                    <i data-feather="linkedin"></i>
+                </a>
+            </li>
+            <li>
+                <a href="https://www.instagram.com/political.sociologist/" target="_blank" rel="nofollow" title="Follow me on Instagram">
+                    <i data-feather="instagram"></i>
+                </a>
+            </li>
+            <li>
+                <a href="https://www.hendrik-erz.de/feed.xml" target="_blank" title="Subscribe to my blog">
+                    <i data-feather="rss"></i>
+                </a>
+            </li>   
+        </ul>
+    </li>
+</ul></nav>            </header>
+     
+            <section id="content">
+                <img id="hero-image" src="https://www.hendrik-erz.de/storage/app/media/blog_hero.jpg" aria-hidden="true">
+
+<!-- Display all blog posts-->
+<form action="https://www.hendrik-erz.de/blog/1" method="GET">
+    <input id="blog-search" type="search" name="search" placeholder="Search the blog…" value="">
+</form>
+    <div class="post-wrapper">
+        <h2 class="post-list-heading"><a href="https://www.hendrik-erz.de/post/the-transformer-architecture-a-visual-guide-pdf-download">The Transformer Architecture: A Visual Guide</a></h2>
+        <div class="post-list-metadata">
+            April 7th, 2024 | by Hendrik
+        </div>
+    
+        <p class="post-abstract">
+            A few days ago, Grant Sanderson a.k.a. 3Blue1Brown started uploading videos offering a visual introduction to the transformer architecture. I think they are great and you should watch them. Also, they reminded me that two years ago I produced something very similar, but in PDF-format because I like to look at large images that both show the entire process in all its gory glory and the detail at the same time.
+        </p>
+    </div>
+    <div class="post-wrapper">
+        <h2 class="post-list-heading"><a href="https://www.hendrik-erz.de/post/a-rant">A Rant</a></h2>
+        <div class="post-list-metadata">
+            April 5th, 2024 | by Hendrik
+        </div>
+    
+        <p class="post-abstract">
+            R sucks, and in this – very opiniated – article, I collect a selection of the various issues I have with this language. Do not get me wrong: R is great for statistics, but for everything else it really, really sucks.
+        </p>
+    </div>
+    <div class="post-wrapper">
+        <h2 class="post-list-heading"><a href="https://www.hendrik-erz.de/post/web-design-for-web-scrapers">Web Design for Web Scrapers</a></h2>
+        <div class="post-list-metadata">
+            March 21st, 2024 | by Hendrik
+        </div>
+    
+        <p class="post-abstract">
+            Social scientists sometimes find themselves in the situation of having to scrape some data from websites since a corresponding dataset does not yet exist. In that case, they are often confronted with confusing HTML code and can struggle to extract the data they want. In this article, I want to provide a primer in web design, the profession of creating these websites. Understanding what web designers think will help disentangle the issues many of us face when looking at some HTML and trying to extract precious data from it.
+        </p>
+    </div>
+    <div class="post-wrapper">
+        <h2 class="post-list-heading"><a href="https://www.hendrik-erz.de/post/installing-linux-18-years-later">Installing Linux: 18 years later</a></h2>
+        <div class="post-list-metadata">
+            March 1st, 2024 | by Hendrik
+        </div>
+    
+        <p class="post-abstract">
+            I installed Linux on my work computer. After having been unable to properly use it for the better part of the past three years, I asked IT whether I could wipe Windows off the machine. It turns out to be one of the best decisions I did regarding that computer, and now I have not one, but two workable computers. In this article I compare this experience to my first one 18 years ago, and conclude with whether I can recommend Linux for productive use.
+        </p>
+    </div>
+    <div class="post-wrapper">
+        <h2 class="post-list-heading"><a href="https://www.hendrik-erz.de/post/the-telemetry-fallacy">The Telemetry Fallacy</a></h2>
+        <div class="post-list-metadata">
+            February 23rd, 2024 | by Hendrik
+        </div>
+    
+        <p class="post-abstract">
+            Should you collect telemetry data from your apps? The short answer is no, but the reason why is more complex. It has to do with user's intentions, data poverty, and the simple fact that one does not collect telemetry in an Open Source app. In this article, I report on my (possibly half-baked) experiences with what a good app really needs.
+        </p>
+    </div>
+    <div class="post-wrapper">
+        <h2 class="post-list-heading"><a href="https://www.hendrik-erz.de/post/dedication-social-pressure-and-spite">Dedication, Social Pressure, and Spite</a></h2>
+        <div class="post-list-metadata">
+            February 16th, 2024 | by Hendrik
+        </div>
+    
+        <p class="post-abstract">
+            Today something a bit more personal: Recently I asked myself the very existential question of why I even continue developing Zettlr, given that there are so many alternatives out there. The reason turns out to come back to three fundamental driving forces: Dedication, Social Pressure, and Spite. But especially spite.
+        </p>
+    </div>
+    <div class="post-wrapper">
+        <h2 class="post-list-heading"><a href="https://www.hendrik-erz.de/post/join-us-at-nsa-2024-pretrained-language-models-for-sociology">Join us at NSA 2024: Pretrained Language Models for Sociology</a></h2>
+        <div class="post-list-metadata">
+            February 2nd, 2024 | by Hendrik
+        </div>
+    
+        <p class="post-abstract">
+            On my own behalf, I want to invite you – the readers of this blog – to submit abstracts to a session that I will host at the NSA 2024. My colleague Sebastian Gießler and I want to discuss in an open session the ethical, methodological, and theoretical pitfalls in utilizing pretrained neural network models in sociological or general social scientific inquiry.
+        </p>
+    </div>
+    <div class="post-wrapper">
+        <h2 class="post-list-heading"><a href="https://www.hendrik-erz.de/post/updates-">Updates.</a></h2>
+        <div class="post-list-metadata">
+            January 29th, 2024 | by Hendrik
+        </div>
+    
+        <p class="post-abstract">
+            Some people maintain that with age comes serenity. But this is not always true, as I have been slowly finding out over the past year. The entire Windows and gaming ecosystem is full of mandatory updates. Coupled with a crawling slow internet connection, this means that you are either never going to enjoy any casual gaming session anymore, or you'll have to plan your entire leisure time around this fact.
+        </p>
+    </div>
+    <div class="post-wrapper">
+        <h2 class="post-list-heading"><a href="https://www.hendrik-erz.de/post/localchat-chat-with-an-ai-assistant-on-your-computer">LocalChat: Chat with an AI Assistant On Your Computer</a></h2>
+        <div class="post-list-metadata">
+            January 19th, 2024 | by Hendrik
+        </div>
+    
+        <p class="post-abstract">
+            Totay I want to introduce a new small app that I made. LocalChat allows you to run generative AI models that look and feel almost like ChatGPT locally on your computer. This means you can chat with a chatbot while your internet is down, without having to worry about leaking confidential information to some company, and more.
+        </p>
+    </div>
+    <div class="post-wrapper">
+        <h2 class="post-list-heading"><a href="https://www.hendrik-erz.de/post/academic-website-vii-dirty-tricks">Academic Website VII: Dirty Tricks</a></h2>
+        <div class="post-list-metadata">
+            January 11th, 2024 | by Hendrik
+        </div>
+    
+        <p class="post-abstract">
+            Over the past weeks, I have shared many tips on how to set up your own, personal website. Today I want to finish up the series (for now) with a small and incomplete collection of "dirty tricks" that I find very appealing in the context of personal websites; from automating away chores to giving a better user interaction.
+        </p>
+    </div>
+<div class="pagination-container" style="text-align: center">
+<p class="sans-font small" style="margin: 0; text-align: center;">You are viewing page 1 of 10</p>
+<div class="paginator">
+                                                
+    
+    <a
+            href="#"
+      class="disabled"
+            title="Previous page"
+    >
+        <i data-feather="chevron-left"></i>
+    </a>
+
+        <a
+      href="https://www.hendrik-erz.de/blog/1"
+      class="active"
+    >
+    1
+    </a>
+        <a
+      href="https://www.hendrik-erz.de/blog/2"
+      class=""
+    >
+    2
+    </a>
+        <a
+      href="https://www.hendrik-erz.de/blog/3"
+      class=""
+    >
+    3
+    </a>
+    
+    <a
+            href="https://www.hendrik-erz.de/blog/2"
+            title="Next page"
+     >
+        <i data-feather="chevron-right"></i>
+    </a>
+    
+        <a
+      href="https://www.hendrik-erz.de/blog/10"
+      title="Last page"
+     >
+        <i data-feather="chevrons-right"></i>
+    </a>
+    </div>
+</div>            </section>
+     
+            <footer>
+    <p>
+        &copy; 2020 &ndash; 2024 Hendrik Erz |
+        Inspired by <a href="https://edwardtufte.github.io/tufte-css/" target="_blank" rel="nofollow">Tufte CSS</a> |
+        Built on <a href="https://www.wintercms.com/" target="_blank" rel="nofollow">Winter CMS</a>
+    </p>
+    <!-- Display a toggle so that users can choose which mode they want -->
+<div class="theme-switcher">
+  <span><i data-feather="sun"></i></span>
+  <div class="three-way-radio horizontal">
+    <!-- Add the three radios -->
+    <label for="footer-ui-mode-left"></label>
+    <input type="radio" name="ui-mode" id="footer-ui-mode-left" class="left" value="left" data-action="ui-mode-light">
+    <label for="footer-ui-mode-center"></label>
+    <input type="radio" name="ui-mode" id="footer-ui-mode-center" class="center" value="center" data-action="ui-mode-system">
+    <label for="footer-ui-mode-right"></label>
+    <input type="radio" name="ui-mode" id="footer-ui-mode-right" class="right" value="right"  data-action="ui-mode-dark">
+    
+    <!-- This is the actual indicator -->
+    <div class="indicator"></div>
+  </div>
+  <span><i data-feather="moon"></i></span>
+</div></footer>        </div>
+        <!-- Include the framework scripts -->
+            </body>
+</html>

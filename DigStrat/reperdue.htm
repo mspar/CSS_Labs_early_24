@@ -1,0 +1,69 @@
+<html>
+	<head>
+	<!-- Ce document est encodé en ISO-8859-1, soit latin1 ou windows-1252, mais c'est un secret. -->
+		<style>
+			.bandeau {
+				padding: 15px;
+				text-align: center;
+				background: orange;
+				color: black;
+				font-size: 20px;
+			}
+		</style>
+
+		<script>
+			function loadPage() {
+				var lecheck = getCookie("cookiecheck");
+				if (lecheck != "sesameouvretoi") {
+					setCookie("cookiecheck", "sesameouvretoi", 1);
+				}
+				var lecheck2 = getCookie("cookiecheck");
+				if (lecheck2 == "sesameouvretoi") {
+					var titre = document.getElementById("title");
+					var stit = document.getElementById("stitle");
+					var lepar = document.getElementById("paragr");
+					titre.textContent = "Perdue sur l'Internet, entre les cöôkïês, lès äccènts et le jàväscrîpt ?";
+					stit.textContent = "Pas de panique, on va vous aider";
+					lepar.textContent = "    * <----- vous êtes ici, et votre navigateurs accepte les cookies et le javascript";
+				}
+				return "";
+			}		
+
+			function setCookie(cname, cvalue, exdays) {
+			  var d = new Date();
+			  d.setTime(d.getTime() + (exdays * 24 * 60 * 60 * 1000));
+			  var expires = "expires="+d.toUTCString();
+			  document.cookie = cname + "=" + cvalue + ";" + expires + ";path=/";
+			}
+
+			function getCookie(cname) {
+			  var name = cname + "=";
+			  var ca = document.cookie.split(';');
+			  for(var i = 0; i < ca.length; i++) {
+				var c = ca[i];
+				while (c.charAt(0) == ' ') {
+				  c = c.substring(1);
+				}
+				if (c.indexOf(name) == 0) {
+				  return c.substring(name.length, c.length);
+				}
+			  }
+			  return "";
+			}
+		</script>
+	</head>
+	<body onload="loadPage()">
+			<div class="bandeau">
+				<p>Site inspiré de <a href="https://perdu.com">perdu.com</a>, présenté à des fins pédagogiques.</p>
+			</div> 
+
+		<div>
+			<h1 id="title">Cette page nécessite des cookies et javascript pour s'afficher correctement.</h1>
+			<h2 id="stitle"></h2>
+			<pre id="paragr"></pre>
+		</div>
+	</body>
+</html>
+
+
+

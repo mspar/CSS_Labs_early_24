@@ -142,7 +142,7 @@ Let's revist our ESS data on voting in Sweden
 
 ```{r, echo=F,size="footnotesize"}
 library(haven)
-ess<-read_dta("ESS8e02_1_se.dta") %>% 
+ess<-read_dta("C:/Users/marcs/Desktop/Labs/CSS_Labs_early_24/DCM/FINALDCM/ESS8e02_1_se.dta") %>% 
   select(idno,prtvtbse,lrscale,imueclt) %>% 
   zap_missing() %>% 
   droplevels() %>% 
