@@ -1,0 +1,442 @@
+---
+title: "Final Assignment SNA - Help Seeking in a Hungarian Classroom"
+author: "Marc Sparhuber"
+format: pdf
+editor: source
+execute:
+  warning: false
+  echo: false
+toc: true
+header-includes:
+      - \usepackage{float}
+      - \floatplacement{table}{H}
+bibliography: references.bib
+csl: apa.csl
+---
+
+\newpage
+
+```{r load packages and attr data}
+library(tidyverse)
+library(network)
+library(sna)
+library(latticeExtra)
+library(ergm)	
+library(RSiena)
+library(knitr)
+library(kableExtra)
+
+# load in data
+attributes_study <- read_csv(here::here("SNA", "Final SNA", "CodebooksAttributeData", "RECENS_students_dataset_w1234.csv"))
+
+# finding the class without any leavers or joiners in waves 1-3
+attributes_6200 <-  attributes_study |> select(-ends_with("4")) |> 
+  group_by(class_1) |> 
+  filter(all(is.na(left12)) & all(is.na(left23)) & 
+         all(c_across(starts_with("newstudent")) == 0)) |> ungroup()
+# -> is a good fit looking at the technical report too
+# there are two joiners in wave 3 but easy to remove
+```
+
+## Research Questions, Theoretical Background and Hypotheses
+
+> Based on network data gathered by the Research Center for Educational and Network Studies (RECENS) in Budapest [@vörös2022], this analysis centers around help-seeking networks in Hungarian school classes. The first research question is more of a replication, asking whether individuals seek more help from individuals who are of the same gender. Secondly, it is investigated whether individuals who consider their grades as very important to them are asked for help more frequently than others. Lastly, it is asked whether there is a tendency for the nodes to be part of triads where everybody is mutually connected (dense triads).
+
+> Findings on the first question are manifold, indicating that there is no preference to seek help from individuals of the same gender [e.g., @kilday2023; @niskala2023]. These findings, however, are from relatively gender balanced classrooms, therefore a re-analysis in this less gender balanced classroom is warranted to inspect homophily effects based on gender. Based on intuition, help is more likely to be sought from people who are only satisfied with themselves when they get good grades, as this may be an indicator of better grades. Conversely, it may also mean that these students are less fond of sharing their work. Finally, due to the small size of the network and spending much time in the classroom together, ethnic homogeneity, as well as no new students joining the class for the first two of the three waves of observations, it is expected for there to be a higher number of dense triads in this help-seeking network, i.e., (almost) fully reciprocated closed triads indicating that there is strong social cohesion among the students, which has also been shown to come into effect in other classroom settings [e.g., @schaefer2010].
+
+```{r get matrices ready}
+#selecting variables of interest
+
+attributes_6200 |> select(idcode, gender = gender_3, starts_with("nbrcom"), starts_with("impstd"), starts_with("stdnts"), starts_with("parent"), starts_with("ethnic"), starts_with("tryalc"), starts_with("trycig")) -> attributes_6200
+
+# loading in dependent networks and turning them into matrices
+ask_help1 <- read.csv(here::here("SNA", "Final SNA", "Networks_by_Type", "I_can_ask_for_help", "6200_24_12.csv"), row.names = 1) |> 
+  rename_with(~substring(., 2)) |> 
+  as.matrix()
+ask_help2 <- read.csv(here::here("SNA", "Final SNA", "Networks_by_Type", "I_can_ask_for_help", "6200_22_12_2h.csv"), row.names = 1) |> 
+  rename_with(~substring(., 2)) |> 
+  as.matrix()
+ask_help3 <- read.csv(here::here("SNA", "Final SNA", "Networks_by_Type", "I_can_ask_for_help", "6200_21_10_3h.csv"), row.names = 1)  |> 
+  rename_with(~substring(., 2)) |> 
+  as.matrix()
+ask_help3 <- ask_help3[-35:-36, -35:-36]
+# -> trimming the two newcomers
+
+# look_up1 <- read.csv("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/SNA/Final SNA/Networks_by_Type/I_look_up/6200_24_1.csv", row.names = 1)  |>
+#   rename_with(~substring(., 2)) |>
+#   as.matrix()
+# look_up2 <- read.csv("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/SNA/Final SNA/Networks_by_Type/I_look_up/6200_22_1_2h.csv", row.names = 1) |>
+#   rename_with(~substring(., 2)) |>
+#   as.matrix()
+# look_up3 <- read.csv("C:/Users/User/Desktop/Labs and Assignments Winter early 24/CSS_Labs_early_24/SNA/Final SNA/Networks_by_Type/I_look_up/6200_21_1_3h.csv", row.names = 1)  |>
+#   rename_with(~substring(., 2)) |>
+#   as.matrix()
+# look_up3 <- look_up3[-35:-36, -35:-36]
+```
+
+## Data description
+
+> Classroom 6200 was chosen due to several factors. It has a comparably high participant rate throughout the first 3 waves of the study, with 100% for waves one and two. It is also the most stable classroom, with no students leaving in the first 3 waves of the study. Conducive to choosing this classroom was also that it has only 2 new students joining in wave 3, who are excluded from the analyses. Beneficial to testing the first hypothesis, it also contains only \~33% of boys across the waves used for the analysis. Other features which did not motivate choosing it but are relevant to mention are that the classroom is part of a grammar school that has students who primarily identify as Hungarian rather than Roma or Roma & Hungarian at the same time. Classroom 6200 to \~97% identified as Hungarian.
+
+> Inspecting the descriptives presented in Table 1, it is apparent that across the waves the mean degrees stay roughly the same, although in wave 3 there seems to be an increase in variability of degrees. An average density of \~0.2 across all three wave shows that around 20% of all possible connections between students were present. The classroom sports high reciprocity of around \~0.8 on average. This indicates the prevalence of bidirectional ties, showing that roughly 80% of all ties are reciprocated. Lastly, while transitivity is at 0.49 and 0.42 in the first two waves, which is already fairly high, it jumps up to 1 in wave 3, meaning that all triangles in the graph are closed triads. In Table 2, network descriptives across waves are shown. From the first to the second and from the second to the third waves, the Jaccard index is above the 0.3 threshold set out by the RSiena Manual [@ripley2024]. The hamming distances indicate the number of observed changes and therefore the minimum number of observed changes between the networks. At around 200, these are fairly high.
+
+```{r descriptives}
+
+Hamming <- function(net1,net2) {
+	tbl <- table(c(0,0,1,1,net1),c(0,1,0,1,net2))-1
+	return(tbl[1,2]+tbl[2,1])
+}
+Ham12 <- Hamming(ask_help1,ask_help2)
+Ham23 <- Hamming(ask_help2,ask_help3)
+
+Jaccard <- function(net1,net2) {
+	tbl <- table(c(0,0,1,1,net1),c(0,1,0,1,net2))-1
+	return(tbl[2,2]/(tbl[1,2]+tbl[2,1]+tbl[2,2]))
+}
+Jac12 <- Jaccard(ask_help1,ask_help2)
+Jac23 <- Jaccard(ask_help2,ask_help3)
+# both above the threshold
+
+# Degrees
+# mean(degree(ask_help1))
+# sd(degree(ask_help1))
+# mean(degree(ask_help1,cmode="indegree"))
+# sd(degree(ask_help1,cmode="indegree"))
+# mean(degree(ask_help1,cmode="outdegree"))
+# sd(degree(ask_help1,cmode="outdegree"))
+# 
+# mean(degree(ask_help2))
+# sd(degree(ask_help2))
+# mean(degree(ask_help2,cmode="indegree"))
+# sd(degree(ask_help2,cmode="indegree"))
+# mean(degree(ask_help2,cmode="outdegree"))
+# sd(degree(ask_help2,cmode="outdegree"))
+# 
+# mean(degree(ask_help3))
+# sd(degree(ask_help3))
+# mean(degree(ask_help3,cmode="indegree"))
+# sd(degree(ask_help3,cmode="indegree"))
+# mean(degree(ask_help3,cmode="outdegree"))
+# sd(degree(ask_help3,cmode="outdegree"))
+# 
+# # Density
+# gden(ask_help1)
+# gden(ask_help2)
+# gden(ask_help3)
+# 
+# # Reciprocity
+# grecip(ask_help1)
+# grecip(ask_help2)
+# grecip(ask_help3)
+# 
+# # Transitivity
+# gtrans(ask_help1)
+# gtrans(ask_help2)
+# gtrans(ask_help3)
+
+descs <- data.frame(
+  `Measure/Variable` = c("Degrees","Indegrees","Outdegrees", "Density","Reciprocity","Transitivity"),
+  `Mean/Value` = c(mean(degree(ask_help1)), mean(degree(ask_help1,cmode="indegree")), mean(degree(ask_help1,cmode="outdegree")), gden(ask_help1), grecip(ask_help1), gtrans(ask_help1)),
+  `Standard Deviation` = c(sd(degree(ask_help1)), sd(degree(ask_help1,cmode="indegree")), sd(degree(ask_help1,cmode="outdegree")), " ", " ", " ")
+  ) |> 
+  bind_rows(data.frame(
+  `Measure/Variable` = c("Degrees","Indegrees","Outdegrees", "Density","Reciprocity","Transitivity"),
+  `Mean/Value` = c(mean(degree(ask_help2)), mean(degree(ask_help2,cmode="indegree")), mean(degree(ask_help2,cmode="outdegree")), gden(ask_help2), grecip(ask_help2), gtrans(ask_help2)),
+  `Standard Deviation` = c(sd(degree(ask_help2)), sd(degree(ask_help2,cmode="indegree")), sd(degree(ask_help2,cmode="outdegree")), " ", " ", " ")
+  )) |> 
+  bind_rows(data.frame(
+  `Measure/Variable` = c("Degrees","Indegrees","Outdegrees", "Density","Reciprocity","Transitivity"),
+  `Mean/Value` = c(mean(degree(ask_help3)), mean(degree(ask_help3,cmode="indegree")), mean(degree(ask_help3,cmode="outdegree")), gden(ask_help3), grecip(ask_help3), gtrans(ask_help3)),
+  `Standard Deviation` = c(sd(degree(ask_help3)), sd(degree(ask_help3,cmode="indegree")), sd(degree(ask_help3,cmode="outdegree")), " ", " ", " ")
+  )) |>
+  mutate(
+    Wave = rep(1:3, each = 6),
+    Wave = case_when(
+     Wave == 1 ~ "Wave 1",
+     Wave == 2 ~ "Wave 2",
+     Wave == 3 ~ "Wave 3"
+    )
+  )
+
+colnames(descs) <- c("Measure", "Mean/Value", "SD", "Wave")
+
+descs |> mutate(
+  SD = as.numeric(SD),
+  across(where(is.numeric), round, digits = 2),
+  SD = as.character(SD)) -> descs
+
+descs[is.na(descs)] <- ""
+
+table1 <- kable(descs[, -4],
+    booktabs = TRUE,
+    caption = "Network Descriptives By Wave"
+  ) |> 
+  pack_rows(tab_kable,
+    index = table(fct_inorder(descs$Wave), useNA = "no"))
+
+change <- data.frame(
+  `Waves` = c("1 to 2", "2 to 3"),
+  `Jaccard Index` = c(Jac12, Jac23),
+  `Hamming Distance` = c(Ham12, Ham23)
+) |> mutate(
+  across(where(is.numeric), round, digits = 2))
+
+colnames(change) <- c("Waves", "Jaccard Index", "Hamming Distance")
+
+table2 <- kable(change, caption = "Network Descriptives Across Waves", booktabs = TRUE)
+
+table1
+table2
+```
+
+```{r network objects & attributes}
+grades_imp1 <- as.numeric(attributes_6200[[6]])
+grades_imp2 <- as.numeric(attributes_6200[[7]])
+grades_imp3 <- as.numeric(attributes_6200[[8]])
+
+ask_help1 <- as.network(ask_help1)
+ask_help1 %v% "gender" <- attributes_6200[,2]
+ask_help1 %v% "grades_imp" <- c("darkred","yellow","darkgreen", "black")[grades_imp1]
+
+ask_help2 <- as.network(ask_help2)
+ask_help2 %v% "gender" <- attributes_6200[,2]
+ask_help2 %v% "grades_imp" <- c("darkred","yellow","darkgreen")[grades_imp2]
+
+ask_help3 <- as.network(ask_help3)
+ask_help3 %v% "gender" <- attributes_6200[,2]
+ask_help3 %v% "grades_imp" <- c("darkred","yellow","darkgreen")[grades_imp3]
+
+```
+
+> Figures 1 to 3 show the networks at each of the included waves. To determine fixed positions across all three points of observation, a solution based on multidimensional scaling of clique membership is employed. This groups nodes according to their co-membership in cliques but is really just a way to not have to do randomly fixed node positions across graphs while still being able to use the SNA package. Initially, this method led to some overlap issues but after introducing slight jitter, each node is now visible (I think if I had switched to igraph, this would've looked nicer and been a quicker fix but I was a bit stubborn). In the graphs themselves, square nodes indicate boys, while round nodes represent girls. Most boys seem to be part of a central group and seem to have fewer outgoing ties than girls. The color indicates how important grades are for each student with yellow indicating hose who are only satisfied with themselves if they get good grades and red those who are not influenced in their satisfaction by the grades they receive. Figures 1 and 2 have no NAs but in Figure 3 they are shown in white. There seems to be no clear discernible pattern regarding the number of incoming ties for red vs. yellow nodes across all three waves but it seems as though after the second wave the individuals who had consistently answered that grades are not important for their satisfaction in wave 1 and 2, seem to not do so anymore in wave 3.
+
+```{r plottinggggg}
+#| fig-width: 15
+#| fig-height: 15
+
+comemb <- clique.census(ask_help1, clique.comembership="sum")$clique.comemb # Co-membership matrix
+
+coords <- cmdscale(1/(1+comemb))        # Perform an MDS  (multidimensional scaling) 
+                                        # the more overlap, 
+                                        # the "closer" the vertices
+
+# make df for jitter
+as.data.frame(coords) -> coords_df
+
+# introduce slight jitter on each row
+coords_df %>% 
+  rowwise() |> 
+  mutate(V1 = V1 + (V1[1] - jitter(V1[1], amount=.1)),
+         V2 = V2 + (V2[1] - jitter(V2[1], amount=.1))) |>
+  as.matrix() -> coords_df_jit
+
+#give back old row names
+row.names(coords_df_jit) <- row.names(coords)
+
+grades_imp1<-(attributes_6200$impstd_1)
+grades_imp1A<-(round(3*(grades_imp1)/max((grades_imp1))))
+colfunc <- colorRampPalette(c("yellow", "red"))
+COLWB<-colfunc(3)
+grades_imp2A<-grades_imp1A
+grades_imp2A[grades_imp1A==1]<-COLWB[1]
+grades_imp2A[grades_imp1A==2]<-COLWB[2]
+grades_imp2A[grades_imp1A==3]<-COLWB[3]
+
+grades_imp2<-(attributes_6200$impstd_2)
+grades_imp3A<-(round(3*(grades_imp2)/max((grades_imp2))))
+colfunc <- colorRampPalette(c("yellow", "red"))
+COLWB<-colfunc(3)
+grades_imp4A<-grades_imp3A
+grades_imp4A[grades_imp3A==1]<-COLWB[1]
+grades_imp4A[grades_imp3A==2]<-COLWB[2]
+grades_imp4A[grades_imp3A==3]<-COLWB[3]
+
+grades_imp3<-(!is.na(attributes_6200$impstd_3))
+grades_imp6A<-(round(3*(grades_imp3)/max((grades_imp3))))
+grades_imp6A[grades_imp6A == "3"] <- "#FFFF00"
+grades_imp6A[grades_imp6A == "0"] <- "#FFFFFF"
+grades_imp6A[c(15,16,32)] <- c("#FF0000","#FF0000","#FF0000")
+
+
+gplot(ask_help1, 
+      coord = coords_df_jit, 
+      vertex.sides = 3+(attributes_6200$gender == 1)+(attributes_6200$gender == 2)*50,
+      vertex.col = grades_imp2A,
+      main = "Figure 1: Class 6200 at Wave 1",
+      sub = "Squares indicate boys, circles girls. 
+      Red are those who are not influenced by whether they get good grades or not. 
+      Yellow are those who are only satisfied with themselves if they get good grades.",
+      cex.main = 2, 
+      cex.sub = 2)
+
+gplot(ask_help2, 
+      coord = coords_df_jit, 
+      vertex.sides = 3+(attributes_6200$gender == 1)+(attributes_6200$gender == 2)*50, 
+      vertex.col = grades_imp4A,
+      main = "Figure 2: Class 6200 at Wave 2",
+      sub = "Squares indicate boys, circles girls. 
+      Red are those who are not influenced by whether they get good grades or not. 
+      Yellow are those who are only satisfied with themselves if they get good grades.",
+      cex.main = 2, 
+      cex.sub = 2)
+
+gplot(ask_help3, 
+      coord = coords_df_jit, 
+      vertex.sides = 3+(attributes_6200$gender == 1)+(attributes_6200$gender == 2)*50, 
+      vertex.col = grades_imp6A,
+      main = "Figure 3: Class 6200 at Wave 3",
+      sub = "Squares indicate boys, circles girls. 
+      Red are those who are not influenced by whether they get good grades or not. 
+      Yellow are those who are only satisfied with themselves if they get good grades. 
+      White are NAs.",
+      cex.main = 2, 
+      cex.sub = 2)
+```
+
+## Operationalization of Hypotheses
+
+> Using RSiena version 1.4.7 to run stochastic actor oriented models (SAOMs), the previously mentioned hypotheses are expressed as follows. For the first hypothesis, homophily effects of gender are specified, as can be seen in Table 3 as "same gender". For the second hypothesis regarding the impact of grades on satisfaction, since no student ever chose that good grades are not important to them (= 2), this level was removed and level 3 made into 1 and 1 into 2, so that the higher this value, the more important grades are for the student. Here, a receiver effect was specified to model the assumed increase in help-seeking toward those with a higher level in this dummy variable. In Table 3 this can be seen under "grades-important alter". Finally, the hypothesis about about dense triads can be found eponymously in Table 3 and was specified in the model with two other triadic effects: transitive triplets and transitive reciprocated triplets. In the course of modelling, more effects were added to increase model fit, namely, outTrunc and, outPop. These were added due to fit issues in the outdegree goodness of fit statistics. Adding the prior of these accounted for the phenomena that there is a large number of individuals stated that they cannot ask anyone in their class for help and the latter added a tendency for individuals with high outdegrees to receive more or less nominations with the latter being more expected to be the case, as students who ask for a lot of help might not be asked help of by others a lot.
+
+```{r modellingg}
+#| output: false
+
+# load in the helpnetwork again
+ask_help1 <- read.csv(here::here("SNA", "Final SNA", "Networks_by_Type", "I_can_ask_for_help", "6200_24_12.csv"), row.names = 1) |> 
+  rename_with(~substring(., 2)) |> 
+  as.matrix()
+ask_help2 <- read.csv(here::here("SNA", "Final SNA", "Networks_by_Type", "I_can_ask_for_help", "6200_22_12_2h.csv"), row.names = 1) |> 
+  rename_with(~substring(., 2)) |> 
+  as.matrix()
+ask_help3 <- read.csv(here::here("SNA", "Final SNA", "Networks_by_Type", "I_can_ask_for_help", "6200_21_10_3h.csv"), row.names = 1)  |> 
+  rename_with(~substring(., 2)) |> 
+  as.matrix()
+ask_help3 <- ask_help3[-35:-36, -35:-36]
+
+
+#change grades important into a dichotomous var because no one ever chose 2
+# also flip levels around to make more sense
+attributes_6200 |> 
+  mutate(impstd_1 = recode(impstd_1, `1` = 2, `3` = 1),
+         impstd_2 = recode(impstd_2, `1` = 2, `3` = 1),
+         impstd_3 = recode(impstd_3, `1` = 2, `3` = 1)) -> attributes_6200
+
+# Specify Model
+helpnet <- sienaDependent(array(c(ask_help1, ask_help2, ask_help3),
+	dim=c(34,34,3)))
+gender <- coCovar(attributes_6200$gender)
+grades_important <- varCovar(as.matrix(attributes_6200[,6:8]))
+data_siena <- sienaDataCreate(helpnet, gender, grades_important)
+
+model_siena <- getEffects(data_siena)
+
+# Adding Effects:
+model_siena <- includeEffects(model_siena,
+	transTrip, transRecTrip, outTrunc, outPop, denseTriads) # clustering & other fit-improving effects
+model_siena <- includeEffects(model_siena,
+	egoX, altX, # sender, receiver
+	sameX, interaction1 = "gender") # homophily effects on gender
+model_siena <- includeEffects(model_siena,
+	egoX, altX, # sender, receiver
+	simX, interaction1 = "grades_important") # homophily effects on how important grades are
+
+# Estimate it and inspect results:
+controls <- sienaAlgorithmCreate(n3 = 1000, nsub = 5, seed = 2)
+results_siena <- siena07(controls, data = data_siena, effects = model_siena)
+
+# this generates a tex file so I can copy paste from there with slight alterations
+test <- siena.table(results_siena, type = "tex", tstat = TRUE, sig = TRUE, d = 2)
+#convergence ratio is good :3, as below 0.25
+```
+
+## Results
+
+> Table 3 shows the results of the SAOM. With an overall maximum convergence ratio 0.12, this is well below the rule of thumb of 0.25. The parameter-wise convergence indicator is also below 0.06, indicating good convergence. With the outdegree parameter significantly negative, it can be said that students are selective in their help-seeking, unless reciprocated, the effect for which is significantly positive. With the reciprocity and transitive triplets effect both being significantly positive, it can be assumed that students are clustered into groups in which many of the ties are bidirectional. Looking at the effects relevant to the hypotheses we can see that the first hypothesis is not supported. In fact, the opposite seems to be true with people of the same gender, with a significant coefficient of 0.33. Regarding the second hypothesis, the there seems to be a non-significant null effect. Therefore, the second hypothesis is not supported. Lastly, the dense triads hypothesis is also not supported, as the slightly negative coefficient is not significant. Other interesting results are the strong negative effect of for outdegree isolates ("outdegree-trunc(1)"), indicating that there are many students who do not ask for help, and the significant negative effect of outdegree popularity, showing that there is a tendency for individuals with high outdegrees to receive fewer nominations. Lastly, the transitive triplets effect is significantly positive, which makes sense looking at the high transitivity descriptives in Table 1.
+
+```{=latex}
+\begin{table}[htbp]
+\centering
+\caption{SAOM Results}
+\begin{tabular}{|l | r@{.}l r@{.}l r@{.}l | }
+\hline
+\rule{0pt}{2ex}\relax
+Effect &\multicolumn{2}{c}{par.}&\multicolumn{2}{c }{ (s.e.) } &\multicolumn{2}{c | }{$t$ stat.} \\[0.5ex]
+\hline
+\rule{0pt}{2ex}\relax
+Rate 1 & 17 & 65 & (2 & 45) & \omit & -\\
+Rate 2 & 16 & 56 & (2 & 51) & \omit & -\\
+\hline
+\rule{0pt}{2ex}\relax
+outdegree (density)          & --1 & 39$^{\ast\ast\ast}$ & (0 & 14) & --10 & 22\\
+reciprocity                  &   1 & 78$^{\ast\ast\ast}$ & (0 & 21) &    8 & 56\\
+transitive triplets          &   0 & 26$^{\ast\ast\ast}$ & (0 & 03) &    9 & 00\\
+transitive recipr. triplets  & --0 & 04                  & (0 & 09) &  --0 & 39\\
+dense triads                 & --0 & 10                  & (0 & 07) &  --1 & 51\\
+outdegree - popularity       & --0 & 10$^{\ast\ast\ast}$ & (0 & 02) &  --6 & 03\\
+outdegree-trunc(1)           & --2 & 62$^{\ast\ast\ast}$ & (0 & 56) &  --4 & 65\\
+gender alter                 &   0 & 24$^\ast$           & (0 & 11) &    2 & 06\\
+gender ego                   & --0 & 14                  & (0 & 10) &  --1 & 39\\
+same gender                  &   0 & 33$^{\ast\ast}$     & (0 & 10) &    3 & 28\\
+grades-important alter       & --0 & 00                  & (0 & 13) &  --0 & 01\\
+grades-important ego         & --0 & 03                  & (0 & 13) &  --0 & 26\\
+grades-important similarity  &   0 & 24$^\dagger$        & (0 & 13) &    1 & 86\\
+\hline
+\multicolumn{5}{l}{\footnotesize{$^\dagger$ $p$ $<$ 0.1;
+                $^\ast$ $p$ $<$ 0.05; $^{\ast\ast}$ $p$ $<$ 0.01;
+                $^{\ast\ast\ast}$ $p$ $<$ 0.001;}}\\
+\multicolumn{5}{l}
+   {\footnotesize{convergence $t$ ratios all $<$ 0.06.}}\\
+\multicolumn{5}{l}{\footnotesize{Overall maximum convergence ratio 0.12.}}
+\end{tabular}
+\label{tab:mytable}
+\end{table}
+```
+```{r gof 1}
+#| output: false
+
+# Options for the simulation algorithm -> higher so estimates SD's correctly:
+SimCont <- sienaAlgorithmCreate(n3 = 1000, nsub = 4, seed = 2)
+
+# Add simulated networks to model results:
+TheSims1 <- siena07(SimCont, data = data_siena, effects = model_siena,
+	returnDeps = TRUE,
+	prevAns = results_siena)
+```
+
+> The goodness of fit statistics in Figures 4 through 6 indicate a acceptable fit level overall. For the indegree distribution, though the p-value is non-significant (which is good in this case), many quirks of the empirical distribution seem not to have been met, especially looking at 4 and 9. Unlike the indegree distribution, the outdegree distribution was highly significant before adding the additional effects mentioned above. Specifically, the outdegree isolation effect made a huge impact in raising the p-value. Despite an acceptable p-level of 0.108, the goodness of fit for the triad census shows that there are many cases in which an overestimation of values occurred, looking at the many x's at the upper ends (and to a lesser extent the lower end) of the violin plots.
+
+```{r gof 2}
+#| fig-width: 10
+#| fig-height: 7
+
+# Indegrees
+gofIndegrees <- sienaGOF(TheSims1, 
+                          varName = "helpnet",
+                          IndegreeDistribution, # the fit function to be evaluated
+                          cumulative = FALSE, # (same meaning as in probability distributions)
+                          levls = 0:15) # evaluate indegrees on these 16 fit dimensions
+plot(gofIndegrees, main = "Figure 4: Goodness of Fit — Indegree Distribution")
+
+# Outdegrees
+gofOutdegrees <- sienaGOF(TheSims1, 
+                           varName = "helpnet",
+                           OutdegreeDistribution,
+                           cumulative = FALSE, 
+                           levls = 0:15) 
+plot(gofOutdegrees, main = "Figure 5: Goodness of Fit — Outdegree Distribution")
+
+# Triad Census
+gofTriads <- sienaGOF(TheSims1, 
+                       varName = "helpnet", 
+                       TriadCensus, 
+                       verbose = FALSE)
+plot(gofTriads, 
+     center = TRUE, 
+     scale = TRUE, 
+     main = "Figure 6: Goodness of Fit — Triad Census")
+```
+
+## Discussion and Conclusion
+
+> To reiterate, all three of the hypotheses could not be supported. Despite previous findings showing that boys and girls are equally likely to seek help from both genders, this is not the case in this data set. Instead, the opposite seems to be the case, with students significantly more often feeling like they can ask a peer of the same gender for help. Regarding gender, what might however be speculated, is that boys, who are known to ask for help less than girls [@ryan1998], may be responsible for the high number of outdegree isolates. This warrants further study and may be addressed in a bigger sample than just one class. The second hypothesis, that help is more likely to be sought from people who are only satisfied with themselves when they get good grades, as this may be an indicator of better grades, is not supported. Instead, a marginally significant effect (though interpreted with care), hints toward a homophily effect here, rather than an alter effect. There have been results where students who needed help turned primarily to high performing and sociable students for help [e.g., @kilday2023]. These results are difficult to compare, however, since the questions asked in this study do not indicate actual performance, just subjective satisfaction upon receiving grades and the help network is assessed by the statement "I could ask him/her for help", which leaves some room for interpretation on the side of the students when answering. The third hypothesis could also not be supported, as there seemed to be no significant positive effect for dense triads, though it is feasible that had the transitive triplets and transitive reciprocated triplets effects not been specified this might have been higher. Other limitations are the fact that despite observing three waves of the help seeking network, the co-evolution with friendship would have been important to take into account, to control for the effects of these two networks on each other, which have been found to be substantial and can be expected to muddy the present results quite substantially [@brouwer2018; @lomi2011]. All in all, despite not finding support for any of the posed hypotheses, this analysis uncovered some quirks that may be interesting when looking at help-seeking networks in classrooms, such as gender homophily and outdegree isolation.
+
+## Bibliography
