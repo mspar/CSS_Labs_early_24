@@ -3,9 +3,23 @@ title: "DigStrat1"
 author: Marc Sparhuber
 format: pdf
 editor: source
+toc: true
 ---
 
-```{r}
+\newpage
 
+```{r}
+library(tidyverse)
+
+results <- read_rds("scrape_results_1.Rds")
 ```
+
+```{r}
+# plots:
+# full therapist vs. nah?
+# types of therapy? -> list by amount horizontal barplot
+# types of expertise? -> list by amount horizontal barplot
+# number languages
+```
+
 
