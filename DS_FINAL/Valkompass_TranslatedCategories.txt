@@ -1,0 +1,98 @@
+This dataset was produced in 2014 by SverigesTelevision (Swedish National television). 
+It includes a list of all the candidates to the Parliament (Parliament). Information about their income were gathered from the tax office (Skattesverket). 
+Then, all candidates were contacted and they were asked to respond to question about themselves, their political affiliations, their employment. 
+Eventually, they were asked about their political opinion on 45 questions that divide contemporary Sweden. For each, they were also asked if they thought this is a priority question or not. 
+
+The variables are listed below, I took care of some translation and some recoding this week - it could be horribly wrong, but i hope not. 
+There a still bits in Swedish for those who want to have a taste of Scandinavia
+
+--------------------------
+nid: Unique ID
+FirstName
+LastName
+Gender
+DateofBirth: YYYY-MM-DD
+Place
+PoliticalParty: https://en.wikipedia.org/wiki/List_of_political_parties_in_Sweden
+TypeofElection: R (Riksdag)
+Region: Region of election (matters, elections by regional lists)
+PositionList: Position on the list
+SelfPresentation: Describe yourself (text)
+WhyVote4you: Why vote for you (text)
+Priority1: What is your first priority? (text)
+Priority2: What is your second priority? (text)
+Priority3: What is your third priority? (text)
+Income2008: Income after taxes, SEK, 2008
+Income2009: Income after taxes, SEK, 2009
+Income2010: Income after taxes, SEK, 2010
+Income2011: Income after taxes, SEK, 2011
+Income2012: Income after taxes, SEK, 2012
+Income2013: Income after taxes, SEK, 2013
+Homepage: Link
+Facebook: Facebook page
+TwitterHandle: twitter handle
+instagram: Instagram account
+PoliticalSelfPositioning: Position yourself on the left/right scale
+PoliticalRoleModel: Name, if any, your political role model
+OtherParty: If you were active in another party, which would it be?
+Political Campaign: Are you running a personal campaign (list + names elections)
+FavouriteMusic
+FavoriteFilm
+FavoriteWriter
+FavoriteTVProgram
+FavoriteRadioProgram
+Sport
+Hobby
+Food
+Drink
+CountryofBirth
+OtherLanguages: What languages do you speak, besides Swedish?
+OccupationalStatus: What is your current occupational status
+Occupation(current_or_last): What is your occupation (or the last one)
+HighestDiploma: What is the highest diploma you have obtained?
+PrimaryHabitation: What type of habitation do you live in?
+Q1_WomenQuotaCompanies: There should be women's quotas in the board of directors of companies
+Q2_RetirementIncrease: Retirement pensions should be increased
+Q3_WorkWeekTime: The legal duration of work per week should be reduced
+Q4_CompanyChoiceLayoff: A company should be able to decide who to lay off first [there is a rule in Sweden stating that "last in, first out" ("sista in, första ut")]
+Q5_UnemploymentBenefits: Unemployment benefits should be raised
+Q6_YouthSalary: The salary for a first job should be lower
+Q7_PupilsGrade: Students should receive a grade for each year of class
+Q8_StateSchools: The (Swedish) State should take over school (K12) management from the municipalites [to even out] 
+Q9_HighSchool2College: All high school curricula should lead to the university [no vocational, short term programs]
+Q10_PrivateSchools: The number of private schools should increase
+Q11_BehaviorGrade: Grades about behavior should be introduced at school
+Q12_StateHealthCare: The (Swedish) State should take over healthcare management from the regions
+Q13_ChildbirthAllowance: Childbirth Allowance should be abolished
+Q14_HelpDisabilities: Personal services to people with disabilities should cost the same anywhere in the country
+Q15_ProfitsHealthcare: Profits should not be allowed for tax funded health care organizations
+Q16_UndocumentedHealth: Undocumented migrants should have free healthcare
+Q17_CapitalTax: A tax on high levels of capital should be reinstated
+Q18_FiscalDeduction: Tax deductions on service to individuals (cleaning, renovating properties) should remain as is [quite important since the 2000s]
+Q19_PrivatizeCompanies: State owned companies should not be privatized
+Q20_ParentalLeave: Parental leave [13 months of paid leave] should be divided equally between the two parents
+Q21_SupportRural: Support for rural areas should increase
+Q22_NuclearPowerLess: Current nuclear reactors should be replaced by new ones [rather than just closed down]
+Q23_DieselTax: The taxes on diesel should be raised
+Q24_WindPowerLess: The financial support to wind power turbines should be reduced
+Q25_Wolves: More wolves should be put down every year
+Q26_FacilitateAsylum: It should be possible to seek asylum from a Swedish embassy abroad
+Q27_LessRefugees: Sweden should accept less refugees every year
+Q28_MunicipalitiesRefugees: All municipalites should accept refugees
+Q29_PolicingRefugees: The police should actively seek out and expel refugees who have been denied residency/asylum
+Q30_SwedenEU: Sweden should leave the EU
+Q31_DefenseSpending: Sweden should spend more for defense
+Q32_SwedenNATO: Sweden should be part of NATO 
+Q33_FreeMuseum: Museum entrance should be free
+Q34_RighttoCopy: Copyrighted material should be allowed for download on the internet
+Q35_MonitorInternet: The police should be able to request detailed informations about individuals' internet and telefon communications
+Q36_WineSale: Restrictions on the retail of alcohol should be lifted [At the moment, alcohol is only sold at restricted hours in a limited number of state-run stores]
+Q37_IncomeInequalities: Sweden should reduce income inequalities
+Q38_MoreMarket: Sweden should favor private companies and market devices
+Q39_WomenPower: Sweden should do more to transfer power from men to women
+Q40_PunishmentMore: Crimes and felonies sentences should be harsher
+Q41_Multiculti: Sweden shoud strive for a multicultural society
+Q42_ChristianInfluence: Christian values should have more influence in swedish politics
+Q43_ReturnEducation: A higher education should lead to a better income than now
+Q44_GayRights: Sweden should sponsor LGBT rights more than now
+Q45_ClimatePriority: Fighting global warming should take precedence over all others political causes
