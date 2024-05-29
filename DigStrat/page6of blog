@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+    <meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="content-language" content="en-GB">
+<meta name="description" content="My personal research blog">
+
+<link rel="apple-touch-icon" sizes="180x180" href="https://www.hendrik-erz.de/themes/main/assets/images/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="https://www.hendrik-erz.de/themes/main/assets/images/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="https://www.hendrik-erz.de/themes/main/assets/images/favicon-16x16.png">
+
+<!-- Twitter Cards -->
+<meta name="twitter:title" content="Blog">
+<meta name="twitter:description" content="My personal research blog">
+
+<meta name="twitter:site" content="@sahiralsahid">
+<meta name="twitter:creator" content="@sahiralsaid">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://www.hendrik-erz.de/storage/app/media/hendrikerzde_socialmedia.png">
+
+<!-- Open Graph -->
+<meta property="og:locale" content="en-GB">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Blog">
+<meta property="og:description" content="My personal research blog">
+<meta property="og:url" content="https://www.hendrik-erz.de/blog/6">
+<meta property="og:site_name" content="Hendrik Erz">
+<meta property="og:image" content="https://www.hendrik-erz.de/storage/app/media/hendrikerzde_socialmedia.png">
+
+
+
+<script type="application/ld+json">
+{
+"@context": "http://www.schema.org",
+"@type": "Person",
+"@id": "https://www.hendrik-erz.de/",
+"name": "Hendrik Erz",
+"alternateName": "Hendrik Erz",
+"nationality": "German",
+"award": [],
+"affiliation": [
+	{
+		"@type": "CollegeOrUniversity",
+		"name": "Institute for Analytical Sociology, Linköping University, Sweden",
+		"sameAs": [
+			"https://liu.se/en/organisation/liu/iei/ias",
+			"https://twitter.com/IAS_LiU"
+		]
+  	}
+],
+"alumniOf": [
+	{
+	 "@type": "CollegeOrUniversity",
+	 "name": "University of Bonn",
+	 "sameAs": "https://en.wikipedia.org/wiki/University_of_Bonn"
+	}
+],
+"gender": "Male",
+"Description": "Researcher",
+"disambiguatingDescription": "PhD-Candidate in Analytical Sociology/Computational Social Science",
+"jobTitle": "PhD-Student",
+"worksFor": [
+	{
+		"@type": "CollegeOrUniversity",
+		"name": "Institute for Analytical Sociology, Linköping University, Sweden",
+		"sameAs": [
+			"https://liu.se/en/organisation/liu/iei/ias",
+			"https://twitter.com/IAS_LiU"
+		]
+  	}
+],
+"url": "https://www.hendrik-erz.de/",
+"image": "",
+"sameAs": [
+	"https://twitter.com/sahiralsaid",
+	"https://instagram.com/nathan_lesage",
+	"https://www.linkedin.com/in/hendrik-erz/",
+	"https://github.com/nathanlesage",
+	"https://liu.se/en/employee/hener68",
+	"https://scholar.google.com/citations?user=L8y-sWQAAAAJ",
+	"https://bsky.app/profile/hendrikerz.bsky.social"
+	]
+}
+</script>
+<!-- Feather icons for general support -->
+<script src="https://unpkg.com/feather-icons"></script>
+      
+<!-- Include highlight.js for the codeblocks. We are using the "dark" theme because it's not too dark, and will work in both light and dark mode. -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/highlight.min.js"></script>
+<!-- Load the necessary languages. More are here: https://cdnjs.com/libraries/highlight.js -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/languages/javascript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/languages/typescript.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/languages/r.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/languages/json.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/languages/xml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/languages/markdown.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/languages/python.min.js"></script>
+<!-- MathJax rendering engine for any formulae that I might add to the blog posts -->
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3.0.1/es5/tex-mml-chtml.js"></script>
+
+<script>
+  // Configure MathJax. We need to enable dollar-signs for inline-
+  // equations, since we're not using Dollars as a currency all too
+  // often.
+  // Reference: https://docs.mathjax.org/en/latest/input/tex/delimiters.html#tex-delimiters
+  window.MathJax = {
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']]
+    }
+    // More config options: https://docs.mathjax.org/en/latest/options/input/tex.html#tex-options
+  }
+</script>
+<!-- Matomo -->
+<script type="text/javascript">
+  var _paq = window._paq = window._paq || [];
+  /* tracker methods like "setCustomDimension" should be called before "trackPageView" */
+  _paq.push(["setCookieDomain", "*.hendrik-erz.de"]);
+  _paq.push(["setDomains", ["*.hendrik-erz.de"]]);
+  _paq.push(["setDoNotTrack", true]);
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  
+  // Enable the consent form, if applicable
+  _paq.push([function () {
+    // If we haven't remembered consent, but the user has also not said they don't want to be tracked
+    if (!this.hasRememberedConsent() && navigator.doNotTrack != '1') {
+      // The user has not given consent -> ask him/her
+      // TODO
+      // var consentInfo = this.isUserOptedOut() ? 'You are currently opted out of tracking.' : 'You are currently opted in.';
+      // var infotext = 'I would like to know which parts of this website are very important to you, hence I use Matomo to collect that info.'
+      // var optinButton = '<a class="uk-button uk-button-success" onclick="optIn()">That\'s fine!</a>'
+      // var optoutButton = '<a class="uk-button uk-button-error" onclick="optOut()">No, please opt me out.</a>'
+      
+      // var notification = document.createElement('div')
+      // var title = document.createElement('h2')
+      // title.textContent = 'Tracking'
+      // var content = document.createElement('p')
+      // content.innerHTML = consentInfo + '<br>' + infotext + '<br>' + optinButton + '<br>' + optoutButton
+      
+      // notification.appendChild(title)
+      // notification.appendChild(content)
+      
+      // document.body.appendChild(notification)
+      
+      // UIkit.notification(composed, { pos: 'bottom-right', status: 'primary' })
+    } else if (navigator.doNotTrack != '1') {
+      console.log('Your browser reports that you don\'t want to be tracked. No info about you will be collected.')
+    }
+  }]);
+  
+  (function() {
+    var u="https://matomo.zettlr.com/";
+    _paq.push(['setTrackerUrl', u+'matomo.php']);
+    _paq.push(['setSiteId', '9']);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.type='text/javascript'; g.async=true; g.src=u+'matomo.js'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+<noscript><p><img src="https://matomo.zettlr.com/matomo.php?idsite=9&amp;rec=1" style="border:0;" alt="" /></p></noscript>
+<!-- End Matomo Code -->
+
+<!-- Consent code -->
+<script type="text/javascript">
+function optIn() {
+    _paq.push([function () {
+        // Opt the user in
+        console.log('Opting you in to tracking ...');
+        try {
+            console.log('Forgetting UserOptOut:', this.forgetUserOptOut());
+            console.log('Remembering consent: ', this.rememberConsentGiven());
+        } catch (err) {
+            console.error('Could not opt you in: ' + err.message);
+        }
+    }]);
+}
+
+function optOut() {
+    _paq.push([function () {
+        console.log('Opting you out of tracking ...');
+        try {
+            console.log('Opting you out: ', this.optUserOut());
+            console.log('Forgetting your consent: ', this.forgetConsentGiven());
+        } catch (err) {
+            console.error('Could not opt you out: ' + err.message);
+        }
+    }]);
+}
+</script>
+<!-- End consent code -->
+<!-- Tippy.js -->
+<script src="https://unpkg.com/@popperjs/core@2"></script>
+<script src="https://unpkg.com/tippy.js@6"></script>
+
+<!-- Import our styles -->
+<link rel="stylesheet" type="text/css" href="https://www.hendrik-erz.de/combine/aa1589fc7b772f06c76d5b60ff1ee60a-1708720197">
+
+<!-- Include our JavaScript assets -->
+<script src="https://www.hendrik-erz.de/combine/1af66c397f37f1f5c9adcb931d409707-1712070965"></script>
+
+<!-- Link to the RSS feed -->
+<link href="https://www.hendrik-erz.de/feed.xml" type="application/atom+xml" rel="alternate" title="Hendrik Erz Feed">
+
+<!-- Include the framework styles -->
+
+<title>Blog | Hendrik Erz</title>    </head>
+    <body>
+        <div id="general-container">
+                        <!-- This is the mobile navigation, it'll show precisely there. -->
+<nav id="mobile-navigation">
+  <label id="menu-open" for="mobile-menu-toggle" aria-label="Open menu">
+    <i data-feather="menu"></i>
+  </label>
+
+  <!-- The actual toggle; based on this we're showing and hiding the menu -->
+  <input type="checkbox" id="mobile-menu-toggle">
+
+  <div id="mobile-container">
+    <label id="menu-close" for="mobile-menu-toggle" aria-label="Close menu">
+      <i data-feather="x"></i>
+    </label>
+
+    <h2>Menu</h2>
+    <ul role="presentation">
+            <li>
+        <!-- To check for child items, use item.items -->
+        <a
+            href="https://www.hendrik-erz.de"
+            class=""
+        >
+            Home
+        </a>
+    </li>
+        <li>
+        <!-- To check for child items, use item.items -->
+        <a
+            href="https://www.hendrik-erz.de/blog"
+            class=""
+        >
+            Blog
+        </a>
+    </li>
+        <li>
+        <!-- To check for child items, use item.items -->
+        <a
+            href="https://www.hendrik-erz.de/cv"
+            class=""
+        >
+            CV
+        </a>
+    </li>
+        <li>
+        <!-- To check for child items, use item.items -->
+        <a
+            href="https://www.hendrik-erz.de/resources"
+            class=""
+        >
+            Resources
+        </a>
+    </li>
+        <!-- END: Static pages. Here follow only additional links (Twitter etc.) -->
+    <li>
+        <!-- We use a nested list for items that should not be broken up (aka a group) -->
+        <ul role="presentation">
+            <li>
+                <a href="https://bsky.app/profile/hendrikerz.bsky.social" target="_blank" rel="nofollow" title="Follow me on Bluesky">
+                    <i data-feather="at-sign"></i>
+                </a>
+            </li>
+            <li style="display: none;">
+                <a href="https://www.twitter.com/sahiralsaid/" target="_blank" rel="nofollow" title="Follow me on Twitter">
+                    <i data-feather="twitter"></i>
+                </a>
+            </li>
+            <li>
+                <a rel="me" href="https://scholar.social/@hendrikerz" target="_blank" title="Follow me on Mastodon">
+                    <!-- Unfortunately, feather icons does not have a Mastodon SVG -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 216.4144 232.00976" fill="none" stroke="currentColor" stroke-width="15" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M211.80734 139.0875c-3.18125 16.36625-28.4925 34.2775-57.5625 37.74875-15.15875 1.80875-30.08375 3.47125-45.99875 2.74125-26.0275-1.1925-46.565-6.2125-46.565-6.2125 0 2.53375.15625 4.94625.46875 7.2025 3.38375 25.68625 25.47 27.225 46.39125 27.9425 21.11625.7225 39.91875-5.20625 39.91875-5.20625l.8675 19.09s-14.77 7.93125-41.08125 9.39c-14.50875.7975-32.52375-.365-53.50625-5.91875C9.23234 213.82 1.40609 165.31125.20859 116.09125c-.365-14.61375-.14-28.39375-.14-39.91875 0-50.33 32.97625-65.0825 32.97625-65.0825C49.67234 3.45375 78.20359.2425 107.86484 0h.72875c29.66125.2425 58.21125 3.45375 74.8375 11.09 0 0 32.975 14.7525 32.975 65.0825 0 0 .41375 37.13375-4.59875 62.915"/>
+                      <path d="M177.50984 80.077v60.94125h-24.14375v-59.15c0-12.46875-5.24625-18.7975-15.74-18.7975-11.6025 0-17.4175 7.5075-17.4175 22.3525v32.37625H96.20734V85.42325c0-14.845-5.81625-22.3525-17.41875-22.3525-10.49375 0-15.74 6.32875-15.74 18.7975v59.15H38.90484V80.077c0-12.455 3.17125-22.3525 9.54125-29.675 6.56875-7.3225 15.17125-11.07625 25.85-11.07625 12.355 0 21.71125 4.74875 27.8975 14.2475l6.01375 10.08125 6.015-10.08125c6.185-9.49875 15.54125-14.2475 27.8975-14.2475 10.6775 0 19.28 3.75375 25.85 11.07625 6.36875 7.3225 9.54 17.22 9.54 29.675"/>
+                    </svg>
+                </a>
+            </li>
+            <li>
+                <a href="https://github.com/nathanlesage/" target="_blank" rel="nofollow" title="Hendrik Erz on GitHub">
+                    <i data-feather="github"></i>
+                </a>
+            </li>
+            <li>
+                <a href="https://www.linkedin.com/in/hendrik-erz/" target="_blank" rel="nofollow" title="Hendrik Erz on LinkedIn">
+                    <i data-feather="linkedin"></i>
+                </a>
+            </li>
+            <li>
+                <a href="https://www.instagram.com/political.sociologist/" target="_blank" rel="nofollow" title="Follow me on Instagram">
+                    <i data-feather="instagram"></i>
+                </a>
+            </li>
+            <li>
+                <a href="https://www.hendrik-erz.de/feed.xml" target="_blank" title="Subscribe to my blog">
+                    <i data-feather="rss"></i>
+                </a>
+            </li>   
+        </ul>
+    </li>
+</ul>    
+    <p style="text-align: center;">
+        &copy; 2020 &ndash; 2024 Hendrik Erz |
+        Inspired by <a href="https://edwardtufte.github.io/tufte-css/" target="_blank" rel="nofollow">Tufte CSS</a> |
+        Built on <a href="https://www.wintercms.com/" target="_blank" rel="nofollow">Winter CMS</a>
+    </p>
+    
+    <!-- Display a toggle so that users can choose which mode they want -->
+<div class="theme-switcher">
+  <span><i data-feather="sun"></i></span>
+  <div class="three-way-radio horizontal">
+    <!-- Add the three radios -->
+    <label for="mobile-ui-mode-left"></label>
+    <input type="radio" name="ui-mode" id="mobile-ui-mode-left" class="left" value="left" data-action="ui-mode-light">
+    <label for="mobile-ui-mode-center"></label>
+    <input type="radio" name="ui-mode" id="mobile-ui-mode-center" class="center" value="center" data-action="ui-mode-system">
+    <label for="mobile-ui-mode-right"></label>
+    <input type="radio" name="ui-mode" id="mobile-ui-mode-right" class="right" value="right"  data-action="ui-mode-dark">
+    
+    <!-- This is the actual indicator -->
+    <div class="indicator"></div>
+  </div>
+  <span><i data-feather="moon"></i></span>
+</div>  </div>
+</nav>            <header id="page-header">
+                <h1 id="page-heading"><a name="top"></a>Blog</h1>
+                <!-- This is the main navigation; it'll show up on all screens >= 768px -->
+<nav id="main-navigation">
+  <!-- A fun little animation -->
+  <div id="animation" role="presentation">
+    <div class="sound-bar" style="background-color: rgb(20, 68, 175)"></div>
+    <div class="sound-bar" style="background-color: rgb(20, 68, 175)"></div>
+    <div class="sound-bar" style="background-color: rgb(20, 68, 175)"></div>
+    <div class="sound-bar" style="background-color: rgb(20, 68, 175)"></div>
+    <div class="sound-bar" style="background-color: rgb(20, 68, 175)"></div>
+    <div class="sound-bar" style="background-color: rgb(251, 207, 10)"></div>
+    <div class="sound-bar" style="background-color: rgb(251, 207, 10)"></div>
+    <div class="sound-bar" style="background-color: rgb(251, 207, 10)"></div>
+    <div class="sound-bar" style="background-color: rgb(251, 207, 10)"></div>
+    <div class="sound-bar" style="background-color: rgb(251, 207, 10)"></div>
+  </div>
+
+  <ul role="presentation">
+            <li>
+        <!-- To check for child items, use item.items -->
+        <a
+            href="https://www.hendrik-erz.de"
+            class=""
+        >
+            Home
+        </a>
+    </li>
+        <li>
+        <!-- To check for child items, use item.items -->
+        <a
+            href="https://www.hendrik-erz.de/blog"
+            class=""
+        >
+            Blog
+        </a>
+    </li>
+        <li>
+        <!-- To check for child items, use item.items -->
+        <a
+            href="https://www.hendrik-erz.de/cv"
+            class=""
+        >
+            CV
+        </a>
+    </li>
+        <li>
+        <!-- To check for child items, use item.items -->
+        <a
+            href="https://www.hendrik-erz.de/resources"
+            class=""
+        >
+            Resources
+        </a>
+    </li>
+        <!-- END: Static pages. Here follow only additional links (Twitter etc.) -->
+    <li>
+        <!-- We use a nested list for items that should not be broken up (aka a group) -->
+        <ul role="presentation">
+            <li>
+                <a href="https://bsky.app/profile/hendrikerz.bsky.social" target="_blank" rel="nofollow" title="Follow me on Bluesky">
+                    <i data-feather="at-sign"></i>
+                </a>
+            </li>
+            <li style="display: none;">
+                <a href="https://www.twitter.com/sahiralsaid/" target="_blank" rel="nofollow" title="Follow me on Twitter">
+                    <i data-feather="twitter"></i>
+                </a>
+            </li>
+            <li>
+                <a rel="me" href="https://scholar.social/@hendrikerz" target="_blank" title="Follow me on Mastodon">
+                    <!-- Unfortunately, feather icons does not have a Mastodon SVG -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 216.4144 232.00976" fill="none" stroke="currentColor" stroke-width="15" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M211.80734 139.0875c-3.18125 16.36625-28.4925 34.2775-57.5625 37.74875-15.15875 1.80875-30.08375 3.47125-45.99875 2.74125-26.0275-1.1925-46.565-6.2125-46.565-6.2125 0 2.53375.15625 4.94625.46875 7.2025 3.38375 25.68625 25.47 27.225 46.39125 27.9425 21.11625.7225 39.91875-5.20625 39.91875-5.20625l.8675 19.09s-14.77 7.93125-41.08125 9.39c-14.50875.7975-32.52375-.365-53.50625-5.91875C9.23234 213.82 1.40609 165.31125.20859 116.09125c-.365-14.61375-.14-28.39375-.14-39.91875 0-50.33 32.97625-65.0825 32.97625-65.0825C49.67234 3.45375 78.20359.2425 107.86484 0h.72875c29.66125.2425 58.21125 3.45375 74.8375 11.09 0 0 32.975 14.7525 32.975 65.0825 0 0 .41375 37.13375-4.59875 62.915"/>
+                      <path d="M177.50984 80.077v60.94125h-24.14375v-59.15c0-12.46875-5.24625-18.7975-15.74-18.7975-11.6025 0-17.4175 7.5075-17.4175 22.3525v32.37625H96.20734V85.42325c0-14.845-5.81625-22.3525-17.41875-22.3525-10.49375 0-15.74 6.32875-15.74 18.7975v59.15H38.90484V80.077c0-12.455 3.17125-22.3525 9.54125-29.675 6.56875-7.3225 15.17125-11.07625 25.85-11.07625 12.355 0 21.71125 4.74875 27.8975 14.2475l6.01375 10.08125 6.015-10.08125c6.185-9.49875 15.54125-14.2475 27.8975-14.2475 10.6775 0 19.28 3.75375 25.85 11.07625 6.36875 7.3225 9.54 17.22 9.54 29.675"/>
+                    </svg>
+                </a>
+            </li>
+            <li>
+                <a href="https://github.com/nathanlesage/" target="_blank" rel="nofollow" title="Hendrik Erz on GitHub">
+                    <i data-feather="github"></i>
+                </a>
+            </li>
+            <li>
+                <a href="https://www.linkedin.com/in/hendrik-erz/" target="_blank" rel="nofollow" title="Hendrik Erz on LinkedIn">
+                    <i data-feather="linkedin"></i>
+                </a>
+            </li>
+            <li>
+                <a href="https://www.instagram.com/political.sociologist/" target="_blank" rel="nofollow" title="Follow me on Instagram">
+                    <i data-feather="instagram"></i>
+                </a>
+            </li>
+            <li>
+                <a href="https://www.hendrik-erz.de/feed.xml" target="_blank" title="Subscribe to my blog">
+                    <i data-feather="rss"></i>
+                </a>
+            </li>   
+        </ul>
+    </li>
+</ul></nav>            </header>
+     
+            <section id="content">
+                <img id="hero-image" src="https://www.hendrik-erz.de/storage/app/media/blog_hero.jpg" aria-hidden="true">
+
+<!-- Display all blog posts-->
+<form action="https://www.hendrik-erz.de/blog/6" method="GET">
+    <input id="blog-search" type="search" name="search" placeholder="Search the blog…" value="">
+</form>
+    <div class="post-wrapper">
+        <h2 class="post-list-heading"><a href="https://www.hendrik-erz.de/post/sparse-matrices-or-how-to-store-10-gb-data-in-100-mb">Sparse Matrices, or: How to store 10 GB of data in 100 MB</a></h2>
+        <div class="post-list-metadata">
+            January 21st, 2022 | by Hendrik
+        </div>
+    
+        <p class="post-abstract">
+            Working with large datasets requires to constantly improve your memory management skills. While I have figured out how to read in a lot of data efficiently a year ago, in today's article I show you how I learned to store information efficiently once I had read it in.
+        </p>
+    </div>
+    <div class="post-wrapper">
+        <h2 class="post-list-heading"><a href="https://www.hendrik-erz.de/post/open-source-has-a-sustainability-crisis">Open Source has a Sustainability Crisis</a></h2>
+        <div class="post-list-metadata">
+            January 14th, 2022 | by Hendrik
+        </div>
+    
+        <p class="post-abstract">
+            I have already written about the somewhat desolate status of Open Source. However, given the recent incident involving colors.js and GitHub user Marak, I argue that these dumpster fires are being fueled by what I call a Sustainability Crisis of Open Source. There is no easy way out, but we cannot forsake Open Source either.
+        </p>
+    </div>
+    <div class="post-wrapper">
+        <h2 class="post-list-heading"><a href="https://www.hendrik-erz.de/post/death-by-proxy">Death by Proxy</a></h2>
+        <div class="post-list-metadata">
+            January 7th, 2022 | by Hendrik
+        </div>
+    
+        <p class="post-abstract">
+            Happy New Year everyone! Let me kick off this year on the blog with a piece on something that has recently caused me some headaches. This new thing is called “Proxy” and, while it is a pretty fancy new way of handling your data in JavaScript, it can make you sad real quick. It is one of these things that can cause very exotic and disturbing looking errors which don’t make sense at first.
+        </p>
+    </div>
+    <div class="post-wrapper">
+        <h2 class="post-list-heading"><a href="https://www.hendrik-erz.de/post/analyse-koalitionsvertrag-2021-spd-grune-fdp-ampel">Analyse: Der Koalitionsvertrag zwischen SPD, Bündnis 90/Die Grünen, und der FDP</a></h2>
+        <div class="post-list-metadata">
+            December 3rd, 2021 | by Hendrik
+        </div>
+    
+        <p class="post-abstract">
+            Am 24. November 2021 veröffentlichten die prospektiven Koalitionspartner SPD, Bündnis 90/Die Grünen und die FDP ihren "Ampel"-Koalitionsvertrag für die kommende Legislaturperiode. Vor allem die FDP schien viel Erfolg in den Koalitionsverhandlungen zu haben. In diesem Artikel überprüfe ich diese Hypothese.
+        </p>
+    </div>
+    <div class="post-wrapper">
+        <h2 class="post-list-heading"><a href="https://www.hendrik-erz.de/post/why-you-shouldnt-use-sqlite">Why You Shouldn&#039;t Use SQLite</a></h2>
+        <div class="post-list-metadata">
+            September 16th, 2021 | by Hendrik
+        </div>
+    
+        <p class="post-abstract">
+            While SQLite databases are very convenient for storing application data, you should not store any significant amount of research data in them. In this article, I explain why.
+        </p>
+    </div>
+    <div class="post-wrapper">
+        <h2 class="post-list-heading"><a href="https://www.hendrik-erz.de/post/do-colorless-green-ideas-really-sleep-furiously">Do Colorless Green Ideas Really Sleep Furiously?</a></h2>
+        <div class="post-list-metadata">
+            September 12th, 2021 | by Hendrik
+        </div>
+    
+        <p class="post-abstract">
+            Do language models have a real understanding of language? No. But are they subsequently useless? Also no. In this article, I shed light onto a decades-old linguistic debate and what the state of the art of language models looks like. Brace yourself for a fierce discussion between Claude Shannon, John Firth, Noam Chomsky, and Ludwig Wittgenstein!
+        </p>
+    </div>
+    <div class="post-wrapper">
+        <h2 class="post-list-heading"><a href="https://www.hendrik-erz.de/post/back-to-sweden">Back to Sweden</a></h2>
+        <div class="post-list-metadata">
+            September 3rd, 2021 | by Hendrik
+        </div>
+    
+        <p class="post-abstract">
+            After almost a year of Corona-induced remote work, it's time to return to Sweden.
+        </p>
+    </div>
+    <div class="post-wrapper">
+        <h2 class="post-list-heading"><a href="https://www.hendrik-erz.de/post/ocr-error-correction-take-2">OCR Error Correction, Take 2</a></h2>
+        <div class="post-list-metadata">
+            August 27th, 2021 | by Hendrik
+        </div>
+    
+        <p class="post-abstract">
+            Last week I wrote about OCR error correction and the three general approaches to it. Over the week, I got practical and fixed OCR errors in my dataset. However, I used a fourth approach, which is much more efficient and fixed about 80% of all OCR errors. Read more on my progress!
+        </p>
+    </div>
+    <div class="post-wrapper">
+        <h2 class="post-list-heading"><a href="https://www.hendrik-erz.de/post/on-the-state-of-ocr-correction">On the State of OCR Correction</a></h2>
+        <div class="post-list-metadata">
+            August 23rd, 2021 | by Hendrik
+        </div>
+    
+        <p class="post-abstract">
+            If you have ever worked with text, you will know the huge pain that OCR (Optical Character Recognition) errors can pose. OCR has one job: Detect all the letters and numbers on an image and spit out a text file that contains the text that has been recognized. However, OCR errors still occur frequently. Here I outline what I've learned so far in this regard.
+        </p>
+    </div>
+    <div class="post-wrapper">
+        <h2 class="post-list-heading"><a href="https://www.hendrik-erz.de/post/afghanistan-has-fallen">Afghanistan has fallen</a></h2>
+        <div class="post-list-metadata">
+            August 16th, 2021 | by Hendrik
+        </div>
+    
+        <p class="post-abstract">
+            Every generation has their own catastrophic crisis to bear. Be it the French revolution, the two World Wars, Vietnam, the collapse of the Soviet Union or the 2008 financial crisis. For me and my generation, it was Afghanistan. And now, after twenty years – my whole adult life –, all of this is over. Afghanistan is lost, and with it all hope that, after more than fourty years, Afghanistan may return to its pre-war peace.
+        </p>
+    </div>
+<div class="pagination-container" style="text-align: center">
+<p class="sans-font small" style="margin: 0; text-align: center;">You are viewing page 6 of 10</p>
+<div class="paginator">
+                                                
+        <a
+      href="https://www.hendrik-erz.de/blog/1"
+      title="First page"
+     >
+        <i data-feather="chevrons-left"></i>
+    </a>
+    
+    <a
+            href="https://www.hendrik-erz.de/blog/5"
+            title="Previous page"
+    >
+        <i data-feather="chevron-left"></i>
+    </a>
+
+        <a
+      href="https://www.hendrik-erz.de/blog/5"
+      class=""
+    >
+    5
+    </a>
+        <a
+      href="https://www.hendrik-erz.de/blog/6"
+      class="active"
+    >
+    6
+    </a>
+        <a
+      href="https://www.hendrik-erz.de/blog/7"
+      class=""
+    >
+    7
+    </a>
+    
+    <a
+            href="https://www.hendrik-erz.de/blog/7"
+            title="Next page"
+     >
+        <i data-feather="chevron-right"></i>
+    </a>
+    
+        <a
+      href="https://www.hendrik-erz.de/blog/10"
+      title="Last page"
+     >
+        <i data-feather="chevrons-right"></i>
+    </a>
+    </div>
+</div>            </section>
+     
+            <footer>
+    <p>
+        &copy; 2020 &ndash; 2024 Hendrik Erz |
+        Inspired by <a href="https://edwardtufte.github.io/tufte-css/" target="_blank" rel="nofollow">Tufte CSS</a> |
+        Built on <a href="https://www.wintercms.com/" target="_blank" rel="nofollow">Winter CMS</a>
+    </p>
+    <!-- Display a toggle so that users can choose which mode they want -->
+<div class="theme-switcher">
+  <span><i data-feather="sun"></i></span>
+  <div class="three-way-radio horizontal">
+    <!-- Add the three radios -->
+    <label for="footer-ui-mode-left"></label>
+    <input type="radio" name="ui-mode" id="footer-ui-mode-left" class="left" value="left" data-action="ui-mode-light">
+    <label for="footer-ui-mode-center"></label>
+    <input type="radio" name="ui-mode" id="footer-ui-mode-center" class="center" value="center" data-action="ui-mode-system">
+    <label for="footer-ui-mode-right"></label>
+    <input type="radio" name="ui-mode" id="footer-ui-mode-right" class="right" value="right"  data-action="ui-mode-dark">
+    
+    <!-- This is the actual indicator -->
+    <div class="indicator"></div>
+  </div>
+  <span><i data-feather="moon"></i></span>
+</div></footer>        </div>
+        <!-- Include the framework scripts -->
+            </body>
+</html>
