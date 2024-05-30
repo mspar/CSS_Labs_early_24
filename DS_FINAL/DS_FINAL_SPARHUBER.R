@@ -79,3 +79,20 @@ complete_df <- complete_df |> column_to_rownames(var = "countries")
 res <- PCA(complete_df, quali.sup = quali_sup, quanti.sup = quanti_sup, graph = FALSE)
 
 explor(res)
+
+# Questions:
+
+# question about scaling:
+# how does it work when the range of one of my 0-10 vars is actually 0-9 or 2-10 
+# in my data? does this matter? can I "manually scale"? 
+
+# as a reminder: with the contributions from PCA you can go on to do clustering?
+
+# how to go on from clustering results? --> regressions etc?
+
+# generally about the paper -> focus on exploration & visualization?
+
+# finding a research question: base it on PCA axes? I was interested in the connection
+# between freedom and minimum wage but I guess this kind of gets lost with PCA.
+
+# can I have another 10mins on the 5th?
