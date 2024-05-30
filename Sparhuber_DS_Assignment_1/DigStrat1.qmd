@@ -1,0 +1,85 @@
+---
+title: "Psychotherapists in Austria: Space and Time"
+subtitle: "Digital Strategies - Assignment 1"
+author: Marc Sparhuber
+format: pdf
+editor: source
+execute:
+  warning: false
+  echo: false
+toc: true
+header-includes:
+      - \usepackage{float}
+      - \floatplacement{table}{H}
+---
+
+\newpage
+
+## Scraping Project
+
+> Psychotherapists are an increasingly demanded profession in modern society. Therefore, their spatial distribution throughout a country to serve the needs of potential clients is crucial. It is expected that relative to the number of local residents, the number of psychotherapists in cities will be larger than of those in more rural areas, though this won't be tested here, as this report is descriptive and preliminary in nature. Time, on the other hand, has brought with it changes to the approaches and areas of expertise within the psychotherapeutic profession. It is expected that psychotherapists in training tend to prefer approaches more akin to behavioral psychotherapy, with fewer of them engaging in the less "empirical" approaches. Likewise, psychotherapists in training are expected to highlight the emerging issues of current day society in their espoused areas of expertise more frequently than full psychotherapists do. In combination, these two dimensions of space and time, meaning psychotherapists' adopted approaches and areas of expertise, are expected to interact in a way that leave rural spaces in the past.
+
+> Concretely, these changes would be observed with several sources of data but within this scraping project, data from the Austrian Association of Psychotherapists is mined. It contains the spacial dimension by indicating the place of work of the practitioner, as well as the approaches, areas of expertise and languages spoken (besides German). Though insufficient for a deeper analysis, this sample of 100 psychotherapists allows a descriptive glimpse into the questions and expectations posed above.
+
+## Legality
+
+> While it is often illegal to scrape websites due to copyright or database rights, in the EU data mining is fine to do in many circumstances, as outlined in the directive 2019/790 of the European Parliament. Due to the data scraped for this project being freely accessible by anyone and obtained legally, it is legally scraped within the frame defined by directive 2019/790. No theft, nor cheating were perpetrated in order to obtain the data either. I did, however, store the data on a publicly accessible git repository, which does not guarantee sufficient data security. Upon writing, this has been fixed and the data added to the .gitignore. Further, it needs to be said that although the information collected here contains clear names and work addresses of individuals, this information is publicly made accessible by the individuals in question with the specific intent of being found by potential clients. In no way will this assignment harm the sample it uses.
+
+> The following analysis' use of personal data falls within the bounds of carrying out a task for the public interest, as new, interesting information may be found. This may even be of benefit to the controllers of this data. Further, the analysis does not make use of any special categories of personal data as defined by the GDPR.
+
+```{r}
+library(tidyverse)
+
+results <- read_rds(paste0(here::here(), "/scrape_results_1.Rds"))
+```
+
+```{r}
+# full therapist vs. in education under supervision?
+
+results <- results |> mutate(title = if_else(title == "Psychotherapeut:in", "Psychotherapist", "Psychotherapist in Education and Supervision"))
+
+category_counts <- table(results$title)
+# to percent
+percentages <- prop.table(category_counts) * 100
+# plotting df
+data.frame(category = names(percentages), percentage = as.numeric(percentages)) |> 
+ggplot(aes(x = category, y = percentage)) +
+  geom_bar(stat = "identity", fill = "lightgreen", width = 0.5) +
+  labs(x = "Professional Status", y = "Percent in Sample", title = "Percentage Professional Status in Sample") +
+  theme_light() +
+  theme(legend.position="bottom")
+```
+
+```{r}
+#| fig-width: 11
+#| fig-height: 9
+
+# types of therapy? -> list by amount horizontal barplot
+
+results |> drop_na(specialisation) |>
+  ggplot(aes(x = fct_infreq(specialisation), fill = title)) +
+  geom_bar() +
+  theme_light() +
+  theme(legend.position="bottom") +
+  labs(y = "Times offered in Sample", x = "Therapy Types offered", title = "Number of Psychotherapeutic Approaches Offered in sample colored by Professional Status", fill = "Professional Status") +
+  coord_flip()
+```
+
+```{r}
+#| fig-width: 10
+#| fig-height: 9
+
+# types of expertise? -> list by amount horizontal barplot
+
+results |>
+  unnest(expertise) |>
+  drop_na(expertise) |> 
+  ggplot(aes(x = fct_infreq(expertise), fill = title)) +
+  geom_bar() +
+  theme_light() +
+  theme(legend.position="bottom") +
+  labs(y = "Times mentioned in Sample", x = "Areas of expertise", title = "Number of Areas of Expertise mentioned by Practicioners colored by Professional Status", fill = "Professional Status") +
+  coord_flip()
+```
+
+

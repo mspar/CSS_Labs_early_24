@@ -1,3 +1,10 @@
+# balance of topics within PCA
+# make sure to take a look
+# --> acknowledge or fix
+# 
+# maybe us MISMDA package? for dealing with missings
+
+
 library(FactoMineR)
 library(explor)
 library(mice)
@@ -55,7 +62,8 @@ md.pattern(df)
 df_imp <- mice(df)
 
 complete_df <- complete(df_imp)
-
+# -> 4-5 sentencens
+# appendix with values of columns you're keeping before and after imputation
 
 # PCA
 
@@ -87,12 +95,43 @@ explor(res)
 # in my data? does this matter? can I "manually scale"? 
 
 # as a reminder: with the contributions from PCA you can go on to do clustering?
+## -> dimensions of the new coords are used
+## -> when using clustering after then use more dimensions!! -> probably like 90% of explained variance
 
 # how to go on from clustering results? --> regressions etc?
+
+# PCA: explanantoon
+# opposing variables
+# who contributes
+# cos^2
+# and coordinates
+# but just do this for 1 and 2 PC
+# very briefly for further PCs
 
 # generally about the paper -> focus on exploration & visualization?
 
 # finding a research question: base it on PCA axes? I was interested in the connection
 # between freedom and minimum wage but I guess this kind of gets lost with PCA.
+## different definitions of freedom?? level them against each other
+## maybe evolution of concepts over time
+## how does it change across countries?
+## cultural blah
 
 # can I have another 10mins on the 5th?
+# 
+# 
+# structure:
+# explicit about each section
+# introduction with RQ
+# literature review after
+# data section where you present data as though they didn't know it:
+## missing data
+# methods present them 
+# --> "explanation to classmates"
+# did you make any choices -> why PCA? why PCA good?
+# results:
+## state number of axes and number of clusters
+## have detailled interpretataions of 2 PCs
+# discussion: tie it back together
+## how do these things relate
+
