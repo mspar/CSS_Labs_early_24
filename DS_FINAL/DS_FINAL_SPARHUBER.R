@@ -65,6 +65,10 @@ complete_df <- complete(df_imp)
 # -> 4-5 sentencens
 # appendix with values of columns you're keeping before and after imputation
 
+# save this cause it takes a while to run each time
+write_rds(complete_df, "complete_df.rds")
+
+complete_df <- read_rds("complete_df.rds")
 # PCA
 
 # other supplementary variables should be scores calculated from the existing data
@@ -76,17 +80,31 @@ complete_df <- complete(df_imp)
 complete_df <- complete_df |> column_to_rownames(var = "countries")
 # double check everything is numeric - 3 columns are not (the country indicators) - 
 # these shall be added to the supplementary information during PCA
-(complete_df |> ncol() - complete_df |> select(where(is.numeric)) |> ncol())
-(quali_sup <- complete_df |> select(!where(is.numeric)) |> colnames())
+## (complete_df |> ncol() - complete_df |> select(where(is.numeric)) |> ncol())
+# actually I've decided to just remove all quali sups aside from region
+complete_df <- complete_df |> select(-c(ISO_code, year))
 # other supplementary variables should be scores calculated from the existing data
 # I argue that this information is not useful to exploratory data analysis
 # as it is a product of the other data and provides no unique information
 (quanti_sup <- complete_df |> select(contains(c("score", "rank", "quartile"))) |> colnames())
 
 
-res <- PCA(complete_df, quali.sup = quali_sup, quanti.sup = quanti_sup, graph = FALSE)
+res <- PCA(complete_df, quali.sup = "region", quanti.sup = quanti_sup, graph = FALSE)
 
 explor(res)
+
+# HClust
+
+newDatCluster <- res$ind$coord[, 1:2]
+
+hc <- dist(newDatCluster, method = "euclidean") #Distance
+res.hc <- hclust(hc, method = "ward.D2") #Linkage
+plot(res.hc, cex = 0.5, hang = -1)
+rect.hclust(res.hc, k = 3, border = 2:7)
+factoextra::fviz_nbclust(complete_df, hcut, hc_method = "ward.D2", method = c("silhouette")) # REPLICATE THIS WITH LINE 85 and 83 from lab9
+
+cluster <- cutree(res.hc, 3)
+plot(newDatCluster[, 1:2], col = cluster)
 
 # Questions:
 
