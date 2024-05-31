@@ -9,7 +9,10 @@ library(FactoMineR)
 library(explor)
 library(mice)
 library(tidyverse)
-
+library(NbClust)
+library(factoextra)
+library(cluster)
+library(tmap)
 
 hfi2008_2016 <- read_csv(paste0(here::here(),"/DS_FINAL/HFI/hfi2008_2016.csv"))
 # maybe religious freedom and labour market regulation?
@@ -93,7 +96,14 @@ res <- PCA(complete_df, quali.sup = "region", quanti.sup = quanti_sup, graph = F
 
 explor(res)
 
+# PCA visualization plan:
+## -> Scree plot
+plot(res$eig[, 2], type = "o") # -> find nicer way to plot this (there are)
+## Other plots exported from explor
+
+
 # HClust
+## WORK THROUGH HIERARCHICAL CLUSTERING AGAIN JUST TO MAKE SURE I GOT IT RIGHT
 
 newDatCluster <- res$ind$coord[, 1:2]
 
@@ -101,10 +111,27 @@ hc <- dist(newDatCluster, method = "euclidean") #Distance
 res.hc <- hclust(hc, method = "ward.D2") #Linkage
 plot(res.hc, cex = 0.5, hang = -1)
 rect.hclust(res.hc, k = 3, border = 2:7)
-factoextra::fviz_nbclust(complete_df, hcut, hc_method = "ward.D2", method = c("silhouette")) # REPLICATE THIS WITH LINE 85 and 83 from lab9
+factoextra::fviz_nbclust(complete_df, hcut, hc_method = "ward.D2", method = c("silhouette"))
+# REPLICATE THIS WITH LINE 85 and 83 from lab9
 
 cluster <- cutree(res.hc, 3)
 plot(newDatCluster[, 1:2], col = cluster)
+
+
+# mapping test
+data("World")
+
+## left join cluster belonging
+name <- res.hc$labels |> as.data.frame() |> rename(name = `res.hc$labels`)
+unname(cluster) |> as.data.frame() |> rename(Clusters = `unname(cluster)`) |> cbind(name) -> suppl_df
+
+World2 <- left_join(World, suppl_df, by = join_by(name))
+
+tm_shape(World2) +
+  tm_polygons("Clusters", palette = rev(hcl.colors(3, "ag_GrnYl"))) +
+  tm_layout(main.title = "Clustering Human Freedom") +
+  tm_credits("Data: Human Freedom Index, 2016", fontface = "italic", align = "right")
+
 
 # Questions:
 
@@ -134,6 +161,7 @@ plot(newDatCluster[, 1:2], col = cluster)
 ## maybe evolution of concepts over time
 ## how does it change across countries?
 ## cultural blah
+## https://plato.stanford.edu/entries/liberty-positive-negative/
 
 # can I have another 10mins on the 5th?
 # 
